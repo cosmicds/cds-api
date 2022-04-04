@@ -1,0 +1,10 @@
+CREATE TABLE Galaxies(
+    id int(11) UNSIGNED NOT NULL UNIQUE AUTO_INCREMENT,
+    name varchar(32) NOT NULL UNIQUE,
+    ra FLOAT NOT NULL,
+    decl FLOAT NOT NULL,
+    z FLOAT NOT NULL,
+    type varchar(10) NOT NULL,
+
+    PRIMARY KEY(id)
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci PACK_KEYS=0;
