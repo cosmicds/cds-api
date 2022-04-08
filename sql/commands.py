@@ -73,8 +73,8 @@ def drop_database(cursor, db_name):
 def upload_galaxy_data(cursor):
     execute_file(cursor, join(script_dir, "insert_galaxy_data.sql"))
 
-conn = connect_to_cds_db()
-#conn = connect_to_local_db()
+#conn = connect_to_cds_db()
+conn = connect_to_local_db()
 
 cursor = conn.cursor()
 use_database(cursor, "cosmicds_db")

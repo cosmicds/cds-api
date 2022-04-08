@@ -22,6 +22,17 @@ import { initializeStoryStateModel, StoryState } from './models/story_state';
 
 type SequelizeError = { parent: { code: string } };
 
+export type LoginResponse = {
+  result: LoginResult;
+  id?: number;
+  valid: boolean;
+};
+
+export type CreateClassResponse = {
+  result: CreateClassResult;
+  class?: object;
+}
+
 // A namespace for creating v5 UUIDs
 const cdsNamespace = "0a69782c-f1af-48c5-9aaf-078a4e511518";
 function createV5(name: string): string {
@@ -220,20 +231,23 @@ export async function signUpStudent(username: string,
   return result;
 }
 
-export async function createClass(educatorID: number, name: string): Promise<CreateClassResult> {
+export async function createClass(educatorID: number, name: string): Promise<CreateClassResponse> {
   
   let result = CreateClassResult.Ok;
   const nameString = `${educatorID}_${name}`;
   const code = createV5(nameString);
-  await Class.create({
+  const creationInfo = {
     educator_id: educatorID,
     name: name,
     code: code,
-  })
+  }
+  await Class.create(creationInfo)
   .catch(error => {
     result = createClassResultFromError(error);
   });
-  return result;
+
+  let info = result === CreateClassResult.Ok ? creationInfo : undefined;
+  return { result: result, class: info };
 }
 
 export async function addStudentToClass(studentID: number, classID: number): Promise<StudentsClasses> {
@@ -243,17 +257,19 @@ export async function addStudentToClass(studentID: number, classID: number): Pro
   });
 }
 
-async function checkLogin<T extends Model & User>(email: string, password: string, emailFinder: (email: string) => Promise<T | null>): Promise<LoginResult> {
+async function checkLogin<T extends Model & User>(email: string, password: string, emailFinder: (email: string)
+  => Promise<T | null>): Promise<LoginResponse> {
+
   const encryptedPassword = encryptPassword(password);
   const user = await emailFinder(email);
   if (user === null) {
-    return LoginResult.EmailNotExist;
+    return { result: LoginResult.EmailNotExist, valid: false };
   }
   if (user.password !== encryptedPassword) {
-    return LoginResult.IncorrectPassword;
+    return { result: LoginResult.IncorrectPassword, valid: false };
   }
   if (user.verified !== 1) {
-    return LoginResult.NotVerified;
+    return { result: LoginResult.NotVerified, valid: false };
   }
   user.update({
     visits: user.visits + 1,
@@ -261,14 +277,14 @@ async function checkLogin<T extends Model & User>(email: string, password: strin
   }, {
     where: { id: user.id }
   });
-  return LoginResult.Ok;
+  return {result: LoginResult.Ok, id: user.id, valid: true };
 }
 
-export async function checkStudentLogin(email: string, password: string): Promise<LoginResult> {
+export async function checkStudentLogin(email: string, password: string): Promise<LoginResponse> {
   return checkLogin(email, password, studentWithEmail);
 }
 
-export async function checkEducatorLogin(email: string, password: string): Promise<LoginResult> {
+export async function checkEducatorLogin(email: string, password: string): Promise<LoginResponse> {
   return checkLogin(email, password, educatorWithEmail);
 }
 
@@ -343,6 +359,14 @@ export async function getAllGalaxies(): Promise<Galaxy[]> {
   return Galaxy.findAll();
 }
 
+export async function getAllStudents(): Promise<Student[]> {
+  return Student.findAll();
+}
+
+export async function getAllEducators(): Promise<Educator[]> {
+  return Educator.findAll();
+}
+
 export async function getStoryState(studentID: number, storyName: string): Promise<JSON | null> {
   const result = await StoryState.findAll({
     where: {
@@ -358,4 +382,20 @@ export async function getStoryState(studentID: number, storyName: string): Promi
     return null;
   }
   return result[0].story_state;
+}
+
+export async function getClassesForEducator(educatorID: number): Promise<Class[]> {
+  return Class.findAll({
+    where: {
+      educator_id: educatorID
+    }
+  });
+}
+
+export async function deleteClass(id: number): Promise<number> {
+  return Class.destroy({
+    where: {
+      id: id
+    }
+  });
 }
