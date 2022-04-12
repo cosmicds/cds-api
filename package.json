@@ -3,7 +3,7 @@
     "build": "tsc",
     "lint": "node_modules/.bin/eslint src --ext .ts",
     "serve": "node dist/server.js",
-    "start": "npm run build && npm run serve"
+    "start": "npm run serve"
   },
   "dependencies": {
     "@types/body-parser": "^1.19.2",
