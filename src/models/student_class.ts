@@ -15,7 +15,7 @@ export function initializeStudentClassModel(sequelize: Sequelize) {
             allowNull: false,
             references: {
                 model: Student,
-                key: 'id'
+                key: "id"
             }
         },
         class_id: {
@@ -23,7 +23,7 @@ export function initializeStudentClassModel(sequelize: Sequelize) {
             allowNull: false,
             references: {
                 model: Class,
-                key: 'id'
+                key: "id"
             }
         },
         joined: {

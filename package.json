@@ -1,6 +1,7 @@
 {
   "scripts": {
     "build": "tsc",
+    "lint": "node_modules/.bin/eslint src --ext .ts",
     "serve": "node dist/server.js",
     "start": "npm run build && npm run serve"
   },
@@ -25,6 +26,10 @@
     "@types/crypto-js": "^4.1.0",
     "@types/express-session": "^1.17.4",
     "@types/uuid": "^8.3.4",
+    "@typescript-eslint/eslint-plugin": "^5.19.0",
+    "@typescript-eslint/parser": "^5.19.0",
+    "eslint": "^8.13.0",
+    "eslint-plugin-vue": "^8.6.0",
     "sass": "~1.32.0",
     "sass-loader": "^10.0.0",
     "typescript": "^4.5.5"

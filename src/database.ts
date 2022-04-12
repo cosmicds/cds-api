@@ -1,12 +1,12 @@
-import { Model, Op, Sequelize } from 'sequelize';
-import { Class, initializeClassModel } from './models/class';
-import { Educator, initializeEducatorModel } from './models/educator';
-import { Student, initializeStudentModel } from './models/student';
-import { StudentsClasses, initializeStudentClassModel } from './models/student_class';
-import { HubbleMeasurement, initializeHubbleMeasurementModel } from './models/hubble_measurement';
-import { enc, SHA256 } from 'crypto-js';
-import { randomString } from './utils';
-import { v5 } from 'uuid';
+import { Model, Op, Sequelize } from "sequelize";
+import { Class, initializeClassModel } from "./models/class";
+import { Educator, initializeEducatorModel } from "./models/educator";
+import { Student, initializeStudentModel } from "./models/student";
+import { StudentsClasses, initializeStudentClassModel } from "./models/student_class";
+import { HubbleMeasurement, initializeHubbleMeasurementModel } from "./models/hubble_measurement";
+import { enc, SHA256 } from "crypto-js";
+import { randomString } from "./utils";
+import { v5 } from "uuid";
 
 import {
   CreateClassResult,
@@ -14,11 +14,11 @@ import {
   SignUpResult,
   VerificationResult,
   SubmitHubbleMeasurementResult
-} from './request_results';
+} from "./request_results";
 
-import { User } from './user';
-import { Galaxy, initializeGalaxyModel } from './models/galaxy';
-import { initializeStoryStateModel, StoryState } from './models/story_state';
+import { User } from "./user";
+import { Galaxy, initializeGalaxyModel } from "./models/galaxy";
+import { initializeStoryStateModel, StoryState } from "./models/story_state";
 
 type SequelizeError = { parent: { code: string } };
 
@@ -39,9 +39,9 @@ function createV5(name: string): string {
   return v5(name, cdsNamespace);
 }
 
-export const cosmicdsDB = new Sequelize('cosmicds_db', 'cdsadmin', '5S4R1qCxzQg0', {
+export const cosmicdsDB = new Sequelize("cosmicds_db", "cdsadmin", "5S4R1qCxzQg0", {
     host: "cosmicds-db.cupwuw3jvfpc.us-east-1.rds.amazonaws.com",
-    dialect: 'mysql',
+    dialect: "mysql",
     define: {
       timestamps: false
     }
@@ -87,7 +87,7 @@ function encryptPassword(password: string): string {
 function signupResultFromError(error: SequelizeError): SignUpResult {
   const code = error.parent.code;
   switch (code) {
-    case 'ER_DUP_ENTRY':
+    case "ER_DUP_ENTRY":
       return SignUpResult.EmailExists;
     default:
       return SignUpResult.Error;
@@ -97,7 +97,7 @@ function signupResultFromError(error: SequelizeError): SignUpResult {
 function createClassResultFromError(error: SequelizeError): CreateClassResult {
   const code = error.parent.code;
   switch (code) {
-    case 'ER_DUP_ENTRY':
+    case "ER_DUP_ENTRY":
       return CreateClassResult.AlreadyExists;
     default:
       return CreateClassResult.Error;
@@ -240,13 +240,13 @@ export async function createClass(educatorID: number, name: string): Promise<Cre
     educator_id: educatorID,
     name: name,
     code: code,
-  }
+  };
   await Class.create(creationInfo)
   .catch(error => {
     result = createClassResultFromError(error);
   });
 
-  let info = result === CreateClassResult.Ok ? creationInfo : undefined;
+  const info = result === CreateClassResult.Ok ? creationInfo : undefined;
   return { result: result, class: info };
 }
 
@@ -314,7 +314,6 @@ export async function submitHubbleMeasurement(data: {
   .catch(console.log);
 
   if (measurement) {
-    data
     measurement.update(data, {
       where: {
         [Op.and]: [

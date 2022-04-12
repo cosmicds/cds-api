@@ -16,7 +16,7 @@ import {
   getStoryState,
   LoginResponse,
   getClassesForEducator,
-} from './database';
+} from "./database";
 
 import {
   CreateClassResult,
@@ -24,18 +24,19 @@ import {
   SignUpResult,
   VerificationResult,
   SubmitHubbleMeasurementResult
-} from './request_results';
+} from "./request_results";
 
-import { ParsedQs } from 'qs';
-import express, { Response } from 'express';
-import bodyParser from 'body-parser';
-import cookieParser from 'cookie-parser';
-import session from 'express-session';
-import sequelizeStore from 'connect-session-sequelize';
-import { v4 } from 'uuid';
-import cors from 'cors';
+import { ParsedQs } from "qs";
+import express, { Response } from "express";
+import bodyParser from "body-parser";
+import cookieParser from "cookie-parser";
+import session from "express-session";
+import sequelizeStore from "connect-session-sequelize";
+import { v4 } from "uuid";
+import cors from "cors";
 const app = express();
 
+// eslint-disable-next-line @typescript-eslint/ban-types
 type GenericRequest = express.Request<{}, any, any, ParsedQs, Record<string, any>>;
 type VerificationRequest = express.Request<{verificationCode: string}, any, any, ParsedQs, Record<string, any>>;
 
@@ -43,7 +44,7 @@ const corsOptions = {
     //origin: "http://localhost:8081"
 };
 
-const PRODUCTION = process.env.NODE_ENV === 'production';
+const PRODUCTION = process.env.NODE_ENV === "production";
 const SESSION_MAX_AGE = 24 * 60 * 60;
 
 app.use(cors(corsOptions));
@@ -56,13 +57,13 @@ const store = new SequelizeStore({
 });
 
 app.use(session({
-  secret: 'ADD_REAL_SECRET',
+  secret: "ADD_REAL_SECRET",
   genid: (_req) => v4(),
   store: store,
   resave: false,
   saveUninitialized: false,
   cookie: {
-    path: '/',
+    path: "/",
     maxAge: SESSION_MAX_AGE,
     httpOnly: false,
     secure: PRODUCTION
@@ -84,7 +85,7 @@ app.get("/", (req, res) => {
 function sendUserIdCookie(userId: number, res: Response) : void {
   const expirationTime = 24 * 60 * 60; // one day
   console.log("Sending cookie");
-  res.cookie('userId', userId,
+  res.cookie("userId", userId,
     {
       maxAge: expirationTime ,
       httpOnly: false,
@@ -102,18 +103,18 @@ app.listen(PORT, () => {
 app.put("/educator-sign-up", async (req, res) => {
   const data = req.body;
   const valid = (
-    typeof data.firstName === 'string' &&
-    typeof data.lastName === 'string' &&
-    typeof data.password === 'string' &&
-    ((typeof data.institution === 'string') || (data.institution === null)) &&
-    typeof data.email === 'string' &&
-    ((typeof data.age === 'number') || (data.age === null)) &&
-    typeof data.gender === 'string'
+    typeof data.firstName === "string" &&
+    typeof data.lastName === "string" &&
+    typeof data.password === "string" &&
+    ((typeof data.institution === "string") || (data.institution === null)) &&
+    typeof data.email === "string" &&
+    ((typeof data.age === "number") || (data.age === null)) &&
+    typeof data.gender === "string"
   );
 
   let signUpStatus: SignUpResult;
   if (valid) {
-    signUpStatus = await signUpEducator(data.firstName, data.lastName, data.password, data.institution, data.email, data.age, data.gender)
+    signUpStatus = await signUpEducator(data.firstName, data.lastName, data.password, data.institution, data.email, data.age, data.gender);
   } else {
     signUpStatus = SignUpResult.BadRequest;
   }
@@ -127,17 +128,17 @@ app.put("/educator-sign-up", async (req, res) => {
 app.put("/student-sign-up", async (req, res) => {
   const data = req.body;
   const valid = (
-    typeof data.username === 'string' &&
-    typeof data.password === 'string' &&
-    ((typeof data.institution === 'string') || (data.institution === null)) &&
-    typeof data.email === 'string' &&
-    ((typeof data.age === 'number') || (data.age === null)) &&
-    typeof data.gender === 'string'
+    typeof data.username === "string" &&
+    typeof data.password === "string" &&
+    ((typeof data.institution === "string") || (data.institution === null)) &&
+    typeof data.email === "string" &&
+    ((typeof data.age === "number") || (data.age === null)) &&
+    typeof data.gender === "string"
   );
 
   let signUpStatus: SignUpResult;
   if (valid) {
-    signUpStatus = await signUpStudent(data.username, data.password, data.institution, data.email, data.age, data.gender)
+    signUpStatus = await signUpStudent(data.username, data.password, data.institution, data.email, data.age, data.gender);
   } else {
     signUpStatus = SignUpResult.BadRequest;
   }
@@ -149,7 +150,7 @@ app.put("/student-sign-up", async (req, res) => {
 
 async function handleLogin(request: GenericRequest, checker: (email: string, pw: string) => Promise<LoginResponse>): Promise<LoginResponse> {
   const data = request.body;
-  const valid = typeof data.email === 'string' && typeof data.password === 'string';
+  const valid = typeof data.email === "string" && typeof data.password === "string";
   let response: LoginResponse;
   if (valid) {
     response = await checker(data.email, data.password);
@@ -180,14 +181,14 @@ app.post("/educator-login", async (req, res) => {
 app.put("/create-class", async (req, res) => {
   const data = req.body;
   const valid = (
-    typeof data.educatorID === 'number' &&
-    typeof data.name === 'string'
+    typeof data.educatorID === "number" &&
+    typeof data.name === "string"
   );
 
   let result: CreateClassResult;
   let cls: object | undefined = undefined;
   if (valid) {
-    const response = await createClass(data.educatorID, data.name)
+    const response = await createClass(data.educatorID, data.name);
     result = response.result;
     cls = response.class;
   } else {
@@ -202,7 +203,7 @@ app.put("/create-class", async (req, res) => {
 async function verify(request: VerificationRequest, verifier: (code: string) => Promise<VerificationResult>): Promise<{ code: string; status: VerificationResult }> {
   const params = request.params;
   const verificationCode = params.verificationCode;
-  const valid = typeof verificationCode === 'string';
+  const valid = typeof verificationCode === "string";
 
   let result;
   if (valid) {
@@ -235,18 +236,18 @@ app.put("/verify-educator/:verificationCode", async (req, res) => {
 app.put("/submit-measurement", async (req, res) => {
   const data = req.body;
   const valid = (
-    typeof data.student_id === 'number' &&
-    typeof data.galaxy_id === 'number' &&
-    (!data.rest_wave_value || typeof data.rest_wave_value === 'number') &&
-    (!data.rest_wave_unit || typeof data.rest_wave_unit === 'string') &&
-    (!data.obs_wave_value || typeof data.obs_wave_value === 'number') &&
-    (!data.obs_wave_unit || typeof data.obs_wave_unit === 'string') &&
-    (!data.velocity_value || typeof data.velocity_value === 'number') &&
-    (!data.velocity_unit || typeof data.velocity_unit === 'string') &&
-    (!data.ang_size_value || typeof data.ang_size_value === 'number') &&
-    (!data.ang_size_unit || typeof data.ang_size_unit === 'string') &&
-    (!data.est_dist_value || typeof data.est_dist_value === 'number') &&
-    (!data.est_dist_unit || typeof data.est_dist_unit === 'string')
+    typeof data.student_id === "number" &&
+    typeof data.galaxy_id === "number" &&
+    (!data.rest_wave_value || typeof data.rest_wave_value === "number") &&
+    (!data.rest_wave_unit || typeof data.rest_wave_unit === "string") &&
+    (!data.obs_wave_value || typeof data.obs_wave_value === "number") &&
+    (!data.obs_wave_unit || typeof data.obs_wave_unit === "string") &&
+    (!data.velocity_value || typeof data.velocity_value === "number") &&
+    (!data.velocity_unit || typeof data.velocity_unit === "string") &&
+    (!data.ang_size_value || typeof data.ang_size_value === "number") &&
+    (!data.ang_size_unit || typeof data.ang_size_unit === "string") &&
+    (!data.est_dist_value || typeof data.est_dist_value === "number") &&
+    (!data.est_dist_unit || typeof data.est_dist_unit === "string")
   );
 
   let result: SubmitHubbleMeasurementResult;
