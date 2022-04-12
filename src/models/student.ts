@@ -1,5 +1,5 @@
 import { Sequelize, DataTypes, Model, InferAttributes, InferCreationAttributes, CreationOptional } from "sequelize";
-import { User } from '../user';
+import { User } from "../user";
 
 export class Student extends Model<InferAttributes<Student>, InferCreationAttributes<Student>> implements User {
   declare id: CreationOptional<number>;
@@ -90,19 +90,19 @@ export function initializeStudentModel(sequelize: Sequelize) {
     }
   }, {
     sequelize,
-    engine: 'InnoDB',
+    engine: "InnoDB",
     indexes: [
       {
         unique: true,
-        fields: ['email']
+        fields: ["email"]
       },
       {
         unique: true,
-        fields: ['id']
+        fields: ["id"]
       },
       {
         unique: true,
-        fields: ['verificationCode']
+        fields: ["verificationCode"]
       }
     ]
   });

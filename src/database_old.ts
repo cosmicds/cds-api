@@ -1,9 +1,10 @@
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck
 
-const mysql = require("mysql");
-const cryptoJS = require("crypto-js");
+import mysql from "mysql";
+import cryptoJS from "crypto-js";
 
-const converters = require('./utils/converters.js');
+import converters from "./utils/converters.js";
 
 function encryptPassword(password) {
   return cryptoJS.SHA256(password).toString(cryptoJS.enc.Base64);
@@ -32,7 +33,7 @@ async function executeSqlTransaction(conn, commands, valueLists) {
         resolve(results);
       });
     });
-  })
+  });
 }
 
 async function executeSqlQuery(conn, sql, values) {
@@ -72,8 +73,8 @@ async function signUpEducator(conn, data) {
   // Encode the password
   const encryptedPW = encryptPassword(password);
 
-  const sql = `INSERT INTO Educators (Email, FirstName, LastName, Password, Institution, Age, Gender, IP, ProfileCreated, LastVisit, Visits) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-  const values = [email, firstName, lastName, encryptedPW, institution, age, gender, '', datetime, datetime, 1];
+  const sql = "INSERT INTO Educators (Email, FirstName, LastName, Password, Institution, Age, Gender, IP, ProfileCreated, LastVisit, Visits) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+  const values = [email, firstName, lastName, encryptedPW, institution, age, gender, "", datetime, datetime, 1];
   const result = await executeSqlQuery(conn, sql, values);
   const affectedRows = result.affectedRows;
   return affectedRows === 1 ? 0 : 2;
@@ -104,15 +105,15 @@ async function signUpStudent(conn, data) {
   // Encrypt the password
   const encPW = encryptPassword(password);
 
-  const sql = `INSERT INTO Students (Email, FirstName, LastName, Password, Institution, Age, Gender, IP, ProfileCreated, LastVisit, Visits) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-  const values = [email, firstName, lastName, encPW, institution, age, gender, '', datetime, datetime, 1];
+  const sql = "INSERT INTO Students (Email, FirstName, LastName, Password, Institution, Age, Gender, IP, ProfileCreated, LastVisit, Visits) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+  const values = [email, firstName, lastName, encPW, institution, age, gender, "", datetime, datetime, 1];
   const result = await executeSqlQuery(conn, sql, values);
   const affectedRows = result.affectedRows;
   return affectedRows === 1 ? 0 : 2;
 }
 
 async function createClass(conn, data) {
-  const sql = 'INSERT INTO Classes (Educator_ID, Name, Institution) VALUES (?, ?, ?)';
+  const sql = "INSERT INTO Classes (Educator_ID, Name, Institution) VALUES (?, ?, ?)";
   const values = [data.educatorID, data.name, data.institution];
   const result = await executeSqlQuery(conn, sql, values);
   const affectedRows = result.affectedRows;
@@ -122,7 +123,7 @@ async function createClass(conn, data) {
 async function checkLogin(conn, data, table) {
   const encryptedPW = encryptPassword(data.password);
   console.log(encryptedPW);
-  const sql = `SELECT COUNT(*) AS num FROM ${table} WHERE Email LIKE ? AND Password LIKE ?"`
+  const sql = `SELECT COUNT(*) AS num FROM ${table} WHERE Email LIKE ? AND Password LIKE ?"`;
   const values = [data.email, encryptedPW];
   const result = await executeSqlQuery(conn, sql, values);
   return result[0].num > 0;

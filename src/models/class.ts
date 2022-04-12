@@ -1,4 +1,4 @@
-import { Educator } from './educator';
+import { Educator } from "./educator";
 import { Sequelize, DataTypes, Model, InferAttributes, InferCreationAttributes, CreationOptional } from "sequelize";
 
 export class Class extends Model<InferAttributes<Class>, InferCreationAttributes<Class>> {
@@ -27,7 +27,7 @@ export function initializeClassModel(sequelize: Sequelize) {
       allowNull: false,
       references: {
         model: Educator,
-        key: 'id'
+        key: "id"
       }
     },
     created: {
@@ -46,6 +46,6 @@ export function initializeClassModel(sequelize: Sequelize) {
     }
   }, {
     sequelize,
-    engine: 'InnoDB'
+    engine: "InnoDB"
   });
 }

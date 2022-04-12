@@ -1,5 +1,5 @@
-import { Galaxy } from './galaxy';
-import { Student } from './student'
+import { Galaxy } from "./galaxy";
+import { Student } from "./student";
 import { Sequelize, DataTypes, Model, InferAttributes, InferCreationAttributes, CreationOptional } from "sequelize";
 
 export class HubbleMeasurement extends Model<InferAttributes<HubbleMeasurement>, InferCreationAttributes<HubbleMeasurement>> {
@@ -26,7 +26,7 @@ export function initializeHubbleMeasurementModel(sequelize: Sequelize) {
       primaryKey: true,
       references: {
         model: Student,
-        key: 'id'
+        key: "id"
       },
     },
     galaxy_id: {
@@ -35,7 +35,7 @@ export function initializeHubbleMeasurementModel(sequelize: Sequelize) {
       primaryKey: true,
       references: {
         model: Galaxy,
-        key: 'id'
+        key: "id"
       }
     },
     rest_wave_value: {
@@ -70,6 +70,6 @@ export function initializeHubbleMeasurementModel(sequelize: Sequelize) {
     },
   }, {
     sequelize,
-    engine: 'InnoDB'
+    engine: "InnoDB"
   });
 }
