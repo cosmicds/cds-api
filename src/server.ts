@@ -120,7 +120,8 @@ app.put("/educator-sign-up", async (req, res) => {
   }
   res.json({
     educator_info: data,
-    status: signUpStatus
+    status: signUpStatus,
+    success: signUpStatus === SignUpResult.Ok
   });
 });
 
@@ -144,7 +145,8 @@ app.put("/student-sign-up", async (req, res) => {
   }
   res.json({
     student_info: data,
-    status: signUpStatus
+    status: signUpStatus,
+    success: signUpStatus === SignUpResult.Ok
   });
 });
 
