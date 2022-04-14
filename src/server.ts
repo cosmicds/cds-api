@@ -166,8 +166,7 @@ async function handleLogin(request: GenericRequest, checker: (email: string, pw:
 
 app.put("/student-login", async (req, res) => {
   const response = await handleLogin(req, checkStudentLogin);
-  console.log(response);
-  if (response.valid && response.id) {
+  if (response.success && response.id) {
     sendUserIdCookie(response.id, res);
   }
   res.json(response);
@@ -175,8 +174,7 @@ app.put("/student-login", async (req, res) => {
 
 app.put("/educator-login", async (req, res) => {
   const response = await handleLogin(req, checkEducatorLogin);
-  console.log(response);
-  if (response.valid && response.id) {
+  if (response.success && response.id) {
     sendUserIdCookie(response.id, res);
   }
   res.json(response);
@@ -325,12 +323,22 @@ app.get("/story_state/:studentID/:storyName", async (req, res) => {
   });
 });
 
-app.get("/classes/:educatorID", async (req, res) => {
+app.get("/educator-classes/:educatorID", async (req, res) => {
   const params = req.params;
   const educatorID = parseInt(params.educatorID);
   const classes = await getClassesForEducator(educatorID);
   res.json({
     educator_id: educatorID,
+    classes: classes
+  });
+});
+
+app.get("/student-classes/:studentID", async (req, res) => {
+  const params = req.params;
+  const studentID = parseInt(params.studentID);
+  const classes = await getClassesForEducator(studentID);
+  res.json({
+    student_id: studentID,
     classes: classes
   });
 });
