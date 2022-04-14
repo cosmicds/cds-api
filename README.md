@@ -10,4 +10,4 @@ Interaction with the database (a MySQL database living on AWS) is handled via [S
 
 ## Deployment
 
-On a push to the main branch, this API is automatically built and deployed on an AWS EC2 instance managed via Elastic Beanstalk. Currently, the URL for that instance is http://cosmicdsapi-env.eba-tcbxbxhk.us-east-1.elasticbeanstalk.com/. Note that this URL doesn't yet support HTTPS.
+On a push to the main branch, this API is automatically built and deployed on an AWS EC2 instance managed via Elastic Beanstalk. The API is reachable at https://api.cosmicds.cfa.harvard.edu/.
