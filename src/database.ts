@@ -4,9 +4,12 @@ import { Educator, initializeEducatorModel } from "./models/educator";
 import { Student, initializeStudentModel } from "./models/student";
 import { StudentsClasses, initializeStudentClassModel } from "./models/student_class";
 import { HubbleMeasurement, initializeHubbleMeasurementModel } from "./models/hubble_measurement";
-import { enc, SHA256 } from "crypto-js";
-import { randomString } from "./utils";
-import { v5 } from "uuid";
+import {
+  createClassCode,
+  createVerificationCode,
+  encryptPassword,
+} from "./utils";
+
 
 import {
   CreateClassResult,
@@ -25,18 +28,12 @@ type SequelizeError = { parent: { code: string } };
 export type LoginResponse = {
   result: LoginResult;
   id?: number;
-  valid: boolean;
+  success: boolean;
 };
 
 export type CreateClassResponse = {
   result: CreateClassResult;
   class?: object;
-}
-
-// A namespace for creating v5 UUIDs
-const cdsNamespace = "0a69782c-f1af-48c5-9aaf-078a4e511518";
-function createV5(name: string): string {
-  return v5(name, cdsNamespace);
 }
 
 export const cosmicdsDB = new Sequelize("cosmicds_db", "cdsadmin", "5S4R1qCxzQg0", {
@@ -78,10 +75,6 @@ initializeStoryStateModel(cosmicdsDB);
 // })();
 
 
-function encryptPassword(password: string): string {
-  return SHA256(password).toString(enc.Base64);
-}
-
 // For now, this just distinguishes between duplicate account creation and other errors
 // We can flesh this out layer
 function signupResultFromError(error: SequelizeError): SignUpResult {
@@ -104,18 +97,28 @@ function createClassResultFromError(error: SequelizeError): CreateClassResult {
   }
 }
 
-async function educatorWithEmail(email: string): Promise<Educator | null> {
-  const result = await Educator.findAll({
+async function findEducatorByEmail(email: string): Promise<Educator | null> {
+  return Educator.findOne({
     where: { email: { [Op.like] : email } }
   });
-  return result.length > 0 ? result[0] : null;
 }
 
-async function studentWithEmail(email: string): Promise<Student | null> {
-  const result = await Student.findAll({
+async function findStudentByEmail(email: string): Promise<Student | null> {
+  return Student.findOne({
     where: { email: { [Op.like] : email } }
   });
-  return result.length > 0 ? result[0] : null;
+}
+
+async function findStudentById(id: number): Promise<Student | null> {
+  return Student.findOne({
+    where: { id : id }
+  });
+}
+
+async function findEducatorById(id: number): Promise<Educator | null> {
+  return Educator.findOne({
+    where: { id: id }
+  });
 }
 
 export async function verifyStudent(verificationCode: string): Promise<VerificationResult> {
@@ -179,7 +182,7 @@ export async function signUpEducator(firstName: string, lastName: string,
   let validCode;
   let verificationCode: string;
   do {
-    verificationCode = randomString();
+    verificationCode = createVerificationCode();
     validCode = !(await educatorVerificationCodeExists(verificationCode) || await studentVerificationCodeExists(verificationCode));
   } while (!validCode);
 
@@ -203,22 +206,23 @@ export async function signUpEducator(firstName: string, lastName: string,
 
 export async function signUpStudent(username: string,
                              password: string, institution: string | null,
-                             email: string, age: number, gender: string): Promise<SignUpResult> {
+                             email: string, age: number, gender: string,
+                             classroomCode: string | null): Promise<SignUpResult> {
   
   const encryptedPassword = encryptPassword(password);
 
   let validCode;
   let verificationCode: string;
   do {
-    verificationCode = randomString();
+    verificationCode = createVerificationCode();
     validCode = !(await educatorVerificationCodeExists(verificationCode) || await studentVerificationCodeExists(verificationCode));
   } while (!validCode);
   
   let result = SignUpResult.Ok;
-  await Student.create({
+  const student = await Student.create({
     username: username,
     verified: 0,
-    verification_code: randomString(),
+    verification_code: verificationCode,
     password: encryptedPassword,
     institution: institution,
     email: email,
@@ -228,14 +232,26 @@ export async function signUpStudent(username: string,
   .catch(error => {
     result = signupResultFromError(error);
   });
+
+  // If the student has a valid classroom code,
+  // add them to the class
+  if (student && classroomCode) {
+    const cls = await findClassByCode(classroomCode);
+    if (cls !== null) {
+      StudentsClasses.create({
+        student_id: student.id,
+        class_id: cls.id
+      });
+    }
+  }
+
   return result;
 }
 
 export async function createClass(educatorID: number, name: string): Promise<CreateClassResponse> {
   
   let result = CreateClassResult.Ok;
-  const nameString = `${educatorID}_${name}`;
-  const code = createV5(nameString);
+  const code = createClassCode(educatorID, name);
   const creationInfo = {
     educator_id: educatorID,
     name: name,
@@ -262,30 +278,35 @@ async function checkLogin<T extends Model & User>(email: string, password: strin
 
   const encryptedPassword = encryptPassword(password);
   const user = await emailFinder(email);
+  let result: LoginResult;
   if (user === null) {
-    return { result: LoginResult.EmailNotExist, valid: false };
+    result = LoginResult.EmailNotExist;
+  } else if (user.password !== encryptedPassword) {
+    result = LoginResult.IncorrectPassword;
+  } else if (user.verified !== 1) {
+    result = LoginResult.NotVerified;
+  } else {
+    result = LoginResult.Ok;
+    user.update({
+      visits: user.visits + 1,
+      last_visit: Date.now()
+    }, {
+      where: { id: user.id }
+    });
   }
-  if (user.password !== encryptedPassword) {
-    return { result: LoginResult.IncorrectPassword, valid: false };
-  }
-  if (user.verified !== 1) {
-    return { result: LoginResult.NotVerified, valid: false };
-  }
-  user.update({
-    visits: user.visits + 1,
-    last_visit: Date.now()
-  }, {
-    where: { id: user.id }
-  });
-  return {result: LoginResult.Ok, id: user.id, valid: true };
+  return {
+    result: result,
+    id: user?.id,
+    success: LoginResult.success(result)
+  };
 }
 
 export async function checkStudentLogin(email: string, password: string): Promise<LoginResponse> {
-  return checkLogin(email, password, studentWithEmail);
+  return checkLogin(email, password, findStudentByEmail);
 }
 
 export async function checkEducatorLogin(email: string, password: string): Promise<LoginResponse> {
-  return checkLogin(email, password, educatorWithEmail);
+  return checkLogin(email, password, findEducatorByEmail);
 }
 
 export async function submitHubbleMeasurement(data: {
@@ -302,6 +323,11 @@ export async function submitHubbleMeasurement(data: {
   est_dist_value: number | null,
   est_dist_init: string | null
 }): Promise<SubmitHubbleMeasurementResult> {
+
+  const student = await findStudentById(data.student_id);
+  if (student === null) {
+    return SubmitHubbleMeasurementResult.NoSuchStudent;
+  }
 
   const measurement = await HubbleMeasurement.findOne({
     where: {
@@ -391,10 +417,32 @@ export async function getClassesForEducator(educatorID: number): Promise<Class[]
   });
 }
 
+export async function getClassesForStudent(studentID: number): Promise<Class[]> {
+  const classes = await StudentsClasses.findAll({
+    where: {
+      student_id: studentID
+    }
+  });
+  const classIDs = classes.map(cls => cls.class_id);
+  return Class.findAll({
+    where: {
+      id: {
+        [Op.in]: classIDs
+      }
+    }
+  });
+}
+
 export async function deleteClass(id: number): Promise<number> {
   return Class.destroy({
     where: {
       id: id
     }
+  });
+}
+
+export async function findClassByCode(code: string): Promise<Class | null> {
+  return Class.findOne({
+    where: { code: code }
   });
 }

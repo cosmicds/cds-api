@@ -16,6 +16,7 @@ import {
   getStoryState,
   LoginResponse,
   getClassesForEducator,
+  findClassByCode,
 } from "./database";
 
 import {
@@ -100,7 +101,7 @@ app.listen(PORT, () => {
 });
 
 // Educator sign-up
-app.put("/educator-sign-up", async (req, res) => {
+app.post("/educator-sign-up", async (req, res) => {
   const data = req.body;
   const valid = (
     typeof data.firstName === "string" &&
@@ -109,23 +110,24 @@ app.put("/educator-sign-up", async (req, res) => {
     ((typeof data.institution === "string") || (data.institution === null)) &&
     typeof data.email === "string" &&
     ((typeof data.age === "number") || (data.age === null)) &&
-    typeof data.gender === "string"
+    ((typeof data.gender === "string") || data.gender === null)
   );
 
-  let signUpStatus: SignUpResult;
+  let result: SignUpResult;
   if (valid) {
-    signUpStatus = await signUpEducator(data.firstName, data.lastName, data.password, data.institution, data.email, data.age, data.gender);
+    result = await signUpEducator(data.firstName, data.lastName, data.password, data.institution, data.email, data.age, data.gender);
   } else {
-    signUpStatus = SignUpResult.BadRequest;
+    result = SignUpResult.BadRequest;
   }
   res.json({
     educator_info: data,
-    status: signUpStatus
+    status: result,
+    success: SignUpResult.success(result)
   });
 });
 
 // Student sign-up
-app.put("/student-sign-up", async (req, res) => {
+app.post("/student-sign-up", async (req, res) => {
   const data = req.body;
   const valid = (
     typeof data.username === "string" &&
@@ -133,18 +135,20 @@ app.put("/student-sign-up", async (req, res) => {
     ((typeof data.institution === "string") || (data.institution === null)) &&
     typeof data.email === "string" &&
     ((typeof data.age === "number") || (data.age === null)) &&
-    typeof data.gender === "string"
+    ((typeof data.gender === "string") || (data.gender === null)) &&
+    ((typeof data.classroomCode === "string") || (data.classroomCode === null))
   );
 
-  let signUpStatus: SignUpResult;
+  let result: SignUpResult;
   if (valid) {
-    signUpStatus = await signUpStudent(data.username, data.password, data.institution, data.email, data.age, data.gender);
+    result = await signUpStudent(data.username, data.password, data.institution, data.email, data.age, data.gender, data.classroomCode);
   } else {
-    signUpStatus = SignUpResult.BadRequest;
+    result = SignUpResult.BadRequest;
   }
   res.json({
     student_info: data,
-    status: signUpStatus
+    status: result,
+    success: SignUpResult.success(result)
   });
 });
 
@@ -155,30 +159,28 @@ async function handleLogin(request: GenericRequest, checker: (email: string, pw:
   if (valid) {
     response = await checker(data.email, data.password);
   } else {
-    response = { result: LoginResult.BadRequest, valid: false };
+    response = { result: LoginResult.BadRequest, success: false };
   }
   return response;
 }
 
-app.post("/student-login", async (req, res) => {
+app.put("/student-login", async (req, res) => {
   const response = await handleLogin(req, checkStudentLogin);
-  console.log(response);
-  if (response.valid && response.id) {
+  if (response.success && response.id) {
     sendUserIdCookie(response.id, res);
   }
   res.json(response);
 });
 
-app.post("/educator-login", async (req, res) => {
+app.put("/educator-login", async (req, res) => {
   const response = await handleLogin(req, checkEducatorLogin);
-  console.log(response);
-  if (response.valid && response.id) {
+  if (response.success && response.id) {
     sendUserIdCookie(response.id, res);
   }
   res.json(response);
 });
 
-app.put("/create-class", async (req, res) => {
+app.post("/create-class", async (req, res) => {
   const data = req.body;
   const valid = (
     typeof data.educatorID === "number" &&
@@ -217,7 +219,7 @@ async function verify(request: VerificationRequest, verifier: (code: string) => 
   };
 }
 
-app.put("/verify-student/:verificationCode", async (req, res) => {
+app.post("/verify-student/:verificationCode", async (req, res) => {
   const response = await verify(req, verifyStudent);
   res.json({
     code: req.params.verificationCode,
@@ -225,11 +227,20 @@ app.put("/verify-student/:verificationCode", async (req, res) => {
   });
 });
 
-app.put("/verify-educator/:verificationCode", async (req, res) => {
+app.post("/verify-educator/:verificationCode", async (req, res) => {
   const response = await verify(req, verifyEducator);
   res.json({
     code: req.params.verificationCode,
     status: response
+  });
+});
+
+app.get("/validate-classroom-code/:code", async (req, res) => {
+  const code = req.params.code;
+  const cls = await findClassByCode(code);
+  res.json({
+    code: code,
+    valid: cls !== null
   });
 });
 
@@ -258,7 +269,8 @@ app.put("/submit-measurement", async (req, res) => {
   }
   res.json({
     measurement: data,
-    status: result
+    status: result,
+    success: SubmitHubbleMeasurementResult.success(result)
   });
 });
 
@@ -311,12 +323,22 @@ app.get("/story_state/:studentID/:storyName", async (req, res) => {
   });
 });
 
-app.get("/classes/:educatorID", async (req, res) => {
+app.get("/educator-classes/:educatorID", async (req, res) => {
   const params = req.params;
   const educatorID = parseInt(params.educatorID);
   const classes = await getClassesForEducator(educatorID);
   res.json({
     educator_id: educatorID,
+    classes: classes
+  });
+});
+
+app.get("/student-classes/:studentID", async (req, res) => {
+  const params = req.params;
+  const studentID = parseInt(params.studentID);
+  const classes = await getClassesForEducator(studentID);
+  res.json({
+    student_id: studentID,
     classes: classes
   });
 });

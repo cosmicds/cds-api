@@ -44,6 +44,10 @@ export namespace LoginResult {
         return 200;
     }
   }
+
+  export function success(result: LoginResult): boolean {
+    return result === LoginResult.Ok;
+  }
 }
 
 export enum SignUpResult {
@@ -57,6 +61,10 @@ export namespace SignUpResult {
   export function statusCode(result: SignUpResult): number {
     return result === SignUpResult.BadRequest ? 400 : 200;
   }
+
+  export function success(result: SignUpResult): boolean {
+    return result === SignUpResult.Ok;
+  }
 }
 
 export enum VerificationResult {
@@ -66,8 +74,22 @@ export enum VerificationResult {
   InvalidCode = "invalid_code"
 }
 
+export namespace VerificationResult {
+  export function success(result: VerificationResult): boolean {
+    return result === VerificationResult.Ok;
+  }
+}
+
 export enum SubmitHubbleMeasurementResult {
   BadRequest = "bad_request",
   MeasurementCreated = "measurement_created",
-  MeasurementUpdated = "measurement_updated"
+  MeasurementUpdated = "measurement_updated",
+  NoSuchStudent = "no_such_student"
+}
+
+export namespace SubmitHubbleMeasurementResult {
+  export function success(result: SubmitHubbleMeasurementResult): boolean {
+    return result === SubmitHubbleMeasurementResult.MeasurementCreated ||
+      result == SubmitHubbleMeasurementResult.MeasurementUpdated;
+  }
 }
