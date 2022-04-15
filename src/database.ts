@@ -446,3 +446,26 @@ export async function findClassByCode(code: string): Promise<Class | null> {
     where: { code: code }
   });
 }
+
+
+/** For testing purposes */
+export async function newDummyStudent(): Promise<Student> {
+  const students = await Student.findAll();
+  const ids: number[] = students.map(student => {
+    if (!student) { return 0; }
+    return typeof student.id === "number" ? student.id : 0;
+  });
+  const maxID = Math.max(...ids);
+  const newID = maxID + 1;
+  console.log(newID);
+  return Student.create({
+    username: `dummy_student_${newID}`,
+    verified: 1,
+    verification_code: `verification_${newID}`,
+    password: "dummypass",
+    institution: "Dummy",
+    email: `dummy_student_${newID}@dummy.school`,
+    age: null,
+    gender: null,
+  });
+}

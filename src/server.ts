@@ -17,6 +17,7 @@ import {
   LoginResponse,
   getClassesForEducator,
   findClassByCode,
+  newDummyStudent,
 } from "./database";
 
 import {
@@ -340,5 +341,26 @@ app.get("/student-classes/:studentID", async (req, res) => {
   res.json({
     student_id: studentID,
     classes: classes
+  });
+});
+
+app.get("/logout", (req, res) => {
+  req.session.destroy(console.log);
+  res.send({
+    "logout": true
+  });
+});
+
+
+/** Testing Endpoints
+ * 
+ * These endpoints are intended for internal testing use only
+ * and will not be in the final version of the API
+ */
+
+app.get("/new-dummy-student", async (_req, res) => {
+  const student = await newDummyStudent();
+  res.json({
+    student: student
   });
 });
