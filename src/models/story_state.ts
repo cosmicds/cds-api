@@ -12,6 +12,7 @@ export function initializeStoryStateModel(sequelize: Sequelize) {
       student_id: {
         type: DataTypes.INTEGER.UNSIGNED,
         allowNull: false,
+        primaryKey: true,
         references: {
           model: Student,
           key: "id"
@@ -19,7 +20,8 @@ export function initializeStoryStateModel(sequelize: Sequelize) {
       },
       story_name: {
         type: DataTypes.STRING,
-        allowNull: false
+        allowNull: false,
+        primaryKey: true
       },
       story_state: {
         type: DataTypes.JSON,

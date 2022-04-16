@@ -393,7 +393,7 @@ export async function getAllEducators(): Promise<Educator[]> {
 }
 
 export async function getStoryState(studentID: number, storyName: string): Promise<JSON | null> {
-  const result = await StoryState.findAll({
+  const result = await StoryState.findOne({
     where: {
       student_id: studentID,
       story_name: storyName
@@ -403,10 +403,32 @@ export async function getStoryState(studentID: number, storyName: string): Promi
     console.log(error);
     return null;
   });
-  if (result === null || result.length !== 1) {
+  return result?.story_state || null;
+}
+
+export async function updateStoryState(studentID: number, storyName: string, newState: JSON): Promise<JSON | null> {
+  let result = await StoryState.findOne({
+    where: {
+      student_id: studentID,
+      story_name: storyName
+    }
+  })
+  .catch(error => {
+    console.log(error);
     return null;
+  });
+
+  const storyData = {
+    student_id: studentID,
+    story_name: storyName,
+    story_state: newState
+  };
+  if (result !== null) {
+    result?.update(storyData);
+  } else {
+    result = await StoryState.create(storyData);
   }
-  return result[0].story_state;
+  return result?.story_state || null;
 }
 
 export async function getClassesForEducator(educatorID: number): Promise<Class[]> {
@@ -455,9 +477,7 @@ export async function newDummyStudent(): Promise<Student> {
     if (!student) { return 0; }
     return typeof student.id === "number" ? student.id : 0;
   });
-  const maxID = Math.max(...ids);
-  const newID = maxID + 1;
-  console.log(newID);
+  const newID = Math.max(...ids) + 1;
   return Student.create({
     username: `dummy_student_${newID}`,
     verified: 1,

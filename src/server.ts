@@ -18,6 +18,7 @@ import {
   getClassesForEducator,
   findClassByCode,
   newDummyStudent,
+  updateStoryState,
 } from "./database";
 
 import {
@@ -312,11 +313,24 @@ app.get("/measurements/:studentID/:galaxyID", async (req, res) => {
   });
 });
 
-app.get("/story_state/:studentID/:storyName", async (req, res) => {
+app.get("/story-state/:studentID/:storyName", async (req, res) => {
   const params = req.params;
   const studentID = parseInt(params.studentID);
   const storyName = params.storyName;
   const state = await getStoryState(studentID, storyName);
+  res.json({
+    student_id: studentID,
+    story_name: storyName,
+    state: state
+  });
+});
+
+app.put("/story-state/:studentID/:storyName", async (req, res) => {
+  const params = req.params;
+  const studentID = parseInt(params.studentID);
+  const storyName = params.storyName;
+  const newState = req.body.storyState;
+  const state = await updateStoryState(studentID, storyName, newState);
   res.json({
     student_id: studentID,
     story_name: storyName,
