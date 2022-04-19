@@ -17,6 +17,9 @@ import {
   LoginResponse,
   getClassesForEducator,
   findClassByCode,
+  newDummyStudent,
+  updateStoryState,
+  getGalaxyByName,
 } from "./database";
 
 import {
@@ -248,7 +251,7 @@ app.put("/submit-measurement", async (req, res) => {
   const data = req.body;
   const valid = (
     typeof data.student_id === "number" &&
-    typeof data.galaxy_id === "number" &&
+    ((typeof data.galaxy_id === "number") || (typeof data.galaxy_name === "string")) &&
     (!data.rest_wave_value || typeof data.rest_wave_value === "number") &&
     (!data.rest_wave_unit || typeof data.rest_wave_unit === "string") &&
     (!data.obs_wave_value || typeof data.obs_wave_value === "number") &&
@@ -260,6 +263,12 @@ app.put("/submit-measurement", async (req, res) => {
     (!data.est_dist_value || typeof data.est_dist_value === "number") &&
     (!data.est_dist_unit || typeof data.est_dist_unit === "string")
   );
+
+  if (typeof data.galaxy_id !== "number") {
+    const galaxy = await getGalaxyByName(data.galaxy_name);
+    data.galaxy_id = galaxy?.id || 0;
+    delete data.galaxy_name;
+  }
 
   let result: SubmitHubbleMeasurementResult;
   if (valid) {
@@ -311,11 +320,24 @@ app.get("/measurements/:studentID/:galaxyID", async (req, res) => {
   });
 });
 
-app.get("/story_state/:studentID/:storyName", async (req, res) => {
+app.get("/story-state/:studentID/:storyName", async (req, res) => {
   const params = req.params;
   const studentID = parseInt(params.studentID);
   const storyName = params.storyName;
   const state = await getStoryState(studentID, storyName);
+  res.json({
+    student_id: studentID,
+    story_name: storyName,
+    state: state
+  });
+});
+
+app.put("/story-state/:studentID/:storyName", async (req, res) => {
+  const params = req.params;
+  const studentID = parseInt(params.studentID);
+  const storyName = params.storyName;
+  const newState = req.body;
+  const state = await updateStoryState(studentID, storyName, newState);
   res.json({
     student_id: studentID,
     story_name: storyName,
@@ -340,5 +362,26 @@ app.get("/student-classes/:studentID", async (req, res) => {
   res.json({
     student_id: studentID,
     classes: classes
+  });
+});
+
+app.get("/logout", (req, res) => {
+  req.session.destroy(console.log);
+  res.send({
+    "logout": true
+  });
+});
+
+
+/** Testing Endpoints
+ * 
+ * These endpoints are intended for internal testing use only
+ * and will not be in the final version of the API
+ */
+
+app.get("/new-dummy-student", async (_req, res) => {
+  const student = await newDummyStudent();
+  res.json({
+    student: student
   });
 });
