@@ -469,6 +469,12 @@ export async function findClassByCode(code: string): Promise<Class | null> {
   });
 }
 
+export async function getGalaxyByName(name: string): Promise<Galaxy | null> {
+  return Galaxy.findOne({
+    where: { name: name }
+  });
+}
+
 
 /** For testing purposes */
 export async function newDummyStudent(): Promise<Student> {
