@@ -20,6 +20,7 @@ import {
   newDummyStudent,
   updateStoryState,
   getGalaxyByName,
+  markGalaxyBad,
 } from "./database";
 
 import {
@@ -38,6 +39,7 @@ import session from "express-session";
 import sequelizeStore from "connect-session-sequelize";
 import { v4 } from "uuid";
 import cors from "cors";
+import { Galaxy } from "./models/galaxy";
 const app = express();
 
 // eslint-disable-next-line @typescript-eslint/ban-types
@@ -372,6 +374,36 @@ app.get("/logout", (req, res) => {
   });
 });
 
+app.put("/mark-galaxy-bad", async (req, res) => {
+  const galaxyID = req.body.galaxy_id;
+  const galaxyName = req.body.galaxy_name;
+  if (!(galaxyID || galaxyName)) { 
+    res.status(400).json({
+      status: "missing_id_or_name"
+    });
+    return;
+   }
+
+  let galaxy: Galaxy | null;
+  if (galaxyID) {
+    galaxy = await Galaxy.findOne({ where: { id : galaxyID }});
+  } else {
+    galaxy = await getGalaxyByName(galaxyName);
+  }
+
+  if (galaxy === null) {
+    res.status(404).json({
+      status: "no_such_galaxy"
+    });
+    return;
+  }
+
+  markGalaxyBad(galaxy);
+  res.status(200).json({
+    status: "galaxy_marked_bad"
+  });
+
+});
 
 /** Testing Endpoints
  * 

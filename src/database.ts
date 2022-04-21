@@ -457,9 +457,7 @@ export async function getClassesForStudent(studentID: number): Promise<Class[]> 
 
 export async function deleteClass(id: number): Promise<number> {
   return Class.destroy({
-    where: {
-      id: id
-    }
+    where: { id: id }
   });
 }
 
@@ -473,6 +471,10 @@ export async function getGalaxyByName(name: string): Promise<Galaxy | null> {
   return Galaxy.findOne({
     where: { name: name }
   });
+}
+
+export async function markGalaxyBad(galaxy: Galaxy): Promise<void> {
+  galaxy.update({ marked_bad: 1});
 }
 
 
