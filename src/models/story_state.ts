@@ -1,4 +1,5 @@
 import { Sequelize, DataTypes, Model, InferAttributes, InferCreationAttributes, CreationOptional } from "sequelize";
+import { Story } from "./story";
 import { Student } from "./student";
 
 export class StoryState extends Model<InferAttributes<StoryState>, InferCreationAttributes<StoryState>> {
@@ -21,7 +22,11 @@ export function initializeStoryStateModel(sequelize: Sequelize) {
       story_name: {
         type: DataTypes.STRING,
         allowNull: false,
-        primaryKey: true
+        primaryKey: true,
+        references: {
+          model: Story,
+          key: "name"
+        }
       },
       story_state: {
         type: DataTypes.JSON,

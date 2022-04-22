@@ -22,6 +22,8 @@ import {
 import { User } from "./user";
 import { Galaxy, initializeGalaxyModel } from "./models/galaxy";
 import { initializeStoryStateModel, StoryState } from "./models/story_state";
+import { ClassStories, initializeClassStoryModel } from "./models/story_class";
+import { initializeStoryModel } from "./models/story";
 
 type SequelizeError = { parent: { code: string } };
 
@@ -58,10 +60,12 @@ console.log(cosmicdsDB);
 initializeEducatorModel(cosmicdsDB);
 initializeStudentModel(cosmicdsDB);
 initializeClassModel(cosmicdsDB);
+initializeStoryModel(cosmicdsDB);
 initializeStudentClassModel(cosmicdsDB);
 initializeGalaxyModel(cosmicdsDB);
 initializeHubbleMeasurementModel(cosmicdsDB);
 initializeStoryStateModel(cosmicdsDB);
+initializeClassStoryModel(cosmicdsDB);
  
 // // Synchronize models with the database
 // (async () => {
@@ -257,12 +261,22 @@ export async function createClass(educatorID: number, name: string): Promise<Cre
     name: name,
     code: code,
   };
-  await Class.create(creationInfo)
+  const cls = await Class.create(creationInfo)
   .catch(error => {
     result = createClassResultFromError(error);
   });
 
   const info = result === CreateClassResult.Ok ? creationInfo : undefined;
+
+  // For the pilot, the Hubble Data Story will be the only option,
+  // so we'll automatically associate that with the class
+  if (cls) {
+    ClassStories.create({
+      story_name: "hubbles_law",
+      class_id: cls.id
+    });
+  }
+
   return { result: result, class: info };
 }
 
@@ -450,6 +464,22 @@ export async function getClassesForStudent(studentID: number): Promise<Class[]> 
     where: {
       id: {
         [Op.in]: classIDs
+      }
+    }
+  });
+}
+
+export async function getStudentsForClass(classID: number): Promise<Student[]> {
+  const students = await StudentsClasses.findAll({
+    where: {
+      class_id: classID
+    }
+  });
+  const studentIDs = students.map(student => student.student_id);
+  return Student.findAll({
+    where: {
+      id: {
+        [Op.in]: studentIDs
       }
     }
   });
