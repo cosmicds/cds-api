@@ -22,6 +22,9 @@ import {
 import { User } from "./user";
 import { Galaxy, initializeGalaxyModel } from "./models/galaxy";
 import { initializeStoryStateModel, StoryState } from "./models/story_state";
+import { ClassStories, initializeClassStoryModel } from "./models/story_class";
+import { initializeStoryModel, Story } from "./models/story";
+import { setUpAssociations } from "./associations";
 
 type SequelizeError = { parent: { code: string } };
 
@@ -58,10 +61,15 @@ console.log(cosmicdsDB);
 initializeEducatorModel(cosmicdsDB);
 initializeStudentModel(cosmicdsDB);
 initializeClassModel(cosmicdsDB);
+initializeStoryModel(cosmicdsDB);
 initializeStudentClassModel(cosmicdsDB);
 initializeGalaxyModel(cosmicdsDB);
 initializeHubbleMeasurementModel(cosmicdsDB);
 initializeStoryStateModel(cosmicdsDB);
+initializeClassStoryModel(cosmicdsDB);
+
+// Create any associations that we need
+setUpAssociations();
  
 // // Synchronize models with the database
 // (async () => {
@@ -257,12 +265,22 @@ export async function createClass(educatorID: number, name: string): Promise<Cre
     name: name,
     code: code,
   };
-  await Class.create(creationInfo)
+  const cls = await Class.create(creationInfo)
   .catch(error => {
     result = createClassResultFromError(error);
   });
 
   const info = result === CreateClassResult.Ok ? creationInfo : undefined;
+
+  // For the pilot, the Hubble Data Story will be the only option,
+  // so we'll automatically associate that with the class
+  if (cls) {
+    ClassStories.create({
+      story_name: "hubbles_law",
+      class_id: cls.id
+    });
+  }
+
   return { result: result, class: info };
 }
 
@@ -455,6 +473,22 @@ export async function getClassesForStudent(studentID: number): Promise<Class[]> 
   });
 }
 
+export async function getStudentsForClass(classID: number): Promise<Student[]> {
+  const students = await StudentsClasses.findAll({
+    where: {
+      class_id: classID
+    }
+  });
+  const studentIDs = students.map(student => student.student_id);
+  return Student.findAll({
+    where: {
+      id: {
+        [Op.in]: studentIDs
+      }
+    }
+  });
+}
+
 export async function deleteClass(id: number): Promise<number> {
   return Class.destroy({
     where: { id: id }
@@ -477,6 +511,37 @@ export async function markGalaxyBad(galaxy: Galaxy): Promise<void> {
   galaxy.update({ marked_bad: galaxy.marked_bad + 1 });
 }
 
+export async function getRosterInfoForStory(classID: number, storyName: string): Promise<StoryState[]> {
+  return StudentsClasses.findAll({
+    where: { class_id: classID }
+  }).then(entries => {
+    const studentIDs = entries.map(entry => entry.student_id);
+    return StoryState.findAll({
+      include: [{
+        model: Student,
+        required: false, // We also want access to the student data
+        attributes: ["username", "email"],
+        as: "student"
+      }],
+      where: {
+        student_id: {
+          [Op.in]: studentIDs
+        },
+        story_name: storyName
+      }
+    });
+  });
+}
+
+export async function getRosterInfo(classID: number): Promise<Record<string,StoryState[]|undefined>> {
+  const activeStoryNames = await ClassStories.findAll({
+    where: { class_id: classID}
+  }).then(entries => entries.map(entry => entry.story_name));
+  return activeStoryNames.reduce(async (obj, name) => {
+    Object.assign(obj, { [name]: await getRosterInfoForStory(classID, name) });
+    return obj;
+  }, {});
+}
 
 /** For testing purposes */
 export async function newDummyStudent(): Promise<Student> {

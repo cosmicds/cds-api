@@ -21,6 +21,9 @@ import {
   updateStoryState,
   getGalaxyByName,
   markGalaxyBad,
+  getClassesForStudent,
+  getRosterInfo,
+  getRosterInfoForStory
 } from "./database";
 
 import {
@@ -360,11 +363,26 @@ app.get("/educator-classes/:educatorID", async (req, res) => {
 app.get("/student-classes/:studentID", async (req, res) => {
   const params = req.params;
   const studentID = parseInt(params.studentID);
-  const classes = await getClassesForEducator(studentID);
+  const classes = await getClassesForStudent(studentID);
   res.json({
     student_id: studentID,
     classes: classes
   });
+});
+
+app.get("/roster-info/:classID", async (req, res) => {
+  const params = req.params;
+  const classID = parseInt(params.classID);
+  const info = await getRosterInfo(classID);
+  res.json(info);
+});
+
+app.get("/roster-info/:classID/:storyName", async (req, res) => {
+  const params = req.params;
+  const classID = parseInt(params.classID);
+  const storyName = params.storyName;
+  const info = await getRosterInfoForStory(classID, storyName);
+  res.json(info);
 });
 
 app.get("/logout", (req, res) => {
