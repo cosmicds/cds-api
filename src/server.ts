@@ -22,7 +22,8 @@ import {
   getGalaxyByName,
   markGalaxyBad,
   getClassesForStudent,
-  getStudentsForClass,
+  getRosterInfo,
+  getRosterInfoForStory
 } from "./database";
 
 import {
@@ -369,13 +370,19 @@ app.get("/student-classes/:studentID", async (req, res) => {
   });
 });
 
-app.get("/student-info/:classID", async (req, res) => {
+app.get("/roster-info/:classID", async (req, res) => {
   const params = req.params;
   const classID = parseInt(params.classID);
-  const students = await getStudentsForClass(studentID);
-  const states = students.map(async (student) => {
-    return await getStoryState(student.id, )
-  });
+  const info = await getRosterInfo(classID);
+  res.json(info);
+});
+
+app.get("/roster-info/:classID/:storyName", async (req, res) => {
+  const params = req.params;
+  const classID = parseInt(params.classID);
+  const storyName = params.storyName;
+  const info = await getRosterInfoForStory(classID, storyName);
+  res.json(info);
 });
 
 app.get("/logout", (req, res) => {

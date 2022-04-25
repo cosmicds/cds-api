@@ -23,7 +23,8 @@ import { User } from "./user";
 import { Galaxy, initializeGalaxyModel } from "./models/galaxy";
 import { initializeStoryStateModel, StoryState } from "./models/story_state";
 import { ClassStories, initializeClassStoryModel } from "./models/story_class";
-import { initializeStoryModel } from "./models/story";
+import { initializeStoryModel, Story } from "./models/story";
+import { setUpAssociations } from "./associations";
 
 type SequelizeError = { parent: { code: string } };
 
@@ -66,6 +67,9 @@ initializeGalaxyModel(cosmicdsDB);
 initializeHubbleMeasurementModel(cosmicdsDB);
 initializeStoryStateModel(cosmicdsDB);
 initializeClassStoryModel(cosmicdsDB);
+
+// Create any associations that we need
+setUpAssociations();
  
 // // Synchronize models with the database
 // (async () => {
@@ -507,6 +511,31 @@ export async function markGalaxyBad(galaxy: Galaxy): Promise<void> {
   galaxy.update({ marked_bad: 1});
 }
 
+export async function getRosterInfoForStory(classID: number, storyName: string): Promise<StoryState[]> {
+  return StudentsClasses.findAll({
+    where: { class_id: classID }
+  }).then(entries => {
+    const studentIDs = entries.map(entry => entry.student_id);
+    return StoryState.findAll({
+      where: {
+        student_id: {
+          [Op.in]: studentIDs
+        },
+        story_name: storyName
+      }
+    });
+  });
+}
+
+export async function getRosterInfo(classID: number): Promise<Record<string,StoryState[]|undefined>> {
+  const activeStoryNames = await ClassStories.findAll({
+    where: { class_id: classID}
+  }).then(entries => entries.map(entry => entry.story_name));
+  return activeStoryNames.reduce(async (obj, name) => {
+    Object.assign(obj, { [name]: await getRosterInfoForStory(classID, name) });
+    return obj;
+  }, {});
+}
 
 /** For testing purposes */
 export async function newDummyStudent(): Promise<Student> {
