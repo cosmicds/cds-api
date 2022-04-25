@@ -474,7 +474,7 @@ export async function getGalaxyByName(name: string): Promise<Galaxy | null> {
 }
 
 export async function markGalaxyBad(galaxy: Galaxy): Promise<void> {
-  galaxy.update({ marked_bad: 1});
+  galaxy.update({ marked_bad: galaxy.marked_bad + 1 });
 }
 
 
