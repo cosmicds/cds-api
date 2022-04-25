@@ -517,6 +517,12 @@ export async function getRosterInfoForStory(classID: number, storyName: string):
   }).then(entries => {
     const studentIDs = entries.map(entry => entry.student_id);
     return StoryState.findAll({
+      include: [{
+        model: Student,
+        required: false, // We also want access to the student data
+        attributes: ["username", "email"],
+        as: "student"
+      }],
       where: {
         student_id: {
           [Op.in]: studentIDs

@@ -37,4 +37,16 @@ export function setUpAssociations() {
     onDelete: "CASCADE"
   });
 
+  Student.belongsTo(StoryState, {
+    foreignKey: "id",
+    targetKey: "student_id",
+    as: "story_state"
+  });
+
+  StoryState.belongsTo(Student, {
+    foreignKey: "student_id",
+    targetKey: "id",
+    as: "student"
+  });
+
 }
