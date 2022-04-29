@@ -39,7 +39,7 @@ export type CreateClassResponse = {
   class?: object;
 }
 
-export const cosmicdsDB = new Sequelize("cosmicds_db", "cdsadmin", "5S4R1qCxzQg0", {
+export const cosmicdsDB = new Sequelize("cosmicds_db", "cdsadmin", process.env.DB_PASSWORD, {
     host: "cosmicds-db.cupwuw3jvfpc.us-east-1.rds.amazonaws.com",
     dialect: "mysql",
     define: {
