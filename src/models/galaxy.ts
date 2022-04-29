@@ -9,6 +9,7 @@ export class Galaxy extends Model<InferAttributes<Galaxy>, InferCreationAttribut
   declare type: string;
   declare element: string;
   declare marked_bad: number;
+  declare is_bad: number;
 }
 
 export function initializeGalaxyModel(sequelize: Sequelize) {
@@ -48,6 +49,10 @@ export function initializeGalaxyModel(sequelize: Sequelize) {
     marked_bad: {
       type: DataTypes.TINYINT,
       allowNull: false
+    },
+    is_bad: {
+      type:DataTypes.TINYINT,
+      allowNull: false,
     }
   }, {
     sequelize,
