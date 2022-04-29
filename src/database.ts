@@ -1,4 +1,6 @@
 import { Model, Op, Sequelize } from "sequelize";
+import dotenv from "dotenv";
+
 import { Class, initializeClassModel } from "./models/class";
 import { Educator, initializeEducatorModel } from "./models/educator";
 import { Student, initializeStudentModel } from "./models/student";
@@ -23,7 +25,7 @@ import { User } from "./user";
 import { Galaxy, initializeGalaxyModel } from "./models/galaxy";
 import { initializeStoryStateModel, StoryState } from "./models/story_state";
 import { ClassStories, initializeClassStoryModel } from "./models/story_class";
-import { initializeStoryModel, Story } from "./models/story";
+import { initializeStoryModel } from "./models/story";
 import { setUpAssociations } from "./associations";
 
 type SequelizeError = { parent: { code: string } };
@@ -38,6 +40,10 @@ export type CreateClassResponse = {
   result: CreateClassResult;
   class?: object;
 }
+
+// Grab any environment variables
+// Currently, just the DB password
+dotenv.config();
 
 export const cosmicdsDB = new Sequelize("cosmicds_db", "cdsadmin", process.env.DB_PASSWORD, {
     host: "cosmicds-db.cupwuw3jvfpc.us-east-1.rds.amazonaws.com",
