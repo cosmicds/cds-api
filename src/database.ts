@@ -399,7 +399,9 @@ export async function getStudentHubbleMeasurements(studentID: number): Promise<H
 }
 
 export async function getAllGalaxies(): Promise<Galaxy[]> {
-  return Galaxy.findAll();
+  return Galaxy.findAll({
+    where: { is_bad: 0 }
+  });
 }
 
 export async function getAllStudents(): Promise<Student[]> {
