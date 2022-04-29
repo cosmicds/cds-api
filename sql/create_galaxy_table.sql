@@ -7,6 +7,7 @@ CREATE TABLE Galaxies(
     type varchar(10) NOT NULL,
     element varchar(10) NOT NULL DEFAULT "H-α",
     marked_bad tinyint(2) NOT NULL DEFAULT 0,
+    is_bad tinyint(2) NOT NULL DEFAULT 0,
 
     PRIMARY KEY(id)
 ) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci PACK_KEYS=0;
