@@ -396,7 +396,7 @@ app.get("/logout", (req, res) => {
   });
 });
 
-async function markBad(req: GenericRequest, res: GenericResponse, marker: (galaxy: Galaxy) => Promise<void>) {
+async function markBad(req: GenericRequest, res: GenericResponse, marker: (galaxy: Galaxy) => Promise<void>, markedStatus: string) {
   const galaxyID = req.body.galaxy_id;
   const galaxyName = req.body.galaxy_name;
   if (!(galaxyID || galaxyName)) { 
@@ -422,17 +422,17 @@ async function markBad(req: GenericRequest, res: GenericResponse, marker: (galax
 
   marker(galaxy);
   res.status(200).json({
-    status: "galaxy_marked_bad"
+    status: markedStatus
   });
 }
 
 /** Really should be POST */
 app.put("/mark-galaxy-bad", async (req, res) => {
-  markBad(req, res, markGalaxyBad);
+  markBad(req, res, markGalaxyBad, "galaxy_marked_bad");
 });
 
 app.post("/mark-spectrum-bad", async (req, res) => {
-  markBad(req, res, markGalaxySpectrumBad);
+  markBad(req, res, markGalaxySpectrumBad, "galaxy_spectrum_marked_bad");
 });
 
 /** Testing Endpoints
