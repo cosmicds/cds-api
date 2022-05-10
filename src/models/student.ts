@@ -18,6 +18,8 @@ export class Student extends Model<InferAttributes<Student>, InferCreationAttrib
   declare visits: CreationOptional<number>;
   declare last_visit: CreationOptional<Date>;
   declare last_visit_ip: CreationOptional<string | null>;
+  declare seed: CreationOptional<number>;
+  declare team_member: CreationOptional<string | null>;
 }
 
 export function initializeStudentModel(sequelize: Sequelize) {
@@ -86,6 +88,13 @@ export function initializeStudentModel(sequelize: Sequelize) {
       defaultValue: Sequelize.literal("CURRENT_TIMESTAMP")
     },
     last_visit_ip: {
+      type: DataTypes.STRING
+    },
+    seed: {
+      type: DataTypes.TINYINT,
+      allowNull: false
+    },
+    team_member: {
       type: DataTypes.STRING
     }
   }, {

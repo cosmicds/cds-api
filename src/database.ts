@@ -519,6 +519,10 @@ export async function markGalaxyBad(galaxy: Galaxy): Promise<void> {
   galaxy.update({ marked_bad: galaxy.marked_bad + 1 });
 }
 
+export async function markGalaxySpectrumBad(galaxy: Galaxy): Promise<void> {
+  galaxy.update({ spec_marked_bad: galaxy.spec_marked_bad + 1 });
+}
+
 export async function getRosterInfoForStory(classID: number, storyName: string): Promise<StoryState[]> {
   return StudentsClasses.findAll({
     where: { class_id: classID }
@@ -552,7 +556,7 @@ export async function getRosterInfo(classID: number): Promise<Record<string,Stor
 }
 
 /** For testing purposes */
-export async function newDummyStudent(): Promise<Student> {
+export async function newDummyStudent(seed = false, teamMember: string | null = null): Promise<Student> {
   const students = await Student.findAll();
   const ids: number[] = students.map(student => {
     if (!student) { return 0; }
@@ -568,5 +572,7 @@ export async function newDummyStudent(): Promise<Student> {
     email: `dummy_student_${newID}@dummy.school`,
     age: null,
     gender: null,
+    seed: seed ? 1 : 0,
+    team_member: teamMember
   });
 }

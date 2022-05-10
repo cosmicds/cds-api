@@ -15,6 +15,8 @@ CREATE TABLE Students (
     visits int(11) NOT NULL DEFAULT 0,
     last_visit datetime NOT NULL,
     last_visit_ip varchar(50) COLLATE utf8_unicode_ci,
+    seed tinyint(2) NOT NULL DEFAULT 0,
+    team_member varchar(30)
 
     PRIMARY KEY(id),
     INDEX(username),
