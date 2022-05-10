@@ -23,7 +23,8 @@ import {
   markGalaxyBad,
   getClassesForStudent,
   getRosterInfo,
-  getRosterInfoForStory
+  getRosterInfoForStory,
+  markGalaxySpectrumBad
 } from "./database";
 
 import {
@@ -35,7 +36,8 @@ import {
 } from "./request_results";
 
 import { ParsedQs } from "qs";
-import express, { Response } from "express";
+import express, { Request, Response as ExpressResponse } from "express";
+import { Response } from "express-serve-static-core";
 import bodyParser from "body-parser";
 import cookieParser from "cookie-parser";
 import session from "express-session";
@@ -46,8 +48,10 @@ import { Galaxy } from "./models/galaxy";
 const app = express();
 
 // eslint-disable-next-line @typescript-eslint/ban-types
-type GenericRequest = express.Request<{}, any, any, ParsedQs, Record<string, any>>;
-type VerificationRequest = express.Request<{verificationCode: string}, any, any, ParsedQs, Record<string, any>>;
+type GenericRequest = Request<{}, any, any, ParsedQs, Record<string, any>>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type GenericResponse = Response<any, Record<string, any>, number>;
+type VerificationRequest = Request<{verificationCode: string}, any, any, ParsedQs, Record<string, any>>;
 
 const corsOptions = {
     //origin: "http://localhost:8081"
@@ -91,7 +95,7 @@ app.get("/", (req, res) => {
   res.json({ message: "Welcome to the CosmicDS server." });
 });
 
-function sendUserIdCookie(userId: number, res: Response) : void {
+function sendUserIdCookie(userId: number, res: ExpressResponse) : void {
   const expirationTime = 24 * 60 * 60; // one day
   console.log("Sending cookie");
   res.cookie("userId", userId,
@@ -392,7 +396,7 @@ app.get("/logout", (req, res) => {
   });
 });
 
-app.put("/mark-galaxy-bad", async (req, res) => {
+async function markBad(req: GenericRequest, res: GenericResponse, marker: (galaxy: Galaxy) => Promise<void>) {
   const galaxyID = req.body.galaxy_id;
   const galaxyName = req.body.galaxy_name;
   if (!(galaxyID || galaxyName)) { 
@@ -416,11 +420,19 @@ app.put("/mark-galaxy-bad", async (req, res) => {
     return;
   }
 
-  markGalaxyBad(galaxy);
+  marker(galaxy);
   res.status(200).json({
     status: "galaxy_marked_bad"
   });
+}
 
+/** Really should be POST */
+app.put("/mark-galaxy-bad", async (req, res) => {
+  markBad(req, res, markGalaxyBad);
+});
+
+app.post("/mark-spectrum-bad", async (req, res) => {
+  markBad(req, res, markGalaxySpectrumBad);
 });
 
 /** Testing Endpoints
@@ -431,6 +443,15 @@ app.put("/mark-galaxy-bad", async (req, res) => {
 
 app.get("/new-dummy-student", async (_req, res) => {
   const student = await newDummyStudent();
+  res.json({
+    student: student
+  });
+});
+
+app.post("/new-dummy-student", async (req, res) => {
+  const seed = req.body.seed || false;
+  const teamMember = req.body.team_member;
+  const student = await newDummyStudent(seed, teamMember);
   res.json({
     student: student
   });
