@@ -2,6 +2,8 @@ CREATE TABLE StoryStates (
     student_id int(11) UNSIGNED NOT NULL,
     story_name varchar(50) NOT NULL,
     story_state JSON NOT NULL,
+    last_modified TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
 
     PRIMARY KEY(student_id, story_name),
     INDEX(student_id),
