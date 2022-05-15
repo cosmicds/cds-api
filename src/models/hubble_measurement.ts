@@ -16,6 +16,7 @@ export class HubbleMeasurement extends Model<InferAttributes<HubbleMeasurement>,
   declare ang_size_unit: CreationOptional<string | null>;
   declare est_dist_value: CreationOptional<number | null>;
   declare est_dist_unit: CreationOptional<string | null>;
+  declare last_modified: CreationOptional<Date>;
 }
 
 export function initializeHubbleMeasurementModel(sequelize: Sequelize) {
@@ -68,6 +69,11 @@ export function initializeHubbleMeasurementModel(sequelize: Sequelize) {
     est_dist_unit: {
       type: DataTypes.STRING
     },
+    last_modified: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: Sequelize.literal("CURRENT_TIMESTAMP")
+    }
   }, {
     sequelize,
     engine: "InnoDB"

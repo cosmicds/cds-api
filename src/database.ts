@@ -388,6 +388,9 @@ export async function getHubbleMeasurement(studentID: number, galaxyID: number):
         { galaxy_id: galaxyID }
       ]
     }
+  }).catch(error => {
+    console.log(error);
+    return null;
   });
 }
 
@@ -452,7 +455,10 @@ export async function updateStoryState(studentID: number, storyName: string, new
   if (result !== null) {
     result?.update(storyData);
   } else {
-    result = await StoryState.create(storyData);
+    result = await StoryState.create(storyData).catch(error => {
+      console.log(error);
+      return null;
+    });
   }
   return result?.story_state || null;
 }
