@@ -2,7 +2,8 @@ import { Sequelize, DataTypes, Model, InferAttributes, InferCreationAttributes, 
 
 export class Story extends Model<InferAttributes<Story>, InferCreationAttributes<Story>> {
   declare id: CreationOptional<number>;
-  declare name: string; 
+  declare name: string;
+  declare display_name: string;
 }
 
 export function initializeStoryModel(sequelize: Sequelize) {
@@ -14,6 +15,11 @@ export function initializeStoryModel(sequelize: Sequelize) {
       primaryKey: true
     },
     name: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true
+    },
+    display_name: {
       type: DataTypes.STRING,
       allowNull: false,
       unique: true
