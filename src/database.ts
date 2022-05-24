@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import { Class, initializeClassModel } from "./models/class";
 import { Educator, initializeEducatorModel } from "./models/educator";
 import { Student, initializeStudentModel } from "./models/student";
+import { Story, initializeStoryModel } from "./models/story";
 import { StudentsClasses, initializeStudentClassModel } from "./models/student_class";
 import { HubbleMeasurement, initializeHubbleMeasurementModel } from "./models/hubble_measurement";
 import {
@@ -25,7 +26,7 @@ import { User } from "./user";
 import { Galaxy, initializeGalaxyModel } from "./models/galaxy";
 import { initializeStoryStateModel, StoryState } from "./models/story_state";
 import { ClassStories, initializeClassStoryModel } from "./models/story_class";
-import { initializeStoryModel } from "./models/story";
+
 import { setUpAssociations } from "./associations";
 
 type SequelizeError = { parent: { code: string } };
@@ -529,34 +530,46 @@ export async function markGalaxySpectrumBad(galaxy: Galaxy): Promise<void> {
   galaxy.update({ spec_marked_bad: galaxy.spec_marked_bad + 1 });
 }
 
-export async function getRosterInfoForStory(classID: number, storyName: string): Promise<StoryState[]> {
+export async function getRosterInfoForStory(classID: number, name: string): Promise<StoryState[]> {
   return StudentsClasses.findAll({
     where: { class_id: classID }
   }).then(entries => {
     const studentIDs = entries.map(entry => entry.student_id);
     return StoryState.findAll({
-      include: [{
-        model: Student,
-        required: false, // We also want access to the student data
-        attributes: ["username", "email"],
-        as: "student"
-      }],
+      include: [
+        {
+          model: Student,
+          required: false, // We also want access to the student data
+          attributes: ["username", "email"],
+          as: "student"
+        },
+      ],
       where: {
         student_id: {
           [Op.in]: studentIDs
         },
-        story_name: storyName
+        story_name: name
       }
     });
   });
 }
 
-export async function getRosterInfo(classID: number): Promise<Record<string,StoryState[]|undefined>> {
-  const activeStoryNames = await ClassStories.findAll({
-    where: { class_id: classID}
-  }).then(entries => entries.map(entry => entry.story_name));
-  return activeStoryNames.reduce(async (obj, name) => {
-    Object.assign(obj, { [name]: await getRosterInfoForStory(classID, name) });
+export async function getRosterInfo(classID: number, useDisplayNames = true): Promise<Record<string,StoryState[]|undefined>> {
+  type Joined = ClassStories & {story: Story};
+  const mapper: (entry: Joined) => string = useDisplayNames ? entry => entry.story.display_name : entry => entry.story_name;
+  const activeStories = await ClassStories.findAll({
+    include: [{
+      model: Story,
+      required: false,
+      attributes: ["display_name"],
+      as: "story"
+    }],
+    where: { class_id: classID }
+  }) as Joined[];
+
+  return activeStories.reduce(async (obj, entry) => {
+    const mappedName = mapper(entry);
+    Object.assign(obj, { [mappedName]: await getRosterInfoForStory(classID, entry.story_name) });
     return obj;
   }, {});
 }

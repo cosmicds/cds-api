@@ -37,16 +37,31 @@ export function setUpAssociations() {
     onDelete: "CASCADE"
   });
 
-  Student.belongsTo(StoryState, {
-    foreignKey: "id",
-    targetKey: "student_id",
-    as: "story_state"
+  Student.hasMany(StoryState, {
+    foreignKey: "student_id"
+  });
+  StoryState.belongsTo(Student, {
+    as: "student",
+    targetKey: "id",
+    foreignKey: "student_id"
   });
 
-  StoryState.belongsTo(Student, {
-    foreignKey: "student_id",
-    targetKey: "id",
-    as: "student"
+  Story.hasMany(StoryState, {
+    foreignKey: "story_name"
+  });
+  StoryState.belongsTo(Story, {
+    as: "story",
+    targetKey: "name",
+    foreignKey: "story_name"
+  });
+  
+  Story.hasMany(ClassStories, {
+    foreignKey: "story_name"
+  });
+  ClassStories.belongsTo(Story, {
+    as: "story",
+    targetKey: "name",
+    foreignKey: "story_name"
   });
 
 }

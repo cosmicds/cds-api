@@ -1,6 +1,7 @@
 CREATE TABLE Stories (
     id int(11) UNSIGNED NOT NULL UNIQUE AUTO_INCREMENT,
     name varchar(32) NOT NULL UNIQUE,
+    display_name varchar(32) NOT NULL UNIQUE,
 
     PRIMARY KEY(id),
     INDEX(name)
