@@ -6,7 +6,6 @@ import { Educator, initializeEducatorModel } from "./models/educator";
 import { Student, initializeStudentModel } from "./models/student";
 import { Story, initializeStoryModel } from "./models/story";
 import { StudentsClasses, initializeStudentClassModel } from "./models/student_class";
-import { HubbleMeasurement, initializeHubbleMeasurementModel } from "./models/hubble_measurement";
 import {
   createClassCode,
   createVerificationCode,
@@ -19,11 +18,9 @@ import {
   LoginResult,
   SignUpResult,
   VerificationResult,
-  SubmitHubbleMeasurementResult
 } from "./request_results";
 
 import { User } from "./user";
-import { Galaxy, initializeGalaxyModel } from "./models/galaxy";
 import { initializeStoryStateModel, StoryState } from "./models/story_state";
 import { ClassStories, initializeClassStoryModel } from "./models/story_class";
 
@@ -70,8 +67,6 @@ initializeStudentModel(cosmicdsDB);
 initializeClassModel(cosmicdsDB);
 initializeStoryModel(cosmicdsDB);
 initializeStudentClassModel(cosmicdsDB);
-initializeGalaxyModel(cosmicdsDB);
-initializeHubbleMeasurementModel(cosmicdsDB);
 initializeStoryStateModel(cosmicdsDB);
 initializeClassStoryModel(cosmicdsDB);
 
@@ -124,13 +119,13 @@ async function findStudentByEmail(email: string): Promise<Student | null> {
   });
 }
 
-async function findStudentById(id: number): Promise<Student | null> {
+export async function findStudentById(id: number): Promise<Student | null> {
   return Student.findOne({
     where: { id : id }
   });
 }
 
-async function findEducatorById(id: number): Promise<Educator | null> {
+export async function findEducatorById(id: number): Promise<Educator | null> {
   return Educator.findOne({
     where: { id: id }
   });
@@ -334,85 +329,7 @@ export async function checkEducatorLogin(email: string, password: string): Promi
   return checkLogin(email, password, findEducatorByEmail);
 }
 
-export async function submitHubbleMeasurement(data: {
-  student_id: number,
-  galaxy_id: number,
-  rest_wave_value: number | null,
-  rest_wave_unit: string | null,
-  obs_wave_value: number | null,
-  obs_wave_unit: string | null,
-  velocity_value: number | null,
-  velocity_unit: string | null,
-  ang_size_value: number | null,
-  ang_size_unit: string | null,
-  est_dist_value: number | null,
-  est_dist_init: string | null
-}): Promise<SubmitHubbleMeasurementResult> {
 
-  const student = await findStudentById(data.student_id);
-  if (student === null) {
-    return SubmitHubbleMeasurementResult.NoSuchStudent;
-  }
-
-  const measurement = await HubbleMeasurement.findOne({
-    where: {
-      [Op.and]: [
-        { student_id: data.student_id },
-        { galaxy_id: data.galaxy_id }
-      ]
-    }
-  })
-  .catch(console.log);
-
-  if (measurement) {
-    measurement.update(data, {
-      where: {
-        [Op.and]: [
-          { student_id: measurement.student_id },
-          { galaxy_id: measurement.galaxy_id }
-        ]
-      }
-    })
-    .catch(console.log);
-    return SubmitHubbleMeasurementResult.MeasurementUpdated;
-  } else {
-    HubbleMeasurement.create(data).catch(console.log);
-    return SubmitHubbleMeasurementResult.MeasurementCreated;
-  }
-}
-
-export async function getHubbleMeasurement(studentID: number, galaxyID: number): Promise<HubbleMeasurement | null> {
-  return HubbleMeasurement.findOne({
-    where: {
-      [Op.and]: [
-        { student_id: studentID },
-        { galaxy_id: galaxyID }
-      ]
-    }
-  }).catch(error => {
-    console.log(error);
-    return null;
-  });
-}
-
-export async function getStudentHubbleMeasurements(studentID: number): Promise<HubbleMeasurement[] | null> {
-  const result = await HubbleMeasurement.findAll({
-  where: {
-      student_id: studentID
-    }
-  })
-  .catch(error => {
-    console.log(error);
-    return null;
-  });
-  return result;
-}
-
-export async function getAllGalaxies(): Promise<Galaxy[]> {
-  return Galaxy.findAll({
-    where: { is_bad: 0 }
-  });
-}
 
 export async function getAllStudents(): Promise<Student[]> {
   return Student.findAll();
@@ -514,20 +431,6 @@ export async function findClassByCode(code: string): Promise<Class | null> {
   return Class.findOne({
     where: { code: code }
   });
-}
-
-export async function getGalaxyByName(name: string): Promise<Galaxy | null> {
-  return Galaxy.findOne({
-    where: { name: name }
-  });
-}
-
-export async function markGalaxyBad(galaxy: Galaxy): Promise<void> {
-  galaxy.update({ marked_bad: galaxy.marked_bad + 1 });
-}
-
-export async function markGalaxySpectrumBad(galaxy: Galaxy): Promise<void> {
-  galaxy.update({ spec_marked_bad: galaxy.spec_marked_bad + 1 });
 }
 
 export async function getRosterInfoForStory(classID: number, name: string): Promise<StoryState[]> {

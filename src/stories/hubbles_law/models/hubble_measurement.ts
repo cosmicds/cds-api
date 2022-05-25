@@ -1,5 +1,5 @@
 import { Galaxy } from "./galaxy";
-import { Student } from "./student";
+import { Student } from "../../../models/student";
 import { Sequelize, DataTypes, Model, InferAttributes, InferCreationAttributes, CreationOptional } from "sequelize";
 
 export class HubbleMeasurement extends Model<InferAttributes<HubbleMeasurement>, InferCreationAttributes<HubbleMeasurement>> {
