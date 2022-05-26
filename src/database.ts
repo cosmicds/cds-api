@@ -1,11 +1,17 @@
 import { Model, Op, Sequelize } from "sequelize";
 import dotenv from "dotenv";
 
-import { Class, initializeClassModel } from "./models/class";
-import { Educator, initializeEducatorModel } from "./models/educator";
-import { Student, initializeStudentModel } from "./models/student";
-import { Story, initializeStoryModel } from "./models/story";
-import { StudentsClasses, initializeStudentClassModel } from "./models/student_class";
+import {
+  CosmicDSSession,
+  Class,
+  Educator,
+  ClassStories,
+  StoryState,
+  Story,
+  StudentsClasses,
+  Student
+} from "./models";
+
 import {
   createClassCode,
   createVerificationCode,
@@ -21,10 +27,9 @@ import {
 } from "./request_results";
 
 import { User } from "./user";
-import { initializeStoryStateModel, StoryState } from "./models/story_state";
-import { ClassStories, initializeClassStoryModel } from "./models/story_class";
 
 import { setUpAssociations } from "./associations";
+import { initializeModels } from "./models";
 
 type SequelizeError = { parent: { code: string } };
 
@@ -43,7 +48,12 @@ export type CreateClassResponse = {
 // Currently, just the DB password
 dotenv.config();
 
-export const cosmicdsDB = new Sequelize("cosmicds_db", "cdsadmin", process.env.DB_PASSWORD, {
+const dbName = "cosmicds_db";
+const username = "cdsadmin";
+const password = process.env.DB_PASSWORD;
+//const username = "jon";
+//const password = "Testp@ss123";
+export const cosmicdsDB = new Sequelize(dbName, username, password, {
     host: "cosmicds-db.cupwuw3jvfpc.us-east-1.rds.amazonaws.com",
     dialect: "mysql",
     define: {
@@ -51,39 +61,15 @@ export const cosmicdsDB = new Sequelize("cosmicds_db", "cdsadmin", process.env.D
     }
 });
 
-// export const cosmicdsDB = new Sequelize('cosmicds_db', 'jon', 'Testp@ss123', {
-//   host: 'localhost',
-//   dialect: 'mysql',
-//   define: {
-//     timestamps: false
-//   }
-// });
-
-console.log(cosmicdsDB);
-
 // Initialize our models with our database connection
-initializeEducatorModel(cosmicdsDB);
-initializeStudentModel(cosmicdsDB);
-initializeClassModel(cosmicdsDB);
-initializeStoryModel(cosmicdsDB);
-initializeStudentClassModel(cosmicdsDB);
-initializeStoryStateModel(cosmicdsDB);
-initializeClassStoryModel(cosmicdsDB);
+initializeModels(cosmicdsDB);
+// (async () => {
+//   await CosmicDSSession.sync({}).catch(console.log);
+//   console.log("Done sync!");
+// })();
 
 // Create any associations that we need
 setUpAssociations();
- 
-// // Synchronize models with the database
-// (async () => {
-//   const createIfExistsOptions = {};
-//   //const alterOptions = { alter: true };
-//   const syncOptions = createIfExistsOptions;
-//   await Educator.sync(syncOptions).catch(console.log);
-//   await Student.sync(syncOptions).catch(console.log);
-//   await Class.sync(syncOptions).catch(console.log);
-//   await StudentsClasses.sync(syncOptions).catch(console.log);
-// })();
-
 
 // For now, this just distinguishes between duplicate account creation and other errors
 // We can flesh this out layer

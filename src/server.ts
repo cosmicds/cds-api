@@ -28,7 +28,7 @@ import {
   VerificationResult,
 } from "./request_results";
 
-
+import { CosmicDSSession } from "./models";
 
 import { ParsedQs } from "qs";
 import express, { Request, Response as ExpressResponse } from "express";
@@ -39,6 +39,7 @@ import session from "express-session";
 import sequelizeStore from "connect-session-sequelize";
 import { v4 } from "uuid";
 import cors from "cors";
+import jwt from "jsonwebtoken";
 export const app = express();
 
 // eslint-disable-next-line @typescript-eslint/ban-types
@@ -47,28 +48,55 @@ export type GenericRequest = Request<{}, any, any, ParsedQs, Record<string, any>
 export type GenericResponse = Response<any, Record<string, any>, number>;
 type VerificationRequest = Request<{verificationCode: string}, any, any, ParsedQs, Record<string, any>>;
 
-const corsOptions = {
-    //origin: "http://localhost:8081"
+type CDSSession = session.Session & Partial<session.SessionData> & CosmicDSSession;
+
+export enum UserType {
+  None = 0, // Not logged in
+  Student,
+  Educator,
+  Admin
+}
+
+const corsOptions: cors.CorsOptions = {
+    origin: "http://192.168.99.136:8081",
+    credentials: true,
+    preflightContinue: true
+    //origin: "*"
 };
 
 const PRODUCTION = process.env.NODE_ENV === "production";
-const SESSION_MAX_AGE = 24 * 60 * 60;
+const SESSION_MAX_AGE = 24 * 60 * 60; // in seconds
 
 app.use(cors(corsOptions));
 app.use(cookieParser());
 const SequelizeStore = sequelizeStore(session.Store);
 const store = new SequelizeStore({
   db: cosmicdsDB,
+  table: "CosmicDSSession", // We need to use the model name instead of the table name (here they are different)
   checkExpirationInterval: 15 * 60 * 1000, // The interval at which to cleanup expired sessions in milliseconds
-  expiration: 24 * 60 * 60 * 1000 // The maximum age (in milliseconds) of a valid session
+  expiration: SESSION_MAX_AGE * 1000, // The maximum age (in milliseconds) of a valid session
+  extendDefaultFields: function (defaults, sess) {
+    return {
+      data: defaults.data,
+      expires: defaults.expires,
+      user_id: sess.user_id,
+      username: sess.username,
+      email: sess.email
+    };
+  }
 });
 
+const SECRET = "ADD_REAL_SECRET";
+const SESSION_NAME = "cosmicds";
+
+app.set("trust proxy", 1);
 app.use(session({
-  secret: "ADD_REAL_SECRET",
+  secret: SECRET,
   genid: (_req) => v4(),
   store: store,
-  resave: false,
+  name: SESSION_NAME,
   saveUninitialized: false,
+  resave: true,
   cookie: {
     path: "/",
     maxAge: SESSION_MAX_AGE,
@@ -84,20 +112,50 @@ app.use(bodyParser.json());
 // parse requests of content-type - application/x-www-form-urlencoded
 app.use(bodyParser.urlencoded({ extended: true }));
 
+// app.use(function(_req, res, next) {
+
+//   res.header("Access-Control-Allow-Credentials", "true");
+//   res.header("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE");
+//   //res.header("Access-Control-Allow-Origin", process.env.ORIGIN);
+//   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+//   next();
+// });
+
+app.all("*", (req, res, next) => {
+  console.log(req.path);
+  console.log(req.session);
+  const sess = req.session as CDSSession;
+  console.log(req.sessionID);
+  console.log("======");
+  next();
+});
+
 // simple route
 app.get("/", (req, res) => {
   res.json({ message: "Welcome to the CosmicDS server." });
 });
 
-function sendUserIdCookie(userId: number, res: ExpressResponse) : void {
+function sendUserIdCookie(userId: number, res: ExpressResponse): void {
   const expirationTime = 24 * 60 * 60; // one day
   console.log("Sending cookie");
   res.cookie("userId", userId,
     {
       maxAge: expirationTime ,
-      httpOnly: false,
+      httpOnly: PRODUCTION,
       secure: PRODUCTION
     });
+}
+
+function sendLoginCookie(userId: number, res: ExpressResponse): void {
+  const expirationTime = 24 * 60 * 60; // one day
+  const token = jwt.sign({
+    data: {
+      "userId": userId
+    }
+  }, SECRET, {
+    expiresIn: expirationTime
+  });
+  res.cookie("login", token);
 }
 
 // set port, listen for requests
@@ -173,7 +231,9 @@ async function handleLogin(request: GenericRequest, checker: (email: string, pw:
 app.put("/student-login", async (req, res) => {
   const response = await handleLogin(req, checkStudentLogin);
   if (response.success && response.id) {
-    sendUserIdCookie(response.id, res);
+    const sess = req.session as CDSSession;
+    sess.user_id = response.id;
+    sess.user_type = UserType.Student;
   }
   res.json(response);
 });
@@ -181,7 +241,9 @@ app.put("/student-login", async (req, res) => {
 app.put("/educator-login", async (req, res) => {
   const response = await handleLogin(req, checkEducatorLogin);
   if (response.success && response.id) {
-    sendUserIdCookie(response.id, res);
+    const sess = req.session as CDSSession;
+    sess.user_id = response.id;
+    sess.user_type = UserType.Educator;
   }
   res.json(response);
 });
