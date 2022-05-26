@@ -7,24 +7,18 @@ import {
   signUpStudent,
   verifyEducator,
   verifyStudent,
-  submitHubbleMeasurement,
-  getStudentHubbleMeasurements,
   getAllEducators,
-  getAllGalaxies,
   getAllStudents,
-  getHubbleMeasurement,
   getStoryState,
   LoginResponse,
   getClassesForEducator,
   findClassByCode,
   newDummyStudent,
   updateStoryState,
-  getGalaxyByName,
-  markGalaxyBad,
   getClassesForStudent,
   getRosterInfo,
   getRosterInfoForStory,
-  markGalaxySpectrumBad
+  
 } from "./database";
 
 import {
@@ -32,8 +26,9 @@ import {
   LoginResult,
   SignUpResult,
   VerificationResult,
-  SubmitHubbleMeasurementResult
 } from "./request_results";
+
+
 
 import { ParsedQs } from "qs";
 import express, { Request, Response as ExpressResponse } from "express";
@@ -44,13 +39,12 @@ import session from "express-session";
 import sequelizeStore from "connect-session-sequelize";
 import { v4 } from "uuid";
 import cors from "cors";
-import { Galaxy } from "./models/galaxy";
-const app = express();
+export const app = express();
 
 // eslint-disable-next-line @typescript-eslint/ban-types
-type GenericRequest = Request<{}, any, any, ParsedQs, Record<string, any>>;
+export type GenericRequest = Request<{}, any, any, ParsedQs, Record<string, any>>;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type GenericResponse = Response<any, Record<string, any>, number>;
+export type GenericResponse = Response<any, Record<string, any>, number>;
 type VerificationRequest = Request<{verificationCode: string}, any, any, ParsedQs, Record<string, any>>;
 
 const corsOptions = {
@@ -256,46 +250,6 @@ app.get("/validate-classroom-code/:code", async (req, res) => {
   });
 });
 
-app.put("/submit-measurement", async (req, res) => {
-  const data = req.body;
-  const valid = (
-    typeof data.student_id === "number" &&
-    ((typeof data.galaxy_id === "number") || (typeof data.galaxy_name === "string")) &&
-    (!data.rest_wave_value || typeof data.rest_wave_value === "number") &&
-    (!data.rest_wave_unit || typeof data.rest_wave_unit === "string") &&
-    (!data.obs_wave_value || typeof data.obs_wave_value === "number") &&
-    (!data.obs_wave_unit || typeof data.obs_wave_unit === "string") &&
-    (!data.velocity_value || typeof data.velocity_value === "number") &&
-    (!data.velocity_unit || typeof data.velocity_unit === "string") &&
-    (!data.ang_size_value || typeof data.ang_size_value === "number") &&
-    (!data.ang_size_unit || typeof data.ang_size_unit === "string") &&
-    (!data.est_dist_value || typeof data.est_dist_value === "number") &&
-    (!data.est_dist_unit || typeof data.est_dist_unit === "string")
-  );
-
-  if (typeof data.galaxy_id !== "number") {
-    const galaxy = await getGalaxyByName(data.galaxy_name);
-    data.galaxy_id = galaxy?.id || 0;
-    delete data.galaxy_name;
-  }
-
-  let result: SubmitHubbleMeasurementResult;
-  if (valid) {
-    result = await submitHubbleMeasurement(data);
-  } else {
-    result = SubmitHubbleMeasurementResult.BadRequest;
-  }
-  res.json({
-    measurement: data,
-    status: result,
-    success: SubmitHubbleMeasurementResult.success(result)
-  });
-});
-
-app.get("/galaxies", async (_req, res) => {
-  const response = await getAllGalaxies();
-  res.json(response);
-});
 
 app.get("/students", async (_req, res) => {
   const response = await getAllStudents();
@@ -305,28 +259,6 @@ app.get("/students", async (_req, res) => {
 app.get("/educators", async (_req, res) => {
   const response = await getAllEducators();
   res.json(response);
-});
-
-app.get("/measurements/:studentID", async (req, res) => {
-  const params = req.params;
-  const studentID = parseInt(params.studentID);
-  const measurements = await getStudentHubbleMeasurements(studentID);
-  res.json({
-    student_id: studentID,
-    measurements: measurements
-  });
-});
-
-app.get("/measurements/:studentID/:galaxyID", async (req, res) => {
-  const params = req.params;
-  const studentID = parseInt(params.studentID);
-  const galaxyID = parseInt(params.galaxyID);
-  const measurement = await getHubbleMeasurement(studentID, galaxyID);
-  res.json({
-    student_id: studentID,
-    galaxy_id: galaxyID,
-    measurement: measurement
-  });
 });
 
 app.get("/story-state/:studentID/:storyName", async (req, res) => {
@@ -394,45 +326,6 @@ app.get("/logout", (req, res) => {
   res.send({
     "logout": true
   });
-});
-
-async function markBad(req: GenericRequest, res: GenericResponse, marker: (galaxy: Galaxy) => Promise<void>, markedStatus: string) {
-  const galaxyID = req.body.galaxy_id;
-  const galaxyName = req.body.galaxy_name;
-  if (!(galaxyID || galaxyName)) { 
-    res.status(400).json({
-      status: "missing_id_or_name"
-    });
-    return;
-   }
-
-  let galaxy: Galaxy | null;
-  if (galaxyID) {
-    galaxy = await Galaxy.findOne({ where: { id : galaxyID }});
-  } else {
-    galaxy = await getGalaxyByName(galaxyName);
-  }
-
-  if (galaxy === null) {
-    res.status(404).json({
-      status: "no_such_galaxy"
-    });
-    return;
-  }
-
-  marker(galaxy);
-  res.status(200).json({
-    status: markedStatus
-  });
-}
-
-/** Really should be POST */
-app.put("/mark-galaxy-bad", async (req, res) => {
-  markBad(req, res, markGalaxyBad, "galaxy_marked_bad");
-});
-
-app.post("/mark-spectrum-bad", async (req, res) => {
-  markBad(req, res, markGalaxySpectrumBad, "galaxy_spectrum_marked_bad");
 });
 
 /** Testing Endpoints

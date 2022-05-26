@@ -2,8 +2,7 @@ export type RequestResult =
   CreateClassResult |
   LoginResult |
   SignUpResult |
-  VerificationResult |
-  SubmitHubbleMeasurementResult;
+  VerificationResult;
 
 export enum CreateClassResult {
   BadRequest = "bad_request",
@@ -77,19 +76,5 @@ export enum VerificationResult {
 export namespace VerificationResult {
   export function success(result: VerificationResult): boolean {
     return result === VerificationResult.Ok;
-  }
-}
-
-export enum SubmitHubbleMeasurementResult {
-  BadRequest = "bad_request",
-  MeasurementCreated = "measurement_created",
-  MeasurementUpdated = "measurement_updated",
-  NoSuchStudent = "no_such_student"
-}
-
-export namespace SubmitHubbleMeasurementResult {
-  export function success(result: SubmitHubbleMeasurementResult): boolean {
-    return result === SubmitHubbleMeasurementResult.MeasurementCreated ||
-      result == SubmitHubbleMeasurementResult.MeasurementUpdated;
   }
 }
