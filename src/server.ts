@@ -31,7 +31,7 @@ import {
 import { CosmicDSSession } from "./models";
 
 import { ParsedQs } from "qs";
-import express, { Request, Response as ExpressResponse } from "express";
+import express, { Request, Response as ExpressResponse, response } from "express";
 import { Response } from "express-serve-static-core";
 import bodyParser from "body-parser";
 import cookieParser from "cookie-parser";
@@ -57,11 +57,16 @@ export enum UserType {
   Admin
 }
 
+const ALLOWED_ORIGINS = [
+  "http://192.168.99.136:8081",
+  "https://cosmicds.github.io/cds-website/"
+];
+
 const corsOptions: cors.CorsOptions = {
-    origin: "http://192.168.99.136:8081",
+    origin: "*",
     credentials: true,
-    preflightContinue: true
-    //origin: "*"
+    preflightContinue: true,
+    exposedHeaders: ["set-cookie"]
 };
 
 const PRODUCTION = process.env.NODE_ENV === "production";
@@ -100,7 +105,7 @@ app.use(session({
   cookie: {
     path: "/",
     maxAge: SESSION_MAX_AGE,
-    httpOnly: false,
+    httpOnly: true,
     secure: PRODUCTION
   }
 }));
@@ -112,21 +117,18 @@ app.use(bodyParser.json());
 // parse requests of content-type - application/x-www-form-urlencoded
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// app.use(function(_req, res, next) {
+app.use(function(req, res, next) {
 
-//   res.header("Access-Control-Allow-Credentials", "true");
-//   res.header("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE");
-//   //res.header("Access-Control-Allow-Origin", process.env.ORIGIN);
-//   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
-//   next();
-// });
+  const origin = req.get("origin");
+  console.log(origin);
+  if (origin !== undefined && ALLOWED_ORIGINS.includes(origin)) {
+    res.header("Access-Control-Allow-Origin", origin);
+  }
+  next();
+});
 
-app.all("*", (req, res, next) => {
-  console.log(req.path);
-  console.log(req.session);
-  const sess = req.session as CDSSession;
-  console.log(req.sessionID);
-  console.log("======");
+app.all("*", (req, _res, next) => {
+  console.log(req.session.id);
   next();
 });
 
@@ -228,6 +230,21 @@ async function handleLogin(request: GenericRequest, checker: (email: string, pw:
   return response;
 }
 
+app.put("/login", async (req, res) => {
+  console.log("In login");
+  console.log(req.body);
+  const sess = req.session as CDSSession;
+  let result = LoginResult.BadSession;
+  if (sess.user_id && sess.user_type) {
+    result = LoginResult.Ok;
+  }
+  res.json({
+    result: result,
+    id: sess.user_id,
+    success: LoginResult.success(result)
+  });
+});
+
 app.put("/student-login", async (req, res) => {
   const response = await handleLogin(req, checkStudentLogin);
   if (response.success && response.id) {
@@ -239,6 +256,8 @@ app.put("/student-login", async (req, res) => {
 });
 
 app.put("/educator-login", async (req, res) => {
+  console.log("In educator-login");
+  console.log(req.body);
   const response = await handleLogin(req, checkEducatorLogin);
   if (response.success && response.id) {
     const sess = req.session as CDSSession;

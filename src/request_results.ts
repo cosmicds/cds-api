@@ -26,6 +26,7 @@ export namespace CreateClassResult {
 
 export enum LoginResult {
   BadRequest = "bad_request",
+  BadSession = "bad_session",
   Ok = "ok",
   EmailNotExist = "email_not_exist",
   NotVerified = "not_verified",
