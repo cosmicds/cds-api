@@ -231,8 +231,6 @@ async function handleLogin(request: GenericRequest, checker: (email: string, pw:
 }
 
 app.put("/login", async (req, res) => {
-  console.log("In login");
-  console.log(req.body);
   const sess = req.session as CDSSession;
   let result = LoginResult.BadSession;
   if (sess.user_id && sess.user_type) {
@@ -256,8 +254,6 @@ app.put("/student-login", async (req, res) => {
 });
 
 app.put("/educator-login", async (req, res) => {
-  console.log("In educator-login");
-  console.log(req.body);
   const response = await handleLogin(req, checkEducatorLogin);
   if (response.success && response.id) {
     const sess = req.session as CDSSession;
