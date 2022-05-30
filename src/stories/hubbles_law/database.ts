@@ -2,20 +2,7 @@ import { Op } from "sequelize";
 import { HubbleMeasurement, initializeHubbleMeasurementModel } from "./models/hubble_measurement";
 import { cosmicdsDB, findStudentById } from "../../database";
 import { Galaxy, initializeGalaxyModel } from "./models/galaxy";
-
-export enum SubmitHubbleMeasurementResult {
-  BadRequest = "bad_request",
-  MeasurementCreated = "measurement_created",
-  MeasurementUpdated = "measurement_updated",
-  NoSuchStudent = "no_such_student"
-}
-
-export namespace SubmitHubbleMeasurementResult {
-  export function success(result: SubmitHubbleMeasurementResult): boolean {
-    return result === SubmitHubbleMeasurementResult.MeasurementCreated ||
-      result == SubmitHubbleMeasurementResult.MeasurementUpdated;
-  }
-}
+import { RemoveHubbleMeasurementResult, SubmitHubbleMeasurementResult } from "./request_results";
 
 initializeGalaxyModel(cosmicdsDB);
 initializeHubbleMeasurementModel(cosmicdsDB);
@@ -32,7 +19,7 @@ export async function submitHubbleMeasurement(data: {
   ang_size_value: number | null,
   ang_size_unit: string | null,
   est_dist_value: number | null,
-  est_dist_init: string | null
+  est_dist_unit: string | null
 }): Promise<SubmitHubbleMeasurementResult> {
 
   const student = await findStudentById(data.student_id);
@@ -92,6 +79,16 @@ export async function getStudentHubbleMeasurements(studentID: number): Promise<H
     return null;
   });
   return result;
+}
+
+export async function removeHubbleMeasurement(studentID: number, galaxyID: number): Promise<RemoveHubbleMeasurementResult> {
+  const count = await HubbleMeasurement.destroy({
+    where: {
+      student_id: studentID,
+      galaxy_id: galaxyID
+    }
+  });
+  return count > 0 ? RemoveHubbleMeasurementResult.MeasurementDeleted : RemoveHubbleMeasurementResult.NoSuchMeasurement;
 }
 
 export async function getAllGalaxies(): Promise<Galaxy[]> {

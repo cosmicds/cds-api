@@ -6,7 +6,6 @@ import {
 } from "../../server";
 
 import {
-  SubmitHubbleMeasurementResult,
   getGalaxyByName,
   getAllGalaxies,
   markGalaxyBad,
@@ -14,7 +13,13 @@ import {
   getHubbleMeasurement,
   submitHubbleMeasurement,
   getStudentHubbleMeasurements,
+  removeHubbleMeasurement
 } from "./database";
+
+import { 
+  RemoveHubbleMeasurementResult,
+  SubmitHubbleMeasurementResult
+} from "./request_results";
 
 import { Router } from "express";
 
@@ -54,6 +59,31 @@ router.put("/submit-measurement", async (req, res) => {
     status: result,
     success: SubmitHubbleMeasurementResult.success(result)
   });
+});
+
+router.delete("/measurement", async (req, res) => {
+  const data = req.body;
+  const valid = typeof data.student_id === "number" &&
+    (typeof data.galaxy_id === "number" || typeof data.galaxy_name === "string");
+  if (typeof data.galaxy_id !== "number") {
+    const galaxy = await getGalaxyByName(data.galaxy_name);
+    data.galaxy_id = galaxy?.id || 0;
+    delete data.galaxy_name;
+  }
+
+  let result: RemoveHubbleMeasurementResult;
+  if (valid) {
+    result = await removeHubbleMeasurement(data.student_id, data.galaxy_id);
+  } else {
+    result = RemoveHubbleMeasurementResult.BadRequest;
+  }
+  res.status(RemoveHubbleMeasurementResult.statusCode(result))
+    .json({
+      student_id: data.student_id,
+      galaxy_id: data.galaxy_id,
+      status: result,
+      success: RemoveHubbleMeasurementResult.success(result)
+    });
 });
 
 router.get("/measurements/:studentID", async (req, res) => {
@@ -113,7 +143,10 @@ async function markBad(req: GenericRequest, res: GenericResponse, marker: (galax
   });
 }
 
-/** Really should be POST */
+/**
+ * Really should be POST
+ * This was previously idempotent, but no longer is
+ */
 router.put("/mark-galaxy-bad", async (req, res) => {
   markBad(req, res, markGalaxyBad, "galaxy_marked_bad");
 });
