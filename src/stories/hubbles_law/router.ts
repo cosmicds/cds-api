@@ -61,26 +61,27 @@ router.put("/submit-measurement", async (req, res) => {
   });
 });
 
-router.delete("/measurement", async (req, res) => {
-  const data = req.body;
-  const valid = typeof data.student_id === "number" &&
-    (typeof data.galaxy_id === "number" || typeof data.galaxy_name === "string");
-  if (typeof data.galaxy_id !== "number") {
-    const galaxy = await getGalaxyByName(data.galaxy_name);
-    data.galaxy_id = galaxy?.id || 0;
-    delete data.galaxy_name;
+router.delete("/measurement/:studentID/:galaxyIdentifier", async (req, res) => {
+  const data = req.params;
+  const studentID = parseInt(data.studentID) || 0;
+
+  let galaxyID = parseInt(data.galaxyIdentifier) || 0;
+  if (galaxyID === 0) {
+    const galaxy = await getGalaxyByName(data.galaxyIdentifier);
+    galaxyID = galaxy?.id || 0;
   }
+  const valid = (studentID !== 0) && (galaxyID !== 0);
 
   let result: RemoveHubbleMeasurementResult;
   if (valid) {
-    result = await removeHubbleMeasurement(data.student_id, data.galaxy_id);
+    result = await removeHubbleMeasurement(studentID, galaxyID);
   } else {
     result = RemoveHubbleMeasurementResult.BadRequest;
   }
   res.status(RemoveHubbleMeasurementResult.statusCode(result))
     .json({
-      student_id: data.student_id,
-      galaxy_id: data.galaxy_id,
+      student_id: studentID,
+      galaxy_id: galaxyID,
       status: result,
       success: RemoveHubbleMeasurementResult.success(result)
     });
