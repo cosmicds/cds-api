@@ -61,7 +61,7 @@ router.put("/submit-measurement", async (req, res) => {
   });
 });
 
-router.post("/remove-measurement", async (req, res) => {
+router.delete("/measurement", async (req, res) => {
   const data = req.body;
   const valid = typeof data.student_id === "number" &&
     (typeof data.galaxy_id === "number" || typeof data.galaxy_name === "string");
@@ -77,12 +77,13 @@ router.post("/remove-measurement", async (req, res) => {
   } else {
     result = RemoveHubbleMeasurementResult.BadRequest;
   }
-  res.json({
-    student_id: data.student_id,
-    galaxy_id: data.galaxy_id,
-    status: result,
-    success: RemoveHubbleMeasurementResult.success(result)
-  });
+  res.status(RemoveHubbleMeasurementResult.statusCode(result))
+    .json({
+      student_id: data.student_id,
+      galaxy_id: data.galaxy_id,
+      status: result,
+      success: RemoveHubbleMeasurementResult.success(result)
+    });
 });
 
 router.get("/measurements/:studentID", async (req, res) => {

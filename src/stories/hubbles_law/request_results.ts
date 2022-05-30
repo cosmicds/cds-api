@@ -22,4 +22,15 @@ export namespace RemoveHubbleMeasurementResult {
   export function success(result: RemoveHubbleMeasurementResult): boolean {
     return result === RemoveHubbleMeasurementResult.MeasurementDeleted;
   }
+
+  export function statusCode(result: RemoveHubbleMeasurementResult): number {
+    switch (result) {
+      case RemoveHubbleMeasurementResult.BadRequest:
+        return 400;
+      case RemoveHubbleMeasurementResult.MeasurementDeleted:
+        return 200;
+      case RemoveHubbleMeasurementResult.NoSuchMeasurement:
+        return 404;
+    }
+  }
 }
