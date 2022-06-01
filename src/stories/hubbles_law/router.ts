@@ -10,6 +10,7 @@ import {
   getAllGalaxies,
   markGalaxyBad,
   markGalaxySpectrumBad,
+  markGalaxyTileloadBad,
   getHubbleMeasurement,
   submitHubbleMeasurement,
   getStudentHubbleMeasurements,
@@ -154,6 +155,10 @@ router.put("/mark-galaxy-bad", async (req, res) => {
 
 router.post("/mark-spectrum-bad", async (req, res) => {
   markBad(req, res, markGalaxySpectrumBad, "galaxy_spectrum_marked_bad");
+});
+
+router.post("/mark-tileload-bad", async (req, res) => {
+  markBad(req, res, markGalaxyTileloadBad, "galaxy_tileload_marked_bad");
 });
 
 export default router;
