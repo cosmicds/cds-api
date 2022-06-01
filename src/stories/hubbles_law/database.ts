@@ -110,3 +110,7 @@ export async function markGalaxyBad(galaxy: Galaxy): Promise<void> {
 export async function markGalaxySpectrumBad(galaxy: Galaxy): Promise<void> {
   galaxy.update({ spec_marked_bad: galaxy.spec_marked_bad + 1 });
 }
+
+export async function markGalaxyTileloadBad(galaxy: Galaxy): Promise<void> {
+  galaxy.update({ tileload_marked_bad: galaxy.tileload_marked_bad + 1 });
+}
