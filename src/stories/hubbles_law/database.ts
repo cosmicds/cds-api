@@ -111,6 +111,10 @@ export async function markGalaxySpectrumBad(galaxy: Galaxy): Promise<void> {
   galaxy.update({ spec_marked_bad: galaxy.spec_marked_bad + 1 });
 }
 
+export async function markGalaxyTileloadBad(galaxy: Galaxy): Promise<void> {
+  galaxy.update({ tileload_marked_bad: galaxy.tileload_marked_bad + 1 });
+}
+
 /** These functions are specifically for the spectrum-checking branch */
 
 export async function setGalaxySpectrumStatus(galaxy: Galaxy, good: boolean): Promise<void> {

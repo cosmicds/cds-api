@@ -10,6 +10,7 @@ import {
   getAllGalaxies,
   markGalaxyBad,
   markGalaxySpectrumBad,
+  markGalaxyTileloadBad,
   getHubbleMeasurement,
   submitHubbleMeasurement,
   getStudentHubbleMeasurements,
@@ -158,11 +159,16 @@ router.post("/mark-spectrum-bad", async (req, res) => {
   markBad(req, res, markGalaxySpectrumBad, "galaxy_spectrum_marked_bad");
 });
 
+
 /** These endpoints are specifically for the spectrum-checking branch */
 
 router.get("/unchecked-galaxies", async (_req, res) => {
   const response = await getUncheckedSpectraGalaxies();
   res.json(response);
+});
+
+router.post("/mark-tileload-bad", async (req, res) => {
+  markBad(req, res, markGalaxyTileloadBad, "galaxy_tileload_marked_bad");
 });
 
 router.post("/set-spectrum-status", async (req, res) => {
