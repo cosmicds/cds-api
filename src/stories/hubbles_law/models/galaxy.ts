@@ -12,6 +12,8 @@ export class Galaxy extends Model<InferAttributes<Galaxy>, InferCreationAttribut
   declare is_bad: CreationOptional<number>;
   declare spec_marked_bad: CreationOptional<number>;
   declare spec_is_bad: CreationOptional<number>;
+  declare spec_is_good: CreationOptional<number>;
+  declare spec_checked: CreationOptional<number>;
 }
 
 export function initializeGalaxyModel(sequelize: Sequelize) {
@@ -62,6 +64,14 @@ export function initializeGalaxyModel(sequelize: Sequelize) {
     },
     spec_is_bad: {
       type: DataTypes.TINYINT,
+      allowNull: false
+    },
+    spec_is_good: {
+      type: DataTypes.INTEGER,
+      allowNull: false
+    },
+    spec_checked: {
+      type: DataTypes.INTEGER,
       allowNull: false
     }
   }, {

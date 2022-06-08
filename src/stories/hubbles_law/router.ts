@@ -13,7 +13,9 @@ import {
   getHubbleMeasurement,
   submitHubbleMeasurement,
   getStudentHubbleMeasurements,
-  removeHubbleMeasurement
+  removeHubbleMeasurement,
+  setGalaxySpectrumStatus,
+  getUncheckedSpectraGalaxies
 } from "./database";
 
 import { 
@@ -154,6 +156,46 @@ router.put("/mark-galaxy-bad", async (req, res) => {
 
 router.post("/mark-spectrum-bad", async (req, res) => {
   markBad(req, res, markGalaxySpectrumBad, "galaxy_spectrum_marked_bad");
+});
+
+/** These endpoints are specifically for the spectrum-checking branch */
+
+router.get("/unchecked-galaxies", async (_req, res) => {
+  const response = await getUncheckedSpectraGalaxies();
+  res.json(response);
+});
+
+router.post("/set-spectrum-status", async (req, res) => {
+  const data = req.body;
+  const good = data.good;
+  let name = data.galaxy_name;
+  if (!name.endsWith(".fits")) {
+    name += ".fits";
+  }
+
+  const galaxy = await getGalaxyByName(name);
+  if (galaxy === null) {
+    res.json({
+      status: "no_such_galaxy",
+      galaxy: name
+    });
+    return;
+  }
+  if (typeof good !== "boolean") { 
+    res.json({
+      status: "invalid_status",
+      galaxy: name
+    });
+    return;
+  }
+
+  setGalaxySpectrumStatus(galaxy, good);
+  res.json({
+    status: "status_updated",
+    marked_good: good,
+    marked_bad: !good,
+    galaxy: name
+  });
 });
 
 export default router;

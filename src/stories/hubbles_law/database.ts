@@ -110,3 +110,21 @@ export async function markGalaxyBad(galaxy: Galaxy): Promise<void> {
 export async function markGalaxySpectrumBad(galaxy: Galaxy): Promise<void> {
   galaxy.update({ spec_marked_bad: galaxy.spec_marked_bad + 1 });
 }
+
+/** These functions are specifically for the spectrum-checking branch */
+
+export async function setGalaxySpectrumStatus(galaxy: Galaxy, good: boolean): Promise<void> {
+  const goodInt = good ? 1 : 0;
+  const update = {
+    spec_is_good: goodInt,
+    spec_is_bad: 1 - goodInt,
+    spec_checked: galaxy.spec_checked + 1
+  };
+  await galaxy.update(update);
+}
+
+export async function getUncheckedSpectraGalaxies(): Promise<Galaxy[]> {
+  return Galaxy.findAll({
+    where: { spec_checked: 0 }
+  });
+}
