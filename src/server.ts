@@ -221,13 +221,13 @@ app.post("/student-sign-up", async (req, res) => {
 async function handleLogin(request: GenericRequest, checker: (email: string, pw: string) => Promise<LoginResponse>): Promise<LoginResponse> {
   const data = request.body;
   const valid = typeof data.email === "string" && typeof data.password === "string";
-  let response: LoginResponse;
+  let res: LoginResponse;
   if (valid) {
-    response = await checker(data.email, data.password);
+    res = await checker(data.email, data.password);
   } else {
-    response = { result: LoginResult.BadRequest, success: false };
+    res = { result: LoginResult.BadRequest, success: false };
   }
-  return response;
+  return res;
 }
 
 app.put("/login", async (req, res) => {
@@ -244,23 +244,23 @@ app.put("/login", async (req, res) => {
 });
 
 app.put("/student-login", async (req, res) => {
-  const response = await handleLogin(req, checkStudentLogin);
-  if (response.success && response.id) {
+  const loginResponse = await handleLogin(req, checkStudentLogin);
+  if (loginResponse.success && loginResponse.id) {
     const sess = req.session as CDSSession;
-    sess.user_id = response.id;
+    sess.user_id = loginResponse.id;
     sess.user_type = UserType.Student;
   }
-  res.json(response);
+  res.json(loginResponse);
 });
 
 app.put("/educator-login", async (req, res) => {
-  const response = await handleLogin(req, checkEducatorLogin);
-  if (response.success && response.id) {
+  const loginResponse = await handleLogin(req, checkEducatorLogin);
+  if (loginResponse.success && loginResponse.id) {
     const sess = req.session as CDSSession;
-    sess.user_id = response.id;
+    sess.user_id = loginResponse.id;
     sess.user_type = UserType.Educator;
   }
-  res.json(response);
+  res.json(loginResponse);
 });
 
 app.post("/create-class", async (req, res) => {
@@ -273,9 +273,9 @@ app.post("/create-class", async (req, res) => {
   let result: CreateClassResult;
   let cls: object | undefined = undefined;
   if (valid) {
-    const response = await createClass(data.educatorID, data.name);
-    result = response.result;
-    cls = response.class;
+    const createClassResponse = await createClass(data.educatorID, data.name);
+    result = createClassResponse.result;
+    cls = createClassResponse.class;
   } else {
     result = CreateClassResult.BadRequest;
   }
@@ -303,18 +303,18 @@ async function verify(request: VerificationRequest, verifier: (code: string) => 
 }
 
 app.post("/verify-student/:verificationCode", async (req, res) => {
-  const response = await verify(req, verifyStudent);
+  const verificationResponse = await verify(req, verifyStudent);
   res.json({
     code: req.params.verificationCode,
-    status: response
+    status: verificationResponse
   });
 });
 
 app.post("/verify-educator/:verificationCode", async (req, res) => {
-  const response = await verify(req, verifyEducator);
+  const verificationResponse = await verify(req, verifyEducator);
   res.json({
     code: req.params.verificationCode,
-    status: response
+    status: verificationResponse
   });
 });
 
@@ -329,13 +329,13 @@ app.get("/validate-classroom-code/:code", async (req, res) => {
 
 
 app.get("/students", async (_req, res) => {
-  const response = await getAllStudents();
-  res.json(response);
+  const queryResponse = await getAllStudents();
+  res.json(queryResponse);
 });
 
 app.get("/educators", async (_req, res) => {
-  const response = await getAllEducators();
-  res.json(response);
+  const queryResponse = await getAllEducators();
+  res.json(queryResponse);
 });
 
 app.get("/story-state/:studentID/:storyName", async (req, res) => {
