@@ -59,7 +59,7 @@ export enum UserType {
 
 const ALLOWED_ORIGINS = [
   "http://192.168.99.136:8081",
-  "https://cosmicds.github.io/cds-website/"
+  "https://cosmicds.github.io"
 ];
 
 const corsOptions: cors.CorsOptions = {
