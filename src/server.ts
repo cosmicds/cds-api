@@ -28,10 +28,10 @@ import {
   VerificationResult,
 } from "./request_results";
 
-
+import { CosmicDSSession } from "./models";
 
 import { ParsedQs } from "qs";
-import express, { Request, Response as ExpressResponse } from "express";
+import express, { Request, Response as ExpressResponse, response } from "express";
 import { Response } from "express-serve-static-core";
 import bodyParser from "body-parser";
 import cookieParser from "cookie-parser";
@@ -39,6 +39,7 @@ import session from "express-session";
 import sequelizeStore from "connect-session-sequelize";
 import { v4 } from "uuid";
 import cors from "cors";
+import jwt from "jsonwebtoken";
 export const app = express();
 
 // eslint-disable-next-line @typescript-eslint/ban-types
@@ -47,32 +48,64 @@ export type GenericRequest = Request<{}, any, any, ParsedQs, Record<string, any>
 export type GenericResponse = Response<any, Record<string, any>, number>;
 type VerificationRequest = Request<{verificationCode: string}, any, any, ParsedQs, Record<string, any>>;
 
-const corsOptions = {
-    //origin: "http://localhost:8081"
+type CDSSession = session.Session & Partial<session.SessionData> & CosmicDSSession;
+
+export enum UserType {
+  None = 0, // Not logged in
+  Student,
+  Educator,
+  Admin
+}
+
+const ALLOWED_ORIGINS = [
+  "http://192.168.99.136:8081",
+  "https://cosmicds.github.io/cds-website/"
+];
+
+const corsOptions: cors.CorsOptions = {
+    origin: "*",
+    credentials: true,
+    preflightContinue: true,
+    exposedHeaders: ["set-cookie"]
 };
 
 const PRODUCTION = process.env.NODE_ENV === "production";
-const SESSION_MAX_AGE = 24 * 60 * 60;
+const SESSION_MAX_AGE = 24 * 60 * 60; // in seconds
 
 app.use(cors(corsOptions));
 app.use(cookieParser());
 const SequelizeStore = sequelizeStore(session.Store);
 const store = new SequelizeStore({
   db: cosmicdsDB,
+  table: "CosmicDSSession", // We need to use the model name instead of the table name (here they are different)
   checkExpirationInterval: 15 * 60 * 1000, // The interval at which to cleanup expired sessions in milliseconds
-  expiration: 24 * 60 * 60 * 1000 // The maximum age (in milliseconds) of a valid session
+  expiration: SESSION_MAX_AGE * 1000, // The maximum age (in milliseconds) of a valid session
+  extendDefaultFields: function (defaults, sess) {
+    return {
+      data: defaults.data,
+      expires: defaults.expires,
+      user_id: sess.user_id,
+      username: sess.username,
+      email: sess.email
+    };
+  }
 });
 
+const SECRET = "ADD_REAL_SECRET";
+const SESSION_NAME = "cosmicds";
+
+app.set("trust proxy", 1);
 app.use(session({
-  secret: "ADD_REAL_SECRET",
+  secret: SECRET,
   genid: (_req) => v4(),
   store: store,
-  resave: false,
+  name: SESSION_NAME,
   saveUninitialized: false,
+  resave: true,
   cookie: {
     path: "/",
     maxAge: SESSION_MAX_AGE,
-    httpOnly: false,
+    httpOnly: true,
     secure: PRODUCTION
   }
 }));
@@ -84,20 +117,47 @@ app.use(bodyParser.json());
 // parse requests of content-type - application/x-www-form-urlencoded
 app.use(bodyParser.urlencoded({ extended: true }));
 
+app.use(function(req, res, next) {
+
+  const origin = req.get("origin");
+  console.log(origin);
+  if (origin !== undefined && ALLOWED_ORIGINS.includes(origin)) {
+    res.header("Access-Control-Allow-Origin", origin);
+  }
+  next();
+});
+
+app.all("*", (req, _res, next) => {
+  console.log(req.session.id);
+  next();
+});
+
 // simple route
 app.get("/", (req, res) => {
   res.json({ message: "Welcome to the CosmicDS server." });
 });
 
-function sendUserIdCookie(userId: number, res: ExpressResponse) : void {
+function sendUserIdCookie(userId: number, res: ExpressResponse): void {
   const expirationTime = 24 * 60 * 60; // one day
   console.log("Sending cookie");
   res.cookie("userId", userId,
     {
       maxAge: expirationTime ,
-      httpOnly: false,
+      httpOnly: PRODUCTION,
       secure: PRODUCTION
     });
+}
+
+function sendLoginCookie(userId: number, res: ExpressResponse): void {
+  const expirationTime = 24 * 60 * 60; // one day
+  const token = jwt.sign({
+    data: {
+      "userId": userId
+    }
+  }, SECRET, {
+    expiresIn: expirationTime
+  });
+  res.cookie("login", token);
 }
 
 // set port, listen for requests
@@ -161,29 +221,46 @@ app.post("/student-sign-up", async (req, res) => {
 async function handleLogin(request: GenericRequest, checker: (email: string, pw: string) => Promise<LoginResponse>): Promise<LoginResponse> {
   const data = request.body;
   const valid = typeof data.email === "string" && typeof data.password === "string";
-  let response: LoginResponse;
+  let res: LoginResponse;
   if (valid) {
-    response = await checker(data.email, data.password);
+    res = await checker(data.email, data.password);
   } else {
-    response = { result: LoginResult.BadRequest, success: false };
+    res = { result: LoginResult.BadRequest, success: false };
   }
-  return response;
+  return res;
 }
 
-app.put("/student-login", async (req, res) => {
-  const response = await handleLogin(req, checkStudentLogin);
-  if (response.success && response.id) {
-    sendUserIdCookie(response.id, res);
+app.put("/login", async (req, res) => {
+  const sess = req.session as CDSSession;
+  let result = LoginResult.BadSession;
+  if (sess.user_id && sess.user_type) {
+    result = LoginResult.Ok;
   }
-  res.json(response);
+  res.json({
+    result: result,
+    id: sess.user_id,
+    success: LoginResult.success(result)
+  });
+});
+
+app.put("/student-login", async (req, res) => {
+  const loginResponse = await handleLogin(req, checkStudentLogin);
+  if (loginResponse.success && loginResponse.id) {
+    const sess = req.session as CDSSession;
+    sess.user_id = loginResponse.id;
+    sess.user_type = UserType.Student;
+  }
+  res.json(loginResponse);
 });
 
 app.put("/educator-login", async (req, res) => {
-  const response = await handleLogin(req, checkEducatorLogin);
-  if (response.success && response.id) {
-    sendUserIdCookie(response.id, res);
+  const loginResponse = await handleLogin(req, checkEducatorLogin);
+  if (loginResponse.success && loginResponse.id) {
+    const sess = req.session as CDSSession;
+    sess.user_id = loginResponse.id;
+    sess.user_type = UserType.Educator;
   }
-  res.json(response);
+  res.json(loginResponse);
 });
 
 app.post("/create-class", async (req, res) => {
@@ -196,9 +273,9 @@ app.post("/create-class", async (req, res) => {
   let result: CreateClassResult;
   let cls: object | undefined = undefined;
   if (valid) {
-    const response = await createClass(data.educatorID, data.name);
-    result = response.result;
-    cls = response.class;
+    const createClassResponse = await createClass(data.educatorID, data.name);
+    result = createClassResponse.result;
+    cls = createClassResponse.class;
   } else {
     result = CreateClassResult.BadRequest;
   }
@@ -226,18 +303,18 @@ async function verify(request: VerificationRequest, verifier: (code: string) => 
 }
 
 app.post("/verify-student/:verificationCode", async (req, res) => {
-  const response = await verify(req, verifyStudent);
+  const verificationResponse = await verify(req, verifyStudent);
   res.json({
     code: req.params.verificationCode,
-    status: response
+    status: verificationResponse
   });
 });
 
 app.post("/verify-educator/:verificationCode", async (req, res) => {
-  const response = await verify(req, verifyEducator);
+  const verificationResponse = await verify(req, verifyEducator);
   res.json({
     code: req.params.verificationCode,
-    status: response
+    status: verificationResponse
   });
 });
 
@@ -252,13 +329,13 @@ app.get("/validate-classroom-code/:code", async (req, res) => {
 
 
 app.get("/students", async (_req, res) => {
-  const response = await getAllStudents();
-  res.json(response);
+  const queryResponse = await getAllStudents();
+  res.json(queryResponse);
 });
 
 app.get("/educators", async (_req, res) => {
-  const response = await getAllEducators();
-  res.json(response);
+  const queryResponse = await getAllEducators();
+  res.json(queryResponse);
 });
 
 app.get("/story-state/:studentID/:storyName", async (req, res) => {

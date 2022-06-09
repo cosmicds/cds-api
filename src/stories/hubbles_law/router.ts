@@ -46,7 +46,11 @@ router.put("/submit-measurement", async (req, res) => {
   );
 
   if (typeof data.galaxy_id !== "number") {
-    const galaxy = await getGalaxyByName(data.galaxy_name);
+    let galaxyName = data.galaxy_name;
+    if (!galaxyName.endsWith(".fits")) {
+      galaxyName += ".fits";
+    }
+    const galaxy = await getGalaxyByName(galaxyName);
     data.galaxy_id = galaxy?.id || 0;
     delete data.galaxy_name;
   }
