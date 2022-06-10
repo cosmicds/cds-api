@@ -8,7 +8,7 @@ CREATE TABLE HubbleData (
     age_unit varchar(20),
 
     PRIMARY KEY(student_id),
-    FOREIGN KEY (student_id)
+    FOREIGN KEY(student_id)
       REFERENCES Students(id)
       ON UPDATE CASCADE
       ON DELETE CASCADE

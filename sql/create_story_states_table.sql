@@ -8,11 +8,11 @@ CREATE TABLE StoryStates (
     PRIMARY KEY(student_id, story_name),
     INDEX(student_id),
     INDEX(story_name),
-    FOREIGN KEY (student_id)
+    FOREIGN KEY(student_id)
         REFERENCES Students(id)
         ON UPDATE CASCADE
         ON DELETE CASCADE,
-    FOREIGN KEY (story_name)
+    FOREIGN KEY(story_name)
         REFERENCES Stories(name)
         ON UPDATE CASCADE
         ON DELETE CASCADE

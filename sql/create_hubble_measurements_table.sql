@@ -18,11 +18,11 @@ CREATE TABLE HubbleMeasurements (
     PRIMARY KEY(student_id, galaxy_id),
     INDEX(student_id),
     INDEX(galaxy_id),
-    FOREIGN KEY (student_id)
+    FOREIGN KEY(student_id)
       REFERENCES Students(id)
       ON UPDATE CASCADE
       ON DELETE CASCADE,
-    FOREIGN KEY (galaxy_id)
+    FOREIGN KEY(galaxy_id)
       REFERENCES Galaxies(id)
       ON UPDATE CASCADE
       ON DELETE CASCADE

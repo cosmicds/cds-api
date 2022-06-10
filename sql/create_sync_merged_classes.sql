@@ -12,11 +12,11 @@ CREATE TABLE SyncMergedHubbleClasses (
     merged datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     PRIMARY KEY (class_id, merged_class_id),
-    FOREIGN KEY (class_id)
+    FOREIGN KEY(class_id)
         REFERENCES Classes(id)
         ON UPDATE CASCADE
         ON DELETE CASCADE,
-    FOREIGN KEY (merged_class_id)
+    FOREIGN KEY(merged_class_id)
         REFERENCES Classes(id)
         ON UPDATE CASCADE
         ON DELETE CASCADE,
