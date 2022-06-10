@@ -9,8 +9,10 @@ CREATE TABLE AsyncMergedHubbleStudentClasses (
     /*
     The ID of the class that needs more data
     i.e. it's too small
+    Note that we allow this value to be null
+    for students that aren't in a class at all
     */
-    class_id int(11) UNSIGNED NOT NULL,
+    class_id int(11) UNSIGNED DEFAULT NULL,
 
     /* The ID of the class that's merged in */
     merged_class_id int(11) UNSIGNED NOT NULL,
