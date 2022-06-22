@@ -419,6 +419,12 @@ export async function findClassByCode(code: string): Promise<Class | null> {
   });
 }
 
+export async function findClassById(id: number): Promise<Class | null> {
+  return Class.findOne({
+    where: { id: id }
+  });
+}
+
 export async function getRosterInfoForStory(classID: number, name: string): Promise<StoryState[]> {
   return StudentsClasses.findAll({
     where: { class_id: classID }

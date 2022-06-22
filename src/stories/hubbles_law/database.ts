@@ -1,11 +1,12 @@
 import { Op } from "sequelize";
-import { HubbleMeasurement, initializeHubbleMeasurementModel } from "./models/hubble_measurement";
-import { cosmicdsDB, findStudentById } from "../../database";
-import { Galaxy, initializeGalaxyModel } from "./models/galaxy";
+import { AsyncMergedHubbleStudentClasses, Galaxy, HubbleMeasurement, initializeModels, SyncMergedHubbleClasses } from "./models";
+import { cosmicdsDB, findStudentById, findClassById } from "../../database";
 import { RemoveHubbleMeasurementResult, SubmitHubbleMeasurementResult } from "./request_results";
+import { setUpHubbleAssociations } from "./associations";
+import { Class } from "../../models";
 
-initializeGalaxyModel(cosmicdsDB);
-initializeHubbleMeasurementModel(cosmicdsDB);
+initializeModels(cosmicdsDB);
+setUpHubbleAssociations();
 
 export async function submitHubbleMeasurement(data: {
   student_id: number,
@@ -113,6 +114,24 @@ export async function markGalaxySpectrumBad(galaxy: Galaxy): Promise<void> {
 
 export async function markGalaxyTileloadBad(galaxy: Galaxy): Promise<void> {
   galaxy.update({ tileload_marked_bad: galaxy.tileload_marked_bad + 1 });
+}
+
+export async function getAsyncMergedClassIDForStudent(studentID: number): Promise<number | null> {
+  const merged = await AsyncMergedHubbleStudentClasses.findOne({
+    where: {
+      student_id: studentID
+    }
+  });
+  return merged?.class_id ?? null;
+}
+
+export async function getSyncMergedClassID(classID: number): Promise<number | null> {
+  const merged = await SyncMergedHubbleClasses.findOne({
+    where: {
+      class_id: classID
+    }
+  });
+  return merged?.class_id ?? null;
 }
 
 /** These functions are specifically for the spectrum-checking branch */
