@@ -376,34 +376,24 @@ export async function getClassesForEducator(educatorID: number): Promise<Class[]
 }
 
 export async function getClassesForStudent(studentID: number): Promise<Class[]> {
-  const classes = await StudentsClasses.findAll({
-    where: {
-      student_id: studentID
-    }
-  });
-  const classIDs = classes.map(cls => cls.class_id);
   return Class.findAll({
-    where: {
-      id: {
-        [Op.in]: classIDs
+    include: [{
+      model: Student,
+      where: {
+        id: studentID
       }
-    }
+    }]
   });
 }
 
 export async function getStudentsForClass(classID: number): Promise<Student[]> {
-  const students = await StudentsClasses.findAll({
-    where: {
-      class_id: classID
-    }
-  });
-  const studentIDs = students.map(student => student.student_id);
   return Student.findAll({
-    where: {
-      id: {
-        [Op.in]: studentIDs
+    include: [{
+      model: Class,
+      where: {
+        id: classID
       }
-    }
+    }]
   });
 }
 
