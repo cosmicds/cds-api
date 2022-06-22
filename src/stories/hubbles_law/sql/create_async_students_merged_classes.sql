@@ -19,9 +19,8 @@ CREATE TABLE AsyncMergedHubbleStudentClasses (
 
     merged datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
-    PRIMARY KEY(student_id, class_id, merged_class_id),
+    PRIMARY KEY(student_id),
     INDEX(student_id),
-    ADD CONSTRAINT FK_Student_Class
     FOREIGN KEY(student_id, class_id)
     REFERENCES StudentsClasses(student_id, class_id)
         ON UPDATE CASCADE

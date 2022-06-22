@@ -11,7 +11,7 @@ CREATE TABLE SyncMergedHubbleClasses (
 
     merged datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
-    PRIMARY KEY (class_id, merged_class_id),
+    PRIMARY KEY(class_id),
     FOREIGN KEY(class_id)
         REFERENCES Classes(id)
         ON UPDATE CASCADE
@@ -19,5 +19,5 @@ CREATE TABLE SyncMergedHubbleClasses (
     FOREIGN KEY(merged_class_id)
         REFERENCES Classes(id)
         ON UPDATE CASCADE
-        ON DELETE CASCADE,
+        ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci PACK_KEYS=0;
