@@ -1,4 +1,4 @@
-import { Sequelize, DataTypes, Model, InferAttributes, InferCreationAttributes, CreationOptional } from "sequelize";
+import { Sequelize, DataTypes, Model, InferAttributes, InferCreationAttributes } from "sequelize";
 
 export class CosmicDSSession extends Model<InferAttributes<CosmicDSSession>, InferCreationAttributes<CosmicDSSession>> {
   declare sid: string;

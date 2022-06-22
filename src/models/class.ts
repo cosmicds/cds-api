@@ -6,8 +6,9 @@ export class Class extends Model<InferAttributes<Class>, InferCreationAttributes
   declare name: string;
   declare educator_id: number;
   declare created: CreationOptional<Date>;
-  declare active: CreationOptional<number>;
+  declare active: CreationOptional<boolean>;
   declare code: string;
+  declare asynchronous: CreationOptional<boolean>;
 }
 
 export function initializeClassModel(sequelize: Sequelize) {
@@ -36,13 +37,18 @@ export function initializeClassModel(sequelize: Sequelize) {
       defaultValue: Sequelize.literal("CURRENT_TIMESTAMP")
     },
     active: {
-      type: DataTypes.TINYINT,
+      type: DataTypes.BOOLEAN,
       allowNull: false,
-      defaultValue: 0
+      defaultValue: false
     },
     code: {
       type: DataTypes.STRING,
       allowNull: false
+    },
+    asynchronous: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false
     }
   }, {
     sequelize,
