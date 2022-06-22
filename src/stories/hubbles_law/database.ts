@@ -1,6 +1,6 @@
 import { Op } from "sequelize";
 import { AsyncMergedHubbleStudentClasses, Galaxy, HubbleMeasurement, initializeModels, SyncMergedHubbleClasses } from "./models";
-import { cosmicdsDB, findStudentById, findClassById } from "../../database";
+import { cosmicdsDB, findStudentById } from "../../database";
 import { RemoveHubbleMeasurementResult, SubmitHubbleMeasurementResult } from "./request_results";
 import { setUpHubbleAssociations } from "./associations";
 import { Class, Student } from "../../models";

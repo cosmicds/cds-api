@@ -2,7 +2,6 @@ import { Model, Op, Sequelize } from "sequelize";
 import dotenv from "dotenv";
 
 import {
-  CosmicDSSession,
   Class,
   Educator,
   ClassStories,

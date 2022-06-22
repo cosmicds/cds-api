@@ -1,6 +1,6 @@
 import { Class, Student } from "../../models";
 import { SyncMergedHubbleClasses } from "./models";
-import { AsyncMergedHubbleStudentClasses } from "./models/async_merged_student_classes"
+import { AsyncMergedHubbleStudentClasses } from "./models/async_merged_student_classes";
 
 export function setUpHubbleAssociations() {
 
