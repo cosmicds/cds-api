@@ -3,7 +3,7 @@ import { AsyncMergedHubbleStudentClasses, Galaxy, HubbleMeasurement, initializeM
 import { cosmicdsDB, findStudentById, findClassById } from "../../database";
 import { RemoveHubbleMeasurementResult, SubmitHubbleMeasurementResult } from "./request_results";
 import { setUpHubbleAssociations } from "./associations";
-import { Class } from "../../models";
+import { Class, Student } from "../../models";
 
 initializeModels(cosmicdsDB);
 setUpHubbleAssociations();
@@ -80,6 +80,59 @@ export async function getStudentHubbleMeasurements(studentID: number): Promise<H
     return null;
   });
   return result;
+}
+
+async function getHubbleMeasurementsForClasses(classIDs: number[]): Promise<HubbleMeasurement[] | null> {
+
+  const studentIDs = (await Student.findAll({
+    attributes: ["id"],
+    include: [{
+      model: Class,
+      where: {
+        id: {
+          [Op.in]: classIDs
+        }
+      }
+    }]
+  })).map(student => student.id);
+
+  return HubbleMeasurement.findAll({
+    where: {
+      student_id: {
+        [Op.in]: studentIDs
+      }
+    }
+  });
+}
+
+export async function getHubbleMeasurementsForSyncClass(classID: number): Promise<HubbleMeasurement[] | null> {
+  const classIDs: number[] = [classID];
+  const mergedClass = (await SyncMergedHubbleClasses.findOne({
+    where: {
+      class_id: classID
+    }
+  }));
+  const mergedClassID = mergedClass?.class_id ?? null;
+  if (mergedClassID !== null) {
+    classIDs.push(mergedClassID);
+  }
+
+  return getHubbleMeasurementsForClasses(classIDs);
+}
+
+export async function getHubbleMeasurementsForAsyncStudent(studentID: number, classID: number): Promise<HubbleMeasurement[] | null> {
+  const classIDs: number[] = [classID];
+  const mergedClassID = (await AsyncMergedHubbleStudentClasses.findOne({
+    where: {
+      class_id: classID,
+      student_id: studentID
+    }
+  }))?.merged_class_id ?? null;
+  if (mergedClassID !== null) {
+    classIDs.push(mergedClassID);
+  }
+
+  return getHubbleMeasurementsForClasses(classIDs);
 }
 
 export async function removeHubbleMeasurement(studentID: number, galaxyID: number): Promise<RemoveHubbleMeasurementResult> {
