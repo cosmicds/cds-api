@@ -2,8 +2,6 @@ CREATE TABLE HubbleStudentData (
     student_id int(11) UNSIGNED NOT NULL UNIQUE,
     hubble_fit_value FLOAT,
     hubble_fit_unit varchar(20),
-    hubble_guess_value FLOAT,
-    hubble_guess_unit varchar(20),
     age_value FLOAT,
     age_unit varchar(20),
 

@@ -1,6 +1,6 @@
 import { Op } from "sequelize";
 import { AsyncMergedHubbleStudentClasses, Galaxy, HubbleMeasurement, initializeModels, SyncMergedHubbleClasses } from "./models";
-import { cosmicdsDB, findStudentById } from "../../database";
+import { cosmicdsDB, findClassById, findStudentById } from "../../database";
 import { RemoveHubbleMeasurementResult, SubmitHubbleMeasurementResult } from "./request_results";
 import { setUpHubbleAssociations } from "./associations";
 import { Class, Student } from "../../models";
@@ -84,28 +84,25 @@ export async function getStudentHubbleMeasurements(studentID: number): Promise<H
 
 async function getHubbleMeasurementsForClasses(classIDs: number[]): Promise<HubbleMeasurement[] | null> {
 
-  const studentIDs = (await Student.findAll({
-    attributes: ["id"],
-    include: [{
-      model: Class,
-      where: {
-        id: {
-          [Op.in]: classIDs
-        }
-      }
-    }]
-  })).map(student => student.id);
-
   return HubbleMeasurement.findAll({
-    where: {
-      student_id: {
-        [Op.in]: studentIDs
-      }
-    }
+    include: [{
+      model: Student,
+      attributes: ["id"],
+      as: "student",
+      required: true,
+      include: [{
+        model: Class,
+        where: {
+          id: {
+            [Op.in]: classIDs
+          }
+        }
+      }]
+    }]
   });
 }
 
-export async function getHubbleMeasurementsForSyncClass(classID: number): Promise<HubbleMeasurement[] | null> {
+async function getHubbleMeasurementsForSyncClass(classID: number): Promise<HubbleMeasurement[] | null> {
   const classIDs: number[] = [classID];
   const mergedClass = (await SyncMergedHubbleClasses.findOne({
     where: {
@@ -120,8 +117,8 @@ export async function getHubbleMeasurementsForSyncClass(classID: number): Promis
   return getHubbleMeasurementsForClasses(classIDs);
 }
 
-export async function getHubbleMeasurementsForAsyncStudent(studentID: number, classID: number): Promise<HubbleMeasurement[] | null> {
-  const classIDs: number[] = [classID];
+async function getHubbleMeasurementsForAsyncStudent(studentID: number, classID: number | null): Promise<HubbleMeasurement[] | null> {
+  const classIDs: (number | null)[] = [classID];
   const mergedClassID = (await AsyncMergedHubbleStudentClasses.findOne({
     where: {
       class_id: classID,
@@ -131,8 +128,21 @@ export async function getHubbleMeasurementsForAsyncStudent(studentID: number, cl
   if (mergedClassID !== null) {
     classIDs.push(mergedClassID);
   }
+  const nonNullIDs: number[] = classIDs.filter((x): x is number => x !== null);
 
-  return getHubbleMeasurementsForClasses(classIDs);
+  return getHubbleMeasurementsForClasses(nonNullIDs);
+}
+
+export async function getStageThreeMeasurements(studentID: number, classID: number | null): Promise<HubbleMeasurement[]> {
+  const cls = classID !== null ? await findClassById(classID) : null;
+  const asyncClass = cls?.asynchronous ?? true;
+  let data: HubbleMeasurement[] | null;
+  if (classID === null || asyncClass) {
+    data = await getHubbleMeasurementsForAsyncStudent(studentID, classID);
+  } else {
+    data = await getHubbleMeasurementsForSyncClass(classID);
+  }
+  return data ?? [];
 }
 
 export async function removeHubbleMeasurement(studentID: number, galaxyID: number): Promise<RemoveHubbleMeasurementResult> {
