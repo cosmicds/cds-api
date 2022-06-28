@@ -35,12 +35,16 @@ SELECT
     student_id
 FROM
     HubbleMeasurements
+    INNER JOIN Students
+		ON Students.id = HubbleMeasurements.student_id
 WHERE
     rest_wave_value IS NOT NULL
         AND obs_wave_value IS NOT NULL
         AND est_dist_value IS NOT NULL
         AND velocity_value IS NOT NULL
         AND ang_size_value IS NOT NULL
+        AND Students.seed = 1
+        AND Students.team_member != "jon"
 	GROUP BY student_id
 	HAVING COUNT(student_id) = 5
 """
