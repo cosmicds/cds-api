@@ -6,8 +6,8 @@ CREATE TABLE HubbleClassData (
     age_unit varchar(20),
 
     PRIMARY KEY(class_id),
-    FOREIGN KEY(class_id),
-      REFERENCES Class(id)
+    FOREIGN KEY(class_id)
+      REFERENCES Classes(id)
       ON UPDATE CASCADE
       ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci PACK_KEYS=0;

@@ -1,15 +1,19 @@
-import csv
+import os
 import sys
+from os.path import join
+from dotenv import load_dotenv
 from mysql.connector.errors import ProgrammingError
 from mysql_utils import connect_to_db
 from os.path import dirname, join, realpath
 
 script_dir = dirname(realpath(sys.argv[0]))
+dotenv_path = join("..", "..", ".env")
+load_dotenv(dotenv_path=dotenv_path)
 
 def connect_to_cds_db():
-    host = "cosmicds-db.cupwuw3jvfpc.us-east-1.rds.amazonaws.com"
-    username = "cdsadmin"
-    password = "5S4R1qCxzQg0"
+    host = os.getenv("DB_HOSTNAME")
+    username = os.getenv("DB_USERNAME")
+    password = os.getenv("DB_PASSWORD")
 
     conn = connect_to_db(host, username, password)
     return conn

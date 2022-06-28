@@ -31,7 +31,7 @@ import {
 import { CosmicDSSession } from "./models";
 
 import { ParsedQs } from "qs";
-import express, { Request, Response as ExpressResponse, response } from "express";
+import express, { Request, Response as ExpressResponse } from "express";
 import { Response } from "express-serve-static-core";
 import bodyParser from "body-parser";
 import cookieParser from "cookie-parser";
@@ -42,10 +42,14 @@ import cors from "cors";
 import jwt from "jsonwebtoken";
 export const app = express();
 
+// TODO: Clean up these type definitions
+
 // eslint-disable-next-line @typescript-eslint/ban-types
 export type GenericRequest = Request<{}, any, any, ParsedQs, Record<string, any>>;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type GenericResponse = Response<any, Record<string, any>, number>;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type VerificationRequest = Request<{verificationCode: string}, any, any, ParsedQs, Record<string, any>>;
 
 type CDSSession = session.Session & Partial<session.SessionData> & CosmicDSSession;
@@ -133,7 +137,7 @@ app.all("*", (req, _res, next) => {
 });
 
 // simple route
-app.get("/", (req, res) => {
+app.get("/", (_req, res) => {
   res.json({ message: "Welcome to the CosmicDS server." });
 });
 

@@ -16,7 +16,8 @@ import {
   getStudentHubbleMeasurements,
   removeHubbleMeasurement,
   setGalaxySpectrumStatus,
-  getUncheckedSpectraGalaxies
+  getUncheckedSpectraGalaxies,
+  getStageThreeMeasurements
 } from "./database";
 
 import { 
@@ -114,6 +115,28 @@ router.get("/measurements/:studentID/:galaxyID", async (req, res) => {
     galaxy_id: galaxyID,
     measurement: measurement
   });
+});
+
+
+router.get("/stage-3-data/:studentID/:classID", async (req, res) => {
+  const params = req.params;
+  const studentID = parseInt(params.studentID);
+  const classID = parseInt(params.classID);
+  const measurements = await getStageThreeMeasurements(studentID, classID);
+  const data = {
+    measurements: measurements
+  };
+  res.json(data);
+});
+
+router.get("/stage-3-data/:studentID", async (req, res) => {
+  const params = req.params;
+  const studentID = parseInt(params.studentID);
+  const measurements = await getStageThreeMeasurements(studentID, null);
+  const data = {
+    measurements: measurements
+  };
+  res.json(data);
 });
 
 router.get("/galaxies", async (_req, res) => {
