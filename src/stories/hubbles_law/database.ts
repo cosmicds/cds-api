@@ -8,6 +8,8 @@ import { Class, Student } from "../../models";
 initializeModels(cosmicdsDB);
 setUpHubbleAssociations();
 
+const galaxyAttributes = ["ra", "decl", "z", "type", "name"];
+
 export async function submitHubbleMeasurement(data: {
   student_id: number,
   galaxy_id: number,
@@ -61,8 +63,14 @@ export async function getHubbleMeasurement(studentID: number, galaxyID: number):
       [Op.and]: [
         { student_id: studentID },
         { galaxy_id: galaxyID }
-      ]
-    }
+      ],
+    },
+    include: [{
+      model: Galaxy,
+      attributes: galaxyAttributes,
+      as: "galaxy",
+      required: true
+    }]
   }).catch(error => {
     console.log(error);
     return null;
@@ -70,16 +78,21 @@ export async function getHubbleMeasurement(studentID: number, galaxyID: number):
 }
 
 export async function getStudentHubbleMeasurements(studentID: number): Promise<HubbleMeasurement[] | null> {
-  const result = await HubbleMeasurement.findAll({
-  where: {
+  return HubbleMeasurement.findAll({
+    where: {
       student_id: studentID
-    }
+    },
+    include: [{
+      model: Galaxy,
+      attributes: galaxyAttributes,
+      as: "galaxy",
+      required: true
+    }]
   })
   .catch(error => {
     console.log(error);
     return null;
   });
-  return result;
 }
 
 async function getHubbleMeasurementsForClasses(classIDs: number[]): Promise<HubbleMeasurement[] | null> {
@@ -98,6 +111,12 @@ async function getHubbleMeasurementsForClasses(classIDs: number[]): Promise<Hubb
           }
         }
       }]
+    },
+    {
+      model: Galaxy,
+      attributes: galaxyAttributes,
+      as: "galaxy",
+      required: true
     }]
   });
 }
