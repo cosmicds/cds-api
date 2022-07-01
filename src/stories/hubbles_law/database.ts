@@ -8,7 +8,7 @@ import { Class, Student } from "../../models";
 initializeModels(cosmicdsDB);
 setUpHubbleAssociations();
 
-const galaxyAttributes = ["ra", "decl", "z", "type", "name"];
+const galaxyAttributes = ["ra", "decl", "z", "type", "name", "element"];
 
 export async function submitHubbleMeasurement(data: {
   student_id: number,
