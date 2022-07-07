@@ -20,7 +20,8 @@ import {
   getStageThreeMeasurements,
   getAllHubbleMeasurements,
   getAllHubbleStudentData,
-  getAllHubbleClassData
+  getAllHubbleClassData,
+  getStageThreeStudentData
 } from "./database";
 
 import { 
@@ -126,8 +127,10 @@ router.get("/stage-3-data/:studentID/:classID", async (req, res) => {
   const studentID = parseInt(params.studentID);
   const classID = parseInt(params.classID);
   const measurements = await getStageThreeMeasurements(studentID, classID);
+  const studentData = await getStageThreeStudentData(studentID, classID);
   const data = {
-    measurements: measurements
+    measurements,
+    studentData
   };
   res.json(data);
 });
@@ -136,8 +139,10 @@ router.get("/stage-3-data/:studentID", async (req, res) => {
   const params = req.params;
   const studentID = parseInt(params.studentID);
   const measurements = await getStageThreeMeasurements(studentID, null);
+  const studentData = await getStageThreeStudentData(studentID, null);
   const data = {
-    measurements: measurements
+    measurements,
+    studentData
   };
   res.json(data);
 });
