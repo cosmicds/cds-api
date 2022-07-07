@@ -38,6 +38,7 @@ export function initializeHubbleStudentDataModel(sequelize: Sequelize) {
     }
   }, {
     sequelize,
-    engine: "InnoDB"
+    engine: "InnoDB",
+    freezeTableName: true
   });
 }
