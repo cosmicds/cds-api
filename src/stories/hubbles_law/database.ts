@@ -4,6 +4,8 @@ import { cosmicdsDB, findClassById, findStudentById } from "../../database";
 import { RemoveHubbleMeasurementResult, SubmitHubbleMeasurementResult } from "./request_results";
 import { setUpHubbleAssociations } from "./associations";
 import { Class, Student } from "../../models";
+import { HubbleStudentData } from "./models/hubble_student_data";
+import { HubbleClassData } from "./models/hubble_class_data";
 
 initializeModels(cosmicdsDB);
 setUpHubbleAssociations();
@@ -162,6 +164,18 @@ export async function getStageThreeMeasurements(studentID: number, classID: numb
     data = await getHubbleMeasurementsForSyncClass(classID);
   }
   return data ?? [];
+}
+
+export async function getAllHubbleMeasurements(): Promise<HubbleMeasurement[]> {
+  return HubbleMeasurement.findAll();
+}
+
+export async function getAllHubbleStudentData(): Promise<HubbleStudentData[]> {
+  return HubbleStudentData.findAll();
+}
+
+export async function getAllHubbleClassData(): Promise<HubbleClassData[]> {
+  return HubbleClassData.findAll();
 }
 
 export async function removeHubbleMeasurement(studentID: number, galaxyID: number): Promise<RemoveHubbleMeasurementResult> {
