@@ -107,6 +107,7 @@ async function getHubbleMeasurementsForClasses(classIDs: number[]): Promise<Hubb
       required: true,
       include: [{
         model: Class,
+        attributes: ["id"],
         where: {
           id: {
             [Op.in]: classIDs
@@ -132,6 +133,7 @@ async function getHubbleStudentDataForClasses(classIDs: number[]): Promise<Hubbl
       required: true,
       include: [{
         model: Class,
+        attributes: ["id"],
         where: {
           id: {
             [Op.in]: classIDs
