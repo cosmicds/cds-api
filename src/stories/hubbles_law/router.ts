@@ -126,8 +126,11 @@ router.get("/stage-3-data/:studentID/:classID", async (req, res) => {
   const params = req.params;
   const studentID = parseInt(params.studentID);
   const classID = parseInt(params.classID);
-  const measurements = await getStageThreeMeasurements(studentID, classID);
-  const studentData = await getStageThreeStudentData(studentID, classID);
+  const [measurements, studentData] =
+    await Promise.all([
+      getStageThreeMeasurements(studentID, classID),
+      getStageThreeStudentData(studentID, classID)
+    ]);
   const data = {
     measurements,
     studentData
@@ -138,8 +141,11 @@ router.get("/stage-3-data/:studentID/:classID", async (req, res) => {
 router.get("/stage-3-data/:studentID", async (req, res) => {
   const params = req.params;
   const studentID = parseInt(params.studentID);
-  const measurements = await getStageThreeMeasurements(studentID, null);
-  const studentData = await getStageThreeStudentData(studentID, null);
+  const [measurements, studentData] =
+    await Promise.all([
+      getStageThreeMeasurements(studentID, null),
+      getStageThreeStudentData(studentID, null)
+    ]);
   const data = {
     measurements,
     studentData
@@ -148,9 +154,12 @@ router.get("/stage-3-data/:studentID", async (req, res) => {
 });
 
 router.get("/all-data", async (_req, res) => {
-  const measurements = await getAllHubbleMeasurements();
-  const studentData = await getAllHubbleStudentData();
-  const classData = await getAllHubbleClassData();
+  const [measurements, studentData, classData] =
+    await Promise.all([
+      getAllHubbleMeasurements(),
+      getAllHubbleStudentData(),
+      getAllHubbleClassData()
+    ]);
   res.json({
     measurements,
     studentData,
