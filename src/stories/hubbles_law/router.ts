@@ -17,7 +17,11 @@ import {
   removeHubbleMeasurement,
   setGalaxySpectrumStatus,
   getUncheckedSpectraGalaxies,
-  getStageThreeMeasurements
+  getStageThreeMeasurements,
+  getAllHubbleMeasurements,
+  getAllHubbleStudentData,
+  getAllHubbleClassData,
+  getStageThreeStudentData
 } from "./database";
 
 import { 
@@ -122,9 +126,14 @@ router.get("/stage-3-data/:studentID/:classID", async (req, res) => {
   const params = req.params;
   const studentID = parseInt(params.studentID);
   const classID = parseInt(params.classID);
-  const measurements = await getStageThreeMeasurements(studentID, classID);
+  const [measurements, studentData] =
+    await Promise.all([
+      getStageThreeMeasurements(studentID, classID),
+      getStageThreeStudentData(studentID, classID)
+    ]);
   const data = {
-    measurements: measurements
+    measurements,
+    studentData
   };
   res.json(data);
 });
@@ -132,11 +141,30 @@ router.get("/stage-3-data/:studentID/:classID", async (req, res) => {
 router.get("/stage-3-data/:studentID", async (req, res) => {
   const params = req.params;
   const studentID = parseInt(params.studentID);
-  const measurements = await getStageThreeMeasurements(studentID, null);
+  const [measurements, studentData] =
+    await Promise.all([
+      getStageThreeMeasurements(studentID, null),
+      getStageThreeStudentData(studentID, null)
+    ]);
   const data = {
-    measurements: measurements
+    measurements,
+    studentData
   };
   res.json(data);
+});
+
+router.get("/all-data", async (_req, res) => {
+  const [measurements, studentData, classData] =
+    await Promise.all([
+      getAllHubbleMeasurements(),
+      getAllHubbleStudentData(),
+      getAllHubbleClassData()
+    ]);
+  res.json({
+    measurements,
+    studentData,
+    classData
+  });
 });
 
 router.get("/galaxies", async (_req, res) => {
