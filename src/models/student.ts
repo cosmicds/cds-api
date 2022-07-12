@@ -20,6 +20,7 @@ export class Student extends Model<InferAttributes<Student>, InferCreationAttrib
   declare last_visit_ip: CreationOptional<string | null>;
   declare seed: CreationOptional<number>;
   declare team_member: CreationOptional<string | null>;
+  declare dummy: CreationOptional<boolean>;
 }
 
 export function initializeStudentModel(sequelize: Sequelize) {
@@ -96,6 +97,11 @@ export function initializeStudentModel(sequelize: Sequelize) {
     },
     team_member: {
       type: DataTypes.STRING
+    },
+    dummy: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
     }
   }, {
     sequelize,

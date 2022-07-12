@@ -223,12 +223,32 @@ export async function getAllHubbleMeasurements(): Promise<HubbleMeasurement[]> {
       model: Galaxy,
       as: "galaxy",
       attributes: ["id", "type"]
+    }, {
+      model: Student,
+      as: "student",
+      attributes: ["seed", "dummy"],
+      where: {
+        [Op.or]: [
+          { seed: 1 }, { dummy: 0 }
+        ]
+      }
     }]
   });
 }
 
 export async function getAllHubbleStudentData(): Promise<HubbleStudentData[]> {
-  return HubbleStudentData.findAll();
+  return HubbleStudentData.findAll({
+    include: [{
+      model: Student,
+      as: "student",
+      attributes: ["seed", "dummy"],
+      where: {
+        [Op.or]: [
+          { seed: 1 }, { dummy: 0 }
+        ]
+      }
+    }]
+  });
 }
 
 export async function getAllHubbleClassData(): Promise<HubbleClassData[]> {
