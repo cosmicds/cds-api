@@ -127,14 +127,22 @@ router.get("/stage-3-data/:studentID/:classID", async (req, res) => {
   const studentID = parseInt(params.studentID);
   const classID = parseInt(params.classID);
   const measurements = await getStageThreeMeasurements(studentID, classID);
-  res.json(measurements);
+  res.json({
+    studentID,
+    classID,
+    measurements
+  });
 });
 
 router.get("/stage-3-data/:studentID", async (req, res) => {
   const params = req.params;
   const studentID = parseInt(params.studentID);
   const measurements = await getStageThreeMeasurements(studentID, null);
-  res.json(measurements);
+  res.json({
+    studentID,
+    measurements,
+    classID: null
+  });
 });
 
 router.get("/all-data", async (_req, res) => {
