@@ -477,6 +477,6 @@ export async function newDummyStudent(seed = false, teamMember: string | null = 
     gender: null,
     seed: seed ? 1 : 0,
     team_member: teamMember,
-    dummy: false
+    dummy: true
   });
 }
