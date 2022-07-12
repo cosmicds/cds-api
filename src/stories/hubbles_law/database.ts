@@ -218,7 +218,13 @@ export async function getStageThreeStudentData(studentID: number, classID: numbe
 }
 
 export async function getAllHubbleMeasurements(): Promise<HubbleMeasurement[]> {
-  return HubbleMeasurement.findAll();
+  return HubbleMeasurement.findAll({
+    include: [{
+      model: Galaxy,
+      as: "galaxy",
+      attributes: ["id", "type"]
+    }]
+  });
 }
 
 export async function getAllHubbleStudentData(): Promise<HubbleStudentData[]> {
