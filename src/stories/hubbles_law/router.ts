@@ -124,8 +124,12 @@ router.get("/measurements/:studentID/:galaxyID", async (req, res) => {
 
 router.get("/stage-3-data/:studentID/:classID", async (req, res) => {
   const params = req.params;
-  const studentID = parseInt(params.studentID);
-  const classID = parseInt(params.classID);
+  let studentID = parseInt(params.studentID);
+  let classID = parseInt(params.classID);
+  if (studentID === 0 && classID === 0) {
+    studentID = 8;
+    classID = 100;
+  }
   const measurements = await getStageThreeMeasurements(studentID, classID);
   res.json({
     studentID,
