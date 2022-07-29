@@ -476,7 +476,7 @@ export async function newDummyClassForStory(storyName: string): Promise<{cls: Cl
   });
   let dc = await DummyClass.findOne({ where: { story_name: storyName }} );
   if (dc !== null) {
-    dc.update({ class_id: cls.id })
+    dc.update({ class_id: cls.id });
   } else {
     dc = await DummyClass.create({
       class_id: cls.id,
