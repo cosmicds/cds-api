@@ -3,7 +3,7 @@ import { Sequelize, DataTypes, Model, InferAttributes, InferCreationAttributes, 
 
 export class AsyncMergedHubbleStudentClasses extends Model<InferAttributes<AsyncMergedHubbleStudentClasses>, InferCreationAttributes<AsyncMergedHubbleStudentClasses>> {
   declare student_id: number;
-  declare class_id: number;
+  declare class_id: number | null;
   declare merged_class_id: number;
   declare merged: CreationOptional<Date>;
 }

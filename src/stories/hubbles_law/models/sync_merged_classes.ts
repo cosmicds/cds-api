@@ -2,7 +2,7 @@ import { Class } from "../../../models";
 import { Sequelize, DataTypes, Model, InferAttributes, InferCreationAttributes, CreationOptional } from "sequelize";
 
 export class SyncMergedHubbleClasses extends Model<InferAttributes<SyncMergedHubbleClasses>, InferCreationAttributes<SyncMergedHubbleClasses>> {
-  declare class_id: number;
+  declare class_id: number | null;
   declare merged_class_id: number;
   declare merged: CreationOptional<Date>;
 }
