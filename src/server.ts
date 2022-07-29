@@ -411,8 +411,7 @@ app.get("/logout", (req, res) => {
 
 /** Testing Endpoints
  * 
- * These endpoints are intended for internal testing use only
- * and will not be in the final version of the API
+ * These endpoints are intended for internal use only
  */
 
 app.get("/new-dummy-student", async (_req, res) => {
@@ -425,7 +424,8 @@ app.get("/new-dummy-student", async (_req, res) => {
 app.post("/new-dummy-student", async (req, res) => {
   const seed = req.body.seed || false;
   const teamMember = req.body.team_member;
-  const student = await newDummyStudent(seed, teamMember);
+  const storyName = req.body.story_name;
+  const student = await newDummyStudent(seed, teamMember, storyName);
   res.json({
     student: student
   });

@@ -22,13 +22,13 @@ export {
 };
 
 export function initializeModels(db: Sequelize) {
-  initializeClassModel(db);
-  initializeClassStoryModel(db);
   initializeSessionModel(db);
-  initializeDummyClassModel(db);
   initializeEducatorModel(db);
-  initializeStoryModel(db);
-  initializeStoryStateModel(db);
+  initializeClassModel(db);
   initializeStudentModel(db);
+  initializeStoryModel(db);
+  initializeClassStoryModel(db);
+  initializeDummyClassModel(db);
+  initializeStoryStateModel(db);
   initializeStudentClassModel(db);
 }

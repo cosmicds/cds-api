@@ -8,7 +8,8 @@ import {
   StoryState,
   Story,
   StudentsClasses,
-  Student
+  Student,
+  DummyClass
 } from "./models";
 
 import {
@@ -459,14 +460,37 @@ export async function getRosterInfo(classID: number, useDisplayNames = true): Pr
 }
 
 /** For testing purposes */
-export async function newDummyStudent(seed = false, teamMember: string | null = null): Promise<Student> {
+export async function newDummyClassForStory(storyName: string): Promise<Class> {
+  const ct = await Class.count({
+    where: {
+      educator_id: 0,
+      name: {
+        [Op.like]: `DummyClass_${storyName}_`
+      }
+    }
+  });
+  const cls = await Class.create({
+    educator_id: 0,
+    name: `DummyClass_${storyName}_${ct+1}`,
+    code: "xxxxxx"
+  });
+  DummyClass.create({
+    class_id: cls.id,
+    story_name: storyName
+  });
+  return cls;
+}
+
+export async function newDummyStudent(seed = false,
+                                      teamMember: string | null = null,
+                                      storyName: string | null = null): Promise<Student> {
   const students = await Student.findAll();
   const ids: number[] = students.map(student => {
     if (!student) { return 0; }
     return typeof student.id === "number" ? student.id : 0;
   });
   const newID = Math.max(...ids) + 1;
-  return Student.create({
+  const student = await Student.create({
     username: `dummy_student_${newID}`,
     verified: 1,
     verification_code: `verification_${newID}`,
@@ -479,4 +503,27 @@ export async function newDummyStudent(seed = false, teamMember: string | null = 
     team_member: teamMember,
     dummy: true
   });
+
+  // If we have a story name, and are creating a seed student, we want to add this student to the current "dummy class" for that story
+  if (seed && storyName !== null) {
+    const dummyClass = await DummyClass.findOne({ where: { story_name: storyName } });
+    if (dummyClass !== null) {
+      const clsSize = await StudentsClasses.count({ where: { class_id: dummyClass.class_id } });
+      const ct = Math.floor(Math.random() * 11) + 20;
+      let cls: Class | null = null;
+      if (clsSize > ct) {
+        cls = await newDummyClassForStory(storyName);
+      } else {
+        cls = await Class.findOne({ where: { id: dummyClass.class_id } });
+      }
+      if (cls !== null) {
+        StudentsClasses.create({
+          class_id: cls.id,
+          student_id: student.id
+        });
+      }
+    }
+  }
+
+  return student;
 }
