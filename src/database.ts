@@ -460,7 +460,7 @@ export async function getRosterInfo(classID: number, useDisplayNames = true): Pr
 }
 
 /** For testing purposes */
-export async function newDummyClassForStory(storyName: string): Promise<Class> {
+export async function newDummyClassForStory(storyName: string): Promise<{cls: Class, dummy: DummyClass}> {
   const ct = await Class.count({
     where: {
       educator_id: 0,
@@ -474,11 +474,16 @@ export async function newDummyClassForStory(storyName: string): Promise<Class> {
     name: `DummyClass_${storyName}_${ct+1}`,
     code: "xxxxxx"
   });
-  DummyClass.create({
-    class_id: cls.id,
-    story_name: storyName
-  });
-  return cls;
+  let dc = await DummyClass.findOne({ where: { story_name: storyName }} );
+  if (dc !== null) {
+    dc.update({ class_id: cls.id })
+  } else {
+    dc = await DummyClass.create({
+      class_id: cls.id,
+      story_name: storyName
+    });
+  }
+  return { cls: cls, dummy: dc };
 }
 
 export async function newDummyStudent(seed = false,
@@ -506,22 +511,30 @@ export async function newDummyStudent(seed = false,
 
   // If we have a story name, and are creating a seed student, we want to add this student to the current "dummy class" for that story
   if (seed && storyName !== null) {
-    const dummyClass = await DummyClass.findOne({ where: { story_name: storyName } });
-    if (dummyClass !== null) {
-      const clsSize = await StudentsClasses.count({ where: { class_id: dummyClass.class_id } });
-      const ct = Math.floor(Math.random() * 11) + 20;
-      let cls: Class | null = null;
-      if (clsSize > ct) {
-        cls = await newDummyClassForStory(storyName);
-      } else {
-        cls = await Class.findOne({ where: { id: dummyClass.class_id } });
-      }
-      if (cls !== null) {
-        StudentsClasses.create({
-          class_id: cls.id,
-          student_id: student.id
-        });
-      }
+    let cls: Class | null = null;
+    let dummyClass = await DummyClass.findOne({ where: { story_name: storyName } });
+    let clsSize: number;
+    if (dummyClass === null) {
+      const res = await newDummyClassForStory(storyName);
+      dummyClass = res.dummy;
+      cls = res.cls;
+      clsSize = 0;
+    } else {
+      clsSize = await StudentsClasses.count({ where: { class_id: dummyClass.class_id } });
+    }
+    
+    const ct = Math.floor(Math.random() * 11) + 20;
+    if (clsSize > ct) {
+      const res = await newDummyClassForStory(storyName);
+      cls = res.cls;
+    } else {
+      cls = await Class.findOne({ where: { id: dummyClass.class_id } });
+    }
+    if (cls !== null) {
+      StudentsClasses.create({
+        class_id: cls.id,
+        student_id: student.id
+      });
     }
   }
 
