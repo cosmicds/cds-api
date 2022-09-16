@@ -79,9 +79,9 @@ WHERE
             class_id
         FROM
             StudentsClasses
-        GROUP BY student_id
-        HAVING COUNT(student_id) < {n})
-        AND name LIKE 'Test class%';
+        GROUP BY class_id
+        HAVING COUNT(class_id) < {n})
+        AND name LIKE 'Test class%'
 """.format(n=CLASS_SIZE_BOUNDS[0])
 
 def get_class_size(cursor, class_id):
