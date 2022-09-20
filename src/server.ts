@@ -44,7 +44,7 @@ export const app = express();
 
 // TODO: Clean up these type definitions
 
-// eslint-disable-next-line @typescript-eslint/ban-types
+// eslint-disable-next-line @typescript-eslint/ban-types, @typescript-eslint/no-explicit-any
 export type GenericRequest = Request<{}, any, any, ParsedQs, Record<string, any>>;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type GenericResponse = Response<any, Record<string, any>, number>;
@@ -141,7 +141,7 @@ app.get("/", (_req, res) => {
   res.json({ message: "Welcome to the CosmicDS server." });
 });
 
-function sendUserIdCookie(userId: number, res: ExpressResponse): void {
+function _sendUserIdCookie(userId: number, res: ExpressResponse): void {
   const expirationTime = 24 * 60 * 60; // one day
   console.log("Sending cookie");
   res.cookie("userId", userId,
@@ -152,7 +152,7 @@ function sendUserIdCookie(userId: number, res: ExpressResponse): void {
     });
 }
 
-function sendLoginCookie(userId: number, res: ExpressResponse): void {
+function _sendLoginCookie(userId: number, res: ExpressResponse): void {
   const expirationTime = 24 * 60 * 60; // one day
   const token = jwt.sign({
     data: {

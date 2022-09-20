@@ -205,7 +205,7 @@ async function getHubbleStudentDataForSyncClass(classID: number): Promise<Hubble
   return getHubbleStudentDataForClasses(classIDs);
 }
 
-export async function getStageThreeStudentData(studentID: number, classID: number | null): Promise<HubbleStudentData[]> {
+export async function _getStageThreeStudentData(studentID: number, classID: number | null): Promise<HubbleStudentData[]> {
   const cls = classID !== null ? await findClassById(classID) : null;
   const asyncClass = cls?.asynchronous ?? true;
   let data: HubbleStudentData[] | null;
@@ -333,7 +333,7 @@ export async function getUncheckedSpectraGalaxies(): Promise<Galaxy[]> {
  * to the team members using it.
  * 
  * The SQL that we're looking to generate here is
- * SELECT Galaxies.id FROM Galaxies
+ * SELECT * FROM Galaxies
  * INNER JOIN HubbleMeasurements ON Galaxies.id = HubbleMeasurements.galaxy_id
  * INNER JOIN Students on Students.id = HubbleMeasurements.student_id
  * WHERE (Students.seed = 1 OR Students.dummy = 0)

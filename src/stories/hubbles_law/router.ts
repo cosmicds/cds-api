@@ -21,7 +21,6 @@ import {
   getAllHubbleMeasurements,
   getAllHubbleStudentData,
   getAllHubbleClassData,
-  getStageThreeStudentData,
   getGalaxiesForDataGeneration
 } from "./database";
 

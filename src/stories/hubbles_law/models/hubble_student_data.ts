@@ -1,4 +1,4 @@
-import { Sequelize, DataTypes, Model, InferAttributes, InferCreationAttributes, CreationOptional } from "sequelize";
+import { Sequelize, DataTypes, Model, InferAttributes, InferCreationAttributes } from "sequelize";
 import { Student } from "../../../models";
 
 export class HubbleStudentData extends Model<InferAttributes<HubbleStudentData>, InferCreationAttributes<HubbleStudentData>> {
