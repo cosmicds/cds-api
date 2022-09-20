@@ -21,7 +21,8 @@ import {
   getAllHubbleMeasurements,
   getAllHubbleStudentData,
   getAllHubbleClassData,
-  getStageThreeStudentData
+  getStageThreeStudentData,
+  getGalaxiesForDataGeneration
 } from "./database";
 
 import { 
@@ -255,6 +256,12 @@ router.post("/set-spectrum-status", async (req, res) => {
     marked_bad: !good,
     galaxy: name
   });
+});
+
+/** These endpoints are specifically for the data generation branch */
+router.get("/data-generation-galaxies", async (_req, res) => {
+  const galaxies = await getGalaxiesForDataGeneration().catch(console.log);
+  res.json(galaxies);
 });
 
 export default router;

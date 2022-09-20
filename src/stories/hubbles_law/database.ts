@@ -1,4 +1,4 @@
-import { Op } from "sequelize";
+import { Op, Sequelize } from "sequelize";
 import { AsyncMergedHubbleStudentClasses, Galaxy, HubbleMeasurement, initializeModels, SyncMergedHubbleClasses } from "./models";
 import { cosmicdsDB, findClassById, findStudentById } from "../../database";
 import { RemoveHubbleMeasurementResult, SubmitHubbleMeasurementResult } from "./request_results";
@@ -322,5 +322,45 @@ export async function setGalaxySpectrumStatus(galaxy: Galaxy, good: boolean): Pr
 export async function getUncheckedSpectraGalaxies(): Promise<Galaxy[]> {
   return Galaxy.findAll({
     where: { spec_checked: 0 }
+  });
+}
+
+/** These functions are specifically for the data generation branch */
+
+/** For the data generation branch, we want to preferentially choose galaxies with 
+ * fewer measurements. So this function will sort the galaxies by the number of measurements 
+ * from seed students. The data generation branch will then feed this data sequentially
+ * to the team members using it.
+ * 
+ * The SQL that we're looking to generate here is
+ * SELECT Galaxies.id FROM Galaxies
+ * INNER JOIN HubbleMeasurements ON Galaxies.id = HubbleMeasurements.galaxy_id
+ * INNER JOIN Students on Students.id = HubbleMeasurements.student_id
+ * WHERE (Students.seed = 1 OR Students.dummy = 0)
+ * GROUP BY Galaxies.id
+ * ORDER BY COUNT(Galaxies.id);
+ */
+export async function getGalaxiesForDataGeneration(): Promise<Galaxy[]> {
+  return Galaxy.findAll({
+    include: [
+      {
+        model: HubbleMeasurement,
+        attributes: ["student_id", "galaxy_id"],
+        required: true,
+        include: [{
+          model: Student,
+          as: "student",
+          attributes: ["id"],
+          required: true,
+          where: {
+            [Op.or]: [
+              { seed: 1 }, { dummy: 0 }
+            ]
+          }
+        }]
+      }
+    ],
+    group: ["Galaxy.id"],
+    order: Sequelize.fn("count", Sequelize.col("Galaxy.id"))
   });
 }
