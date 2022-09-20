@@ -360,7 +360,7 @@ export async function getGalaxiesForDataGeneration(): Promise<Galaxy[]> {
         }]
       }
     ],
-    group: ['Galaxy.id'],
-    order: Sequelize.fn('count', Sequelize.col('Galaxy.id'))
+    group: ["Galaxy.id"],
+    order: Sequelize.fn("count", Sequelize.col("Galaxy.id"))
   });
 }
