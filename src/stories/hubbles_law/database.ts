@@ -325,6 +325,17 @@ export async function getUncheckedSpectraGalaxies(): Promise<Galaxy[]> {
   });
 }
 
+export async function getNewGalaxies(): Promise<Galaxy[]> {
+  return Galaxy.findAll({
+    where: {
+      [Op.and]: [
+        { id: { [Op.gt]: 1387 } },
+        { id: { [Op.lte]: 1788 } },
+      ]
+    }
+  });
+}
+
 /** These functions are specifically for the data generation branch */
 
 /** For the data generation branch, we want to preferentially choose galaxies with 
