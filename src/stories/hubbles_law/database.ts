@@ -329,6 +329,7 @@ export async function getNewGalaxies(): Promise<Galaxy[]> {
   return Galaxy.findAll({
     where: {
       [Op.and]: [
+        { is_bad: 0 },
         { id: { [Op.gt]: 1387 } },
         { id: { [Op.lte]: 1788 } },
       ]
