@@ -357,12 +357,12 @@ export async function getGalaxiesForDataGeneration(): Promise<Galaxy[]> {
     include: [
       {
         model: HubbleMeasurement,
-        attributes: ["student_id", "galaxy_id"],
+        attributes: [],
         required: true,
         include: [{
           model: Student,
           as: "student",
-          attributes: ["id"],
+          attributes: [],
           required: true,
           where: {
             [Op.or]: [
