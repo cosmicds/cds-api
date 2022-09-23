@@ -267,7 +267,10 @@ export async function removeHubbleMeasurement(studentID: number, galaxyID: numbe
 
 export async function getAllGalaxies(): Promise<Galaxy[]> {
   return Galaxy.findAll({
-    where: { is_bad: 0 }
+    where: {
+      is_bad: 0,
+      spec_is_bad: 0
+    }
   });
 }
 
@@ -330,6 +333,7 @@ export async function getNewGalaxies(): Promise<Galaxy[]> {
     where: {
       [Op.and]: [
         { is_bad: 0 },
+        { spec_is_bad: 0 },
         { id: { [Op.gt]: 1387 } },
         { id: { [Op.lte]: 1788 } },
       ]
@@ -353,7 +357,11 @@ export async function getNewGalaxies(): Promise<Galaxy[]> {
  * ORDER BY COUNT(Galaxies.id);
  */
 export async function getGalaxiesForDataGeneration(): Promise<Galaxy[]> {
-  return Galaxy.findAll({
+  const measurements = await Galaxy.findAll({
+    where: {
+      is_bad: 0,
+      spec_is_bad: 0
+    },
     include: [
       {
         model: HubbleMeasurement,
@@ -375,4 +383,13 @@ export async function getGalaxiesForDataGeneration(): Promise<Galaxy[]> {
     group: ["Galaxy.id"],
     order: Sequelize.fn("count", Sequelize.col("Galaxy.id"))
   });
+  const measurementIDs = measurements.map(gal => gal.id);
+  const noMeasurements = await Galaxy.findAll({
+    where: {
+      is_bad: 0,
+      spec_is_bad: 0,
+      id: { [Op.notIn]: measurementIDs }
+    }
+  });
+  return noMeasurements.concat(measurements);
 }
