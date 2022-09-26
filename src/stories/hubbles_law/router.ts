@@ -213,6 +213,10 @@ router.post("/mark-spectrum-bad", async (req, res) => {
   markBad(req, res, markGalaxySpectrumBad, "galaxy_spectrum_marked_bad");
 });
 
+router.get("/spectra/:type/:name", async (req, res) => {
+  res.redirect(`https://cosmicds.s3.us-east-1.amazonaws.com/spectra/${req.params.type}/${req.params.name}`);
+});
+
 
 /** These endpoints are specifically for the spectrum-checking branch */
 
