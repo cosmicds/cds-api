@@ -354,7 +354,7 @@ export async function getNewGalaxies(): Promise<Galaxy[]> {
  * INNER JOIN Students on Students.id = HubbleMeasurements.student_id
  * WHERE (Students.seed = 1 OR Students.dummy = 0)
  * GROUP BY Galaxies.id
- * ORDER BY COUNT(Galaxies.id);
+ * ORDER BY COUNT(Galaxies.id), Galaxy.id DESC
  */
 export async function getGalaxiesForDataGeneration(): Promise<Galaxy[]> {
   const measurements = await Galaxy.findAll({
@@ -381,7 +381,7 @@ export async function getGalaxiesForDataGeneration(): Promise<Galaxy[]> {
       }
     ],
     group: ["Galaxy.id"],
-    order: Sequelize.fn("count", Sequelize.col("Galaxy.id"))
+    order: [Sequelize.fn("count", Sequelize.col("Galaxy.id")), ["id", "DESC"]]
   });
   const measurementIDs = measurements.map(gal => gal.id);
   const noMeasurements = await Galaxy.findAll({
@@ -389,7 +389,8 @@ export async function getGalaxiesForDataGeneration(): Promise<Galaxy[]> {
       is_bad: 0,
       spec_is_bad: 0,
       id: { [Op.notIn]: measurementIDs }
-    }
+    },
+    order: [["id", "DESC"]]
   });
   return noMeasurements.concat(measurements);
 }
