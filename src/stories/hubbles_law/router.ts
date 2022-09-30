@@ -22,7 +22,8 @@ import {
   getAllHubbleStudentData,
   getAllHubbleClassData,
   getGalaxiesForDataGeneration,
-  getNewGalaxies
+  getNewGalaxies,
+  getGalaxiesForTypes
 } from "./database";
 
 import { 
@@ -30,7 +31,7 @@ import {
   SubmitHubbleMeasurementResult
 } from "./request_results";
 
-import { Router } from "express";
+import { request, Router } from "express";
 
 const router = Router();
 
@@ -166,9 +167,21 @@ router.get("/all-data", async (_req, res) => {
   });
 });
 
-router.get("/galaxies", async (_req, res) => {
-  const response = await getAllGalaxies();
-  res.json(response);
+router.get("/galaxies", async (req, res) => {
+  const types = req.query?.types ?? undefined;
+  let galaxies: Galaxy[];
+  if (types === undefined) {
+    galaxies = await getAllGalaxies();
+  } else {
+    let galaxyTypes: string[];
+    if (Array.isArray(types)) {
+      galaxyTypes = types as string[];
+    } else {
+      galaxyTypes = (types as string).split(",");
+    }
+    galaxies = await getGalaxiesForTypes(galaxyTypes);
+  }
+  res.json(galaxies);
 });
 
 async function markBad(req: GenericRequest, res: GenericResponse, marker: (galaxy: Galaxy) => Promise<void>, markedStatus: string) {
