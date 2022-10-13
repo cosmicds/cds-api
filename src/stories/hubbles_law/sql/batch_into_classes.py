@@ -17,7 +17,7 @@ conn = connect(
 cursor = conn.cursor()
 cursor.execute("USE cosmicds_db")
 
-CLASS_SIZE_BOUNDS = [22, 28]
+CLASS_SIZE_BOUNDS = [15, 20]
 
 MAKE_CLASS = """
 INSERT INTO Classes (name, educator_id, code)
