@@ -366,11 +366,12 @@ export async function getNewGalaxies(): Promise<Galaxy[]> {
  * GROUP BY Galaxies.id
  * ORDER BY COUNT(Galaxies.id), Galaxy.id DESC
  */
-export async function getGalaxiesForDataGeneration(): Promise<Galaxy[]> {
+export async function getGalaxiesForDataGeneration(types=["Sp"]): Promise<Galaxy[]> {
   const measurements = await Galaxy.findAll({
     where: {
       is_bad: 0,
-      spec_is_bad: 0
+      spec_is_bad: 0,
+      type: { [Op.in]: types }
     },
     include: [
       {
@@ -398,6 +399,7 @@ export async function getGalaxiesForDataGeneration(): Promise<Galaxy[]> {
     where: {
       is_bad: 0,
       spec_is_bad: 0,
+      type: { [Op.in]: types },
       id: { [Op.notIn]: measurementIDs }
     },
     order: [["id", "DESC"]]
