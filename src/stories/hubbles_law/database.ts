@@ -259,7 +259,7 @@ export async function getAllHubbleClassData(): Promise<HubbleClassData[]> {
       attributes: []
     }],
     group: ["HubbleClassData.class_id"],
-    having: Sequelize.where(Sequelize.fn('count', Sequelize.col('HubbleClassData.class_id')), { [Op.gte]: 15 })
+    having: Sequelize.where(Sequelize.fn("count", Sequelize.col("HubbleClassData.class_id")), { [Op.gte]: 15 })
   });
 }
 
