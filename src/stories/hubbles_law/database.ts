@@ -3,7 +3,7 @@ import { AsyncMergedHubbleStudentClasses, Galaxy, HubbleMeasurement, initializeM
 import { cosmicdsDB, findClassById, findStudentById } from "../../database";
 import { RemoveHubbleMeasurementResult, SubmitHubbleMeasurementResult } from "./request_results";
 import { setUpHubbleAssociations } from "./associations";
-import { Class, Student } from "../../models";
+import { Class, Student, StudentsClasses } from "../../models";
 import { HubbleStudentData } from "./models/hubble_student_data";
 import { HubbleClassData } from "./models/hubble_class_data";
 
@@ -252,7 +252,15 @@ export async function getAllHubbleStudentData(): Promise<HubbleStudentData[]> {
 }
 
 export async function getAllHubbleClassData(): Promise<HubbleClassData[]> {
-  return HubbleClassData.findAll();
+  return HubbleClassData.findAll({
+    include: [{
+      model: StudentsClasses,
+      as: "class_data",
+      attributes: []
+    }],
+    group: ["HubbleClassData.class_id"],
+    having: Sequelize.where(Sequelize.fn('count', Sequelize.col('HubbleClassData.class_id')), { [Op.gte]: 15 })
+  });
 }
 
 export async function removeHubbleMeasurement(studentID: number, galaxyID: number): Promise<RemoveHubbleMeasurementResult> {
