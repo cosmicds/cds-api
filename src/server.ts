@@ -421,6 +421,9 @@ app.get("/student/:identifier", async (req, res) => {
   } else {
     student = await findStudentById(id);
   }
+  if (student == null) {
+    res.statusCode = 404;
+  }
   res.json({
     student: student
   });
