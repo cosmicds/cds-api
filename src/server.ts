@@ -18,6 +18,8 @@ import {
   getClassesForStudent,
   getRosterInfo,
   getRosterInfoForStory,
+  findStudentById,
+  findStudentByUsername,
   
 } from "./database";
 
@@ -406,6 +408,24 @@ app.get("/logout", (req, res) => {
   req.session.destroy(console.log);
   res.send({
     "logout": true
+  });
+});
+
+app.get("/student/:identifier", async (req, res) => {
+  const params = req.params;
+  const id = parseInt(params.identifier);
+
+  let student;
+  if (isNaN(id)) {
+    student = await findStudentByUsername(params.identifier);
+  } else {
+    student = await findStudentById(id);
+  }
+  if (student == null) {
+    res.statusCode = 404;
+  }
+  res.json({
+    student: student
   });
 });
 

@@ -105,6 +105,12 @@ async function findStudentByEmail(email: string): Promise<Student | null> {
   });
 }
 
+export async function findStudentByUsername(username: string): Promise<Student | null> {
+  return Student.findOne({
+    where: { username: username }
+  });
+}
+
 export async function findStudentById(id: number): Promise<Student | null> {
   return Student.findOne({
     where: { id : id }
