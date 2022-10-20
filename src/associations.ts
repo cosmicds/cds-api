@@ -64,4 +64,22 @@ export function setUpAssociations() {
     foreignKey: "story_name"
   });
 
+  Class.hasMany(ClassStories, {
+    foreignKey: "class_id"
+  });
+  ClassStories.belongsTo(Class, {
+    as: "class",
+    targetKey: "id",
+    foreignKey: "class_id"
+  });
+
+  Class.hasMany(StudentsClasses, {
+    foreignKey: "class_id"
+  });
+  StudentsClasses.belongsTo(Class, {
+    as: "class",
+    targetKey: "id",
+    foreignKey: "class_id"
+  });
+
 }
