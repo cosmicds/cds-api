@@ -465,7 +465,7 @@ export async function getRosterInfo(classID: number, useDisplayNames = true): Pr
   }, {});
 }
 
-/** For testing purposes */
+/** These functions are for testing purposes only */
 export async function newDummyClassForStory(storyName: string): Promise<{cls: Class, dummy: DummyClass}> {
   const ct = await Class.count({
     where: {
@@ -545,4 +545,27 @@ export async function newDummyStudent(seed = false,
   }
 
   return student;
+}
+
+export async function classForStudentStory(studentID: number, storyName: string): Promise<Class | null> {
+  return Class.findOne({
+    include: [
+      {
+        model: ClassStories,
+        required: true,
+        attributes: [],
+        where: {
+          story_name: storyName
+        }
+      },
+      {
+        model: StudentsClasses,
+        required: true,
+        attributes: [],
+        where: {
+          student_id: studentID
+        }
+      }
+    ]
+  });
 }
