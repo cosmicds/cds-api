@@ -20,6 +20,7 @@ import {
   getRosterInfoForStory,
   findStudentById,
   findStudentByUsername,
+  classForStudentStory,
   
 } from "./database";
 
@@ -449,4 +450,16 @@ app.post("/new-dummy-student", async (req, res) => {
   res.json({
     student: student
   });
+});
+
+app.get("/class-for-student-story/:studentID/:storyName", async (req, res) => {
+  const studentID = parseInt(req.params.studentID);
+  const storyName = req.params.storyName;
+  const cls = isNaN(studentID) ? null : await classForStudentStory(studentID, storyName);
+  res.json({
+    class: cls
+  });
+  if (cls == null) {
+    res.statusCode = 404;
+  }
 });
