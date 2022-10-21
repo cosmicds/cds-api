@@ -237,7 +237,13 @@ export async function getAllHubbleMeasurements(): Promise<HubbleMeasurement[]> {
 }
 
 export async function getAllHubbleStudentData(): Promise<HubbleStudentData[]> {
-  return HubbleStudentData.findAll({
+  const data = await HubbleStudentData.findAll({
+    raw: true, // We want a flattened object
+    attributes: {
+      // The "student" here comes from the alias below
+      // We do this so that we get access to the included field as just "class_id"
+      include: [[Sequelize.col("student.Classes.id"), "class_id"]]
+    },
     include: [{
       model: Student,
       as: "student",
@@ -246,9 +252,16 @@ export async function getAllHubbleStudentData(): Promise<HubbleStudentData[]> {
         [Op.or]: [
           { seed: 1 }, { dummy: 0 }
         ]
-      }
-    }]
+      },
+      include: [{
+        model: Class,
+        attributes: [],
+        through: { attributes: [] }
+      }]
+    }],
   });
+
+  return data;
 }
 
 export async function getAllHubbleClassData(): Promise<HubbleClassData[]> {
