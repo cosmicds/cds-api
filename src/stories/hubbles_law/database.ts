@@ -219,6 +219,11 @@ export async function _getStageThreeStudentData(studentID: number, classID: numb
 
 export async function getAllHubbleMeasurements(): Promise<HubbleMeasurement[]> {
   return HubbleMeasurement.findAll({
+    attributes: {
+      // The "student" here comes from the alias below
+      // We do this so that we get access to the included field as just "class_id"
+      include: [[Sequelize.col("student.Classes.id"), "class_id"]]
+    },
     include: [{
       model: Galaxy,
       as: "galaxy",
@@ -231,7 +236,12 @@ export async function getAllHubbleMeasurements(): Promise<HubbleMeasurement[]> {
         [Op.or]: [
           { seed: 1 }, { dummy: 0 }
         ]
-      }
+      },
+      include: [{
+        model: Class,
+        attributes: [],
+        through: { attributes: [] }
+      }]
     }]
   });
 }
