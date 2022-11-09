@@ -11,6 +11,9 @@ CREATE TABLE Galaxies(
     spec_marked_bad int NOT NULL DEFAULT 0,
     spec_is_bad tinyint(2) NOT NULL DEFAULT 0,
     tileload_marked_bad int NOT NULL DEFAULT 0,
+    spec_is_good tinyint(2) NOT NULL DEFAULT 0,
+    spec_checked tinyint(2) NOT NULL DEFAULT 0,
+    is_sample tinyint(2) NOT NULL DEFAULT 0,
 
     PRIMARY KEY(id)
 ) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci PACK_KEYS=0;

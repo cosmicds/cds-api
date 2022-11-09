@@ -15,6 +15,7 @@ export class Galaxy extends Model<InferAttributes<Galaxy>, InferCreationAttribut
   declare spec_is_good: CreationOptional<number>;
   declare spec_checked: CreationOptional<number>;
   declare tileload_marked_bad: CreationOptional<number>;
+  declare is_sample: CreationOptional<number>;
 }
 
 export function initializeGalaxyModel(sequelize: Sequelize) {
@@ -77,6 +78,10 @@ export function initializeGalaxyModel(sequelize: Sequelize) {
     },
     tileload_marked_bad: {
       type: DataTypes.INTEGER,
+      allowNull: false
+    },
+    is_sample: {
+      type: DataTypes.TINYINT,
       allowNull: false
     }
   }, {

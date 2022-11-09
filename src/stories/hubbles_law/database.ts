@@ -1,5 +1,5 @@
 import { Op, Sequelize } from "sequelize";
-import { AsyncMergedHubbleStudentClasses, Galaxy, HubbleMeasurement, initializeModels, SyncMergedHubbleClasses } from "./models";
+import { AsyncMergedHubbleStudentClasses, Galaxy, HubbleMeasurement, SampleHubbleMeasurement, initializeModels, SyncMergedHubbleClasses } from "./models";
 import { cosmicdsDB, findClassById, findStudentById } from "../../database";
 import { RemoveHubbleMeasurementResult, SubmitHubbleMeasurementResult } from "./request_results";
 import { setUpHubbleAssociations } from "./associations";
@@ -59,6 +59,53 @@ export async function submitHubbleMeasurement(data: {
   }
 }
 
+export async function submitSampleHubbleMeasurement(data: {
+  student_id: number,
+  galaxy_id: number,
+  rest_wave_value: number | null,
+  rest_wave_unit: string | null,
+  obs_wave_value: number | null,
+  obs_wave_unit: string | null,
+  velocity_value: number | null,
+  velocity_unit: string | null,
+  ang_size_value: number | null,
+  ang_size_unit: string | null,
+  est_dist_value: number | null,
+  est_dist_unit: string | null
+}): Promise<SubmitHubbleMeasurementResult> {
+
+  const student = await findStudentById(data.student_id);
+  if (student === null) {
+    return SubmitHubbleMeasurementResult.NoSuchStudent;
+  }
+
+  const measurement = await SampleHubbleMeasurement.findOne({
+    where: {
+      [Op.and]: [
+        { student_id: data.student_id },
+        { galaxy_id: data.galaxy_id }
+      ]
+    }
+  })
+  .catch(console.log);
+
+  if (measurement) {
+    measurement.update(data, {
+      where: {
+        [Op.and]: [
+          { student_id: measurement.student_id },
+          { galaxy_id: measurement.galaxy_id }
+        ]
+      }
+    })
+    .catch(console.log);
+    return SubmitHubbleMeasurementResult.MeasurementUpdated;
+  } else {
+    SampleHubbleMeasurement.create(data).catch(console.log);
+    return SubmitHubbleMeasurementResult.MeasurementCreated;
+  }
+}
+
 export async function getHubbleMeasurement(studentID: number, galaxyID: number): Promise<HubbleMeasurement | null> {
   return HubbleMeasurement.findOne({
     where: {
@@ -77,6 +124,25 @@ export async function getHubbleMeasurement(studentID: number, galaxyID: number):
     console.log(error);
     return null;
   });
+}
+
+export async function getSampleHubbleMeasurement(studentID: number): Promise<SampleHubbleMeasurement | null> {
+  return SampleHubbleMeasurement.findOne({
+    where: { student_id: studentID },
+    include: [{
+      model: Galaxy,
+      attributes: galaxyAttributes,
+      as: "galaxy",
+      required: true
+    }]
+  }).catch(error => {
+    console.log(error);
+    return null;
+  });
+}
+
+export async function getAllSampleHubbleMeasurements(): Promise<SampleHubbleMeasurement[]> {
+  return SampleHubbleMeasurement.findAll();
 }
 
 export async function getStudentHubbleMeasurements(studentID: number): Promise<HubbleMeasurement[] | null> {
@@ -301,6 +367,7 @@ export async function getGalaxiesForTypes(types: string[]): Promise<Galaxy[]> {
     where: {
       is_bad: 0,
       spec_is_bad: 0,
+      is_sample: 0,
       type: { [Op.in]: types }
     }
   });
@@ -310,7 +377,8 @@ export async function getAllGalaxies(): Promise<Galaxy[]> {
   return Galaxy.findAll({
     where: {
       is_bad: 0,
-      spec_is_bad: 0
+      spec_is_bad: 0,
+      is_sample: 0
     }
   });
 }
@@ -402,6 +470,7 @@ export async function getGalaxiesForDataGeneration(types=["Sp"]): Promise<Galaxy
     where: {
       is_bad: 0,
       spec_is_bad: 0,
+      is_sample: 0,
       type: { [Op.in]: types }
     },
     include: [
@@ -430,6 +499,7 @@ export async function getGalaxiesForDataGeneration(types=["Sp"]): Promise<Galaxy
     where: {
       is_bad: 0,
       spec_is_bad: 0,
+      is_sample: 0,
       type: { [Op.in]: types },
       id: { [Op.notIn]: measurementIDs }
     },

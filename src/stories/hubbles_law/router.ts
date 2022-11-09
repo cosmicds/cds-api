@@ -14,6 +14,7 @@ import {
   getHubbleMeasurement,
   submitHubbleMeasurement,
   getStudentHubbleMeasurements,
+  getSampleHubbleMeasurement,
   removeHubbleMeasurement,
   setGalaxySpectrumStatus,
   getUncheckedSpectraGalaxies,
@@ -23,7 +24,8 @@ import {
   getAllHubbleClassData,
   getGalaxiesForDataGeneration,
   getNewGalaxies,
-  getGalaxiesForTypes
+  getGalaxiesForTypes,
+  getAllSampleHubbleMeasurements
 } from "./database";
 
 import { 
@@ -31,7 +33,7 @@ import {
   SubmitHubbleMeasurementResult
 } from "./request_results";
 
-import { request, Router } from "express";
+import { Router } from "express";
 
 const router = Router();
 
@@ -121,6 +123,21 @@ router.get("/measurements/:studentID/:galaxyID", async (req, res) => {
     galaxy_id: galaxyID,
     measurement: measurement
   });
+});
+
+router.get("/sample-measurements/:studentID", async (req, res) => {
+  const params = req.params;
+  const studentID = parseInt(params.studentID);
+  const measurement = await getSampleHubbleMeasurement(studentID);
+  res.json({
+    student_id: studentID,
+    measurement: measurement
+  });
+});
+
+router.get("/sample-measurements", async (_req, res) => {
+  const measurements = await getAllSampleHubbleMeasurements();
+  res.json(measurements);
 });
 
 
