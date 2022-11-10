@@ -26,7 +26,8 @@ import {
   getNewGalaxies,
   getGalaxiesForTypes,
   getAllSampleHubbleMeasurements,
-  getSampleGalaxy
+  getSampleGalaxy,
+  getGalaxyById
 } from "./database";
 
 import { 
@@ -67,6 +68,49 @@ router.put("/submit-measurement", async (req, res) => {
 
   let result: SubmitHubbleMeasurementResult;
   if (valid) {
+    result = await submitHubbleMeasurement(data);
+  } else {
+    result = SubmitHubbleMeasurementResult.BadRequest;
+  }
+  res.json({
+    measurement: data,
+    status: result,
+    success: SubmitHubbleMeasurementResult.success(result)
+  });
+});
+
+router.put("/submit-sample-measurement", async (req, res) => {
+  const data = req.body;
+  const valid = (
+    typeof data.student_id === "number" &&
+    ((typeof data.galaxy_id === "number") || (typeof data.galaxy_name === "string")) &&
+    (!data.rest_wave_value || typeof data.rest_wave_value === "number") &&
+    (!data.rest_wave_unit || typeof data.rest_wave_unit === "string") &&
+    (!data.obs_wave_value || typeof data.obs_wave_value === "number") &&
+    (!data.obs_wave_unit || typeof data.obs_wave_unit === "string") &&
+    (!data.velocity_value || typeof data.velocity_value === "number") &&
+    (!data.velocity_unit || typeof data.velocity_unit === "string") &&
+    (!data.ang_size_value || typeof data.ang_size_value === "number") &&
+    (!data.ang_size_unit || typeof data.ang_size_unit === "string") &&
+    (!data.est_dist_value || typeof data.est_dist_value === "number") &&
+    (!data.est_dist_unit || typeof data.est_dist_unit === "string")
+  );
+
+  let galaxy;
+  if (typeof data.galaxy_id !== "number") {
+    let galaxyName = data.galaxy_name;
+    if (!galaxyName.endsWith(".fits")) {
+      galaxyName += ".fits";
+    }
+    galaxy = await getGalaxyByName(galaxyName);
+    data.galaxy_id = galaxy?.id || 0;
+    delete data.galaxy_name;
+  } else {
+    galaxy = await getGalaxyById(data.galaxy_id);
+  }
+
+  let result: SubmitHubbleMeasurementResult;
+  if (valid || galaxy === null || galaxy.is_sample === 0) {
     result = await submitHubbleMeasurement(data);
   } else {
     result = SubmitHubbleMeasurementResult.BadRequest;

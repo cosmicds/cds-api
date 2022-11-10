@@ -389,6 +389,12 @@ export async function getGalaxyByName(name: string): Promise<Galaxy | null> {
   });
 }
 
+export async function getGalaxyById(id: number): Promise<Galaxy | null> {
+  return Galaxy.findOne({
+    where: { id: id }
+  });
+}
+
 export async function getSampleGalaxy(): Promise<Galaxy | null> {
   return Galaxy.findOne({
     where: { is_sample: 1 }
