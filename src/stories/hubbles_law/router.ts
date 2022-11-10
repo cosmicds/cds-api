@@ -25,7 +25,8 @@ import {
   getGalaxiesForDataGeneration,
   getNewGalaxies,
   getGalaxiesForTypes,
-  getAllSampleHubbleMeasurements
+  getAllSampleHubbleMeasurements,
+  getSampleGalaxy
 } from "./database";
 
 import { 
@@ -140,6 +141,10 @@ router.get("/sample-measurements", async (_req, res) => {
   res.json(measurements);
 });
 
+router.get("/sample-galaxy", async (_req, res) => {
+  const galaxy = await getSampleGalaxy();
+  res.json(galaxy);
+});
 
 router.get("/stage-3-data/:studentID/:classID", async (req, res) => {
   const params = req.params;
