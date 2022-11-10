@@ -389,6 +389,12 @@ export async function getGalaxyByName(name: string): Promise<Galaxy | null> {
   });
 }
 
+export async function getSampleGalaxy(): Promise<Galaxy | null> {
+  return Galaxy.findOne({
+    where: { is_sample: 1 }
+  });
+}
+
 export async function markGalaxyBad(galaxy: Galaxy): Promise<void> {
   galaxy.update({ marked_bad: galaxy.marked_bad + 1 });
 }
