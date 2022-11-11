@@ -13,6 +13,7 @@ import {
   markGalaxyTileloadBad,
   getHubbleMeasurement,
   submitHubbleMeasurement,
+  submitSampleHubbleMeasurement,
   getStudentHubbleMeasurements,
   getSampleHubbleMeasurement,
   removeHubbleMeasurement,
@@ -111,7 +112,7 @@ router.put("/submit-sample-measurement", async (req, res) => {
 
   let result: SubmitHubbleMeasurementResult;
   if (valid || galaxy === null || galaxy.is_sample === 0) {
-    result = await submitHubbleMeasurement(data);
+    result = await submitSampleHubbleMeasurement(data);
   } else {
     result = SubmitHubbleMeasurementResult.BadRequest;
   }
