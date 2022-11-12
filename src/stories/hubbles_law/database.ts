@@ -362,6 +362,15 @@ export async function removeHubbleMeasurement(studentID: number, galaxyID: numbe
   return count > 0 ? RemoveHubbleMeasurementResult.MeasurementDeleted : RemoveHubbleMeasurementResult.NoSuchMeasurement;
 }
 
+export async function removeSampleHubbleMeasurement(studentID: number): Promise<RemoveHubbleMeasurementResult> {
+  const count = await SampleHubbleMeasurement.destroy({
+    where: {
+      student_id: studentID
+    }
+  });
+  return count > 0 ? RemoveHubbleMeasurementResult.MeasurementDeleted : RemoveHubbleMeasurementResult.NoSuchMeasurement;
+}
+
 export async function getGalaxiesForTypes(types: string[]): Promise<Galaxy[]> {
   return Galaxy.findAll({
     where: {

@@ -28,7 +28,8 @@ import {
   getGalaxiesForTypes,
   getAllSampleHubbleMeasurements,
   getSampleGalaxy,
-  getGalaxyById
+  getGalaxyById,
+  removeSampleHubbleMeasurement
 } from "./database";
 
 import { 
@@ -80,7 +81,7 @@ router.put("/submit-measurement", async (req, res) => {
   });
 });
 
-router.put("/submit-sample-measurement", async (req, res) => {
+router.put("/sample-measurement", async (req, res) => {
   const data = req.body;
   const valid = (
     typeof data.student_id === "number" &&
@@ -144,6 +145,25 @@ router.delete("/measurement/:studentID/:galaxyIdentifier", async (req, res) => {
     .json({
       student_id: studentID,
       galaxy_id: galaxyID,
+      status: result,
+      success: RemoveHubbleMeasurementResult.success(result)
+    });
+});
+
+router.delete("/sample-measurement/:studentID", async (req, res) => {
+  const data = req.params;
+  const studentID = parseInt(data.studentID) || 0;
+  const valid = (studentID !== 0);
+
+  let result: RemoveHubbleMeasurementResult;
+  if (valid) {
+    result = await removeSampleHubbleMeasurement(studentID);
+  } else {
+    result = RemoveHubbleMeasurementResult.BadRequest;
+  }
+  res.status(RemoveHubbleMeasurementResult.statusCode(result))
+    .json({
+      student_id: studentID,
       status: result,
       success: RemoveHubbleMeasurementResult.success(result)
     });
