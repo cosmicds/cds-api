@@ -1,5 +1,5 @@
 import { Class, Student, StudentsClasses } from "../../models";
-import { Galaxy, HubbleMeasurement, SyncMergedHubbleClasses } from "./models";
+import { Galaxy, HubbleMeasurement, SampleHubbleMeasurement, SyncMergedHubbleClasses } from "./models";
 import { AsyncMergedHubbleStudentClasses } from "./models/async_merged_student_classes";
 import { HubbleClassData } from "./models/hubble_class_data";
 import { HubbleStudentData } from "./models/hubble_student_data";
@@ -11,11 +11,24 @@ export function setUpHubbleAssociations() {
     targetKey: "id",
     foreignKey: "student_id",
   });
+  SampleHubbleMeasurement.belongsTo(Student, {
+    as: "student",
+    targetKey: "id",
+    foreignKey: "student_id",
+  });
 
   Galaxy.hasMany(HubbleMeasurement, {
     foreignKey: "galaxy_id"
   });
   HubbleMeasurement.belongsTo(Galaxy, {
+    as: "galaxy",
+    targetKey: "id",
+    foreignKey: "galaxy_id"
+  });
+  Galaxy.hasMany(SampleHubbleMeasurement, {
+    foreignKey: "galaxy_id"
+  });
+  SampleHubbleMeasurement.belongsTo(Galaxy, {
     as: "galaxy",
     targetKey: "id",
     foreignKey: "galaxy_id"
