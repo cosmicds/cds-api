@@ -6,6 +6,7 @@ CREATE TABLE Classes (
     active tinyint(1) NOT NULL DEFAULT 0,
     code varchar(50) NOT NULL UNIQUE,
     asynchronous tinyint(1) NOT NULL DEFAULT 0,
+    updated datetime DEFAULT NULL,
  
     PRIMARY KEY(id),
     INDEX(educator_id),

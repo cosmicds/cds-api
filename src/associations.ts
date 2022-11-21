@@ -16,6 +16,15 @@ export function setUpAssociations() {
     onUpdate: "CASCADE",
     onDelete: "CASCADE"
   });
+  Class.belongsToMany(Student, {
+    through: StudentsClasses,
+    sourceKey: "id",
+    targetKey: "id",
+    foreignKey: "class_id",
+    otherKey: "student_id",
+    onUpdate: "CASCADE",
+    onDelete: "CASCADE"
+  });
 
   Story.belongsToMany(Class, {
     through: ClassStories,
@@ -63,6 +72,7 @@ export function setUpAssociations() {
     targetKey: "name",
     foreignKey: "story_name"
   });
+
 
   Class.hasMany(ClassStories, {
     foreignKey: "class_id"
