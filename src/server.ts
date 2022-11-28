@@ -180,10 +180,10 @@ app.post("/educator-sign-up", async (req, res) => {
     typeof data.firstName === "string" &&
     typeof data.lastName === "string" &&
     typeof data.password === "string" &&
-    ((typeof data.institution === "string") || (data.institution === null)) &&
+    ((typeof data.institution === "string") || (data.institution == null)) &&
     typeof data.email === "string" &&
-    ((typeof data.age === "number") || (data.age === null)) &&
-    ((typeof data.gender === "string") || data.gender === null)
+    ((typeof data.age === "number") || (data.age == null)) &&
+    ((typeof data.gender === "string") || data.gender == null)
   );
 
   let result: SignUpResult;
@@ -205,11 +205,11 @@ app.post("/student-sign-up", async (req, res) => {
   const valid = (
     typeof data.username === "string" &&
     typeof data.password === "string" &&
-    ((typeof data.institution === "string") || (data.institution === null)) &&
+    ((typeof data.institution === "string") || (data.institution == null)) &&
     typeof data.email === "string" &&
-    ((typeof data.age === "number") || (data.age === null)) &&
-    ((typeof data.gender === "string") || (data.gender === null)) &&
-    ((typeof data.classroomCode === "string") || (data.classroomCode === null))
+    ((typeof data.age === "number") || (data.age == null)) &&
+    ((typeof data.gender === "string") || (data.gender == null)) &&
+    ((typeof data.classroomCode === "string") || (data.classroomCode == null))
   );
 
   let result: SignUpResult;
