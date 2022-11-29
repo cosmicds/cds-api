@@ -16,6 +16,7 @@ import {
   submitSampleHubbleMeasurement,
   getStudentHubbleMeasurements,
   getSampleHubbleMeasurement,
+  getSampleHubbleMeasurements,
   removeHubbleMeasurement,
   setGalaxySpectrumStatus,
   getUncheckedSpectraGalaxies,
@@ -29,7 +30,8 @@ import {
   getAllSampleHubbleMeasurements,
   getSampleGalaxy,
   getGalaxyById,
-  removeSampleHubbleMeasurement
+  removeSampleHubbleMeasurement,
+  getAllNthSampleHubbleMeasurements
 } from "./database";
 
 import { 
@@ -95,7 +97,8 @@ router.put("/sample-measurement", async (req, res) => {
     (!data.ang_size_value || typeof data.ang_size_value === "number") &&
     (!data.ang_size_unit || typeof data.ang_size_unit === "string") &&
     (!data.est_dist_value || typeof data.est_dist_value === "number") &&
-    (!data.est_dist_unit || typeof data.est_dist_unit === "string")
+    (!data.est_dist_unit || typeof data.est_dist_unit === "string") &&
+    (!data.measurement_number || typeof data.measurement_number == "string")
   );
 
   let galaxy;
@@ -109,6 +112,10 @@ router.put("/sample-measurement", async (req, res) => {
     delete data.galaxy_name;
   } else {
     galaxy = await getGalaxyById(data.galaxy_id);
+  }
+
+  if (!data.measurement_number) {
+    data.measurement_number = "first";
   }
 
   let result: SubmitHubbleMeasurementResult;
@@ -150,14 +157,15 @@ router.delete("/measurement/:studentID/:galaxyIdentifier", async (req, res) => {
     });
 });
 
-router.delete("/sample-measurement/:studentID", async (req, res) => {
+router.delete("/sample-measurement/:studentID/:measurementNumber", async (req, res) => {
   const data = req.params;
   const studentID = parseInt(data.studentID) || 0;
-  const valid = (studentID !== 0);
+  const measurementNumber = data.measurementNumber;
+  const valid = (studentID !== 0 && (measurementNumber === "first" || measurementNumber === "second"));
 
   let result: RemoveHubbleMeasurementResult;
   if (valid) {
-    result = await removeSampleHubbleMeasurement(studentID);
+    result = await removeSampleHubbleMeasurement(studentID, measurementNumber);
   } else {
     result = RemoveHubbleMeasurementResult.BadRequest;
   }
@@ -194,7 +202,17 @@ router.get("/measurements/:studentID/:galaxyID", async (req, res) => {
 router.get("/sample-measurements/:studentID", async (req, res) => {
   const params = req.params;
   const studentID = parseInt(params.studentID);
-  const measurement = await getSampleHubbleMeasurement(studentID);
+  const measurements = await getSampleHubbleMeasurements(studentID);
+  res.json({
+    student_id: studentID,
+    measurements: measurements
+  });
+});
+
+router.get("/sample-measurements/:studentID/:measurementNumber", async (req, res) => {
+  const params = req.params;
+  const studentID = parseInt(params.studentID);
+  const measurement = await getSampleHubbleMeasurement(studentID, params.measurementNumber);
   res.json({
     student_id: studentID,
     measurement: measurement
@@ -204,6 +222,17 @@ router.get("/sample-measurements/:studentID", async (req, res) => {
 router.get("/sample-measurements", async (_req, res) => {
   const measurements = await getAllSampleHubbleMeasurements();
   res.json(measurements);
+});
+
+router.get("/sample-measurements/:measurementNumber", async (req, res) => {
+  const params = req.params;
+  const measurementNumber = params.measurementNumber;
+  if (measurementNumber !== "first" && measurementNumber !== "second") {
+    res.status(400).json(null);
+  } else {
+    const measurements = await getAllNthSampleHubbleMeasurements(measurementNumber);
+    res.json(measurements);
+  }
 });
 
 router.get("/sample-galaxy", async (_req, res) => {

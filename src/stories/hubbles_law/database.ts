@@ -62,6 +62,7 @@ export async function submitHubbleMeasurement(data: {
 export async function submitSampleHubbleMeasurement(data: {
   student_id: number,
   galaxy_id: number,
+  measurement_number: string,
   rest_wave_value: number | null,
   rest_wave_unit: string | null,
   obs_wave_value: number | null,
@@ -83,7 +84,8 @@ export async function submitSampleHubbleMeasurement(data: {
     where: {
       [Op.and]: [
         { student_id: data.student_id },
-        { galaxy_id: data.galaxy_id }
+        { galaxy_id: data.galaxy_id },
+        { measurement_number: data.measurement_number }
       ]
     }
   })
@@ -94,7 +96,8 @@ export async function submitSampleHubbleMeasurement(data: {
       where: {
         [Op.and]: [
           { student_id: measurement.student_id },
-          { galaxy_id: measurement.galaxy_id }
+          { galaxy_id: measurement.galaxy_id },
+          { measurement_number: data.measurement_number }
         ]
       }
     })
@@ -126,9 +129,24 @@ export async function getHubbleMeasurement(studentID: number, galaxyID: number):
   });
 }
 
-export async function getSampleHubbleMeasurement(studentID: number): Promise<SampleHubbleMeasurement | null> {
-  return SampleHubbleMeasurement.findOne({
+export async function getSampleHubbleMeasurements(studentID: number): Promise<SampleHubbleMeasurement[]> {
+  return SampleHubbleMeasurement.findAll({
     where: { student_id: studentID },
+    include: [{
+      model: Galaxy,
+      attributes: galaxyAttributes,
+      as: "galaxy",
+      required: true
+    }]
+  }).catch(error => {
+    console.log(error);
+    return [];
+  });
+}
+
+export async function getSampleHubbleMeasurement(studentID: number, measurementNumber: string): Promise<SampleHubbleMeasurement | null> {
+  return SampleHubbleMeasurement.findOne({
+    where: { student_id: studentID, measurement_number: measurementNumber },
     include: [{
       model: Galaxy,
       attributes: galaxyAttributes,
@@ -142,7 +160,13 @@ export async function getSampleHubbleMeasurement(studentID: number): Promise<Sam
 }
 
 export async function getAllSampleHubbleMeasurements(): Promise<SampleHubbleMeasurement[]> {
-  return SampleHubbleMeasurement.findAll();
+  return SampleHubbleMeasurement.findAll().catch(_error => []);
+}
+
+export async function getAllNthSampleHubbleMeasurements(measurementNumber: "first" | "second"): Promise<SampleHubbleMeasurement[]> {
+  return SampleHubbleMeasurement.findAll({
+    where: { measurement_number: measurementNumber }
+  }).catch(_error => []);
 }
 
 export async function getStudentHubbleMeasurements(studentID: number): Promise<HubbleMeasurement[] | null> {
@@ -362,10 +386,11 @@ export async function removeHubbleMeasurement(studentID: number, galaxyID: numbe
   return count > 0 ? RemoveHubbleMeasurementResult.MeasurementDeleted : RemoveHubbleMeasurementResult.NoSuchMeasurement;
 }
 
-export async function removeSampleHubbleMeasurement(studentID: number): Promise<RemoveHubbleMeasurementResult> {
+export async function removeSampleHubbleMeasurement(studentID: number, measurementNumber: string): Promise<RemoveHubbleMeasurementResult> {
   const count = await SampleHubbleMeasurement.destroy({
     where: {
-      student_id: studentID
+      student_id: studentID,
+      measurement_number: measurementNumber
     }
   });
   return count > 0 ? RemoveHubbleMeasurementResult.MeasurementDeleted : RemoveHubbleMeasurementResult.NoSuchMeasurement;
