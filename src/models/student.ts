@@ -93,7 +93,8 @@ export function initializeStudentModel(sequelize: Sequelize) {
     },
     seed: {
       type: DataTypes.TINYINT,
-      allowNull: false
+      allowNull: false,
+      defaultValue: 0
     },
     team_member: {
       type: DataTypes.STRING
