@@ -17,6 +17,7 @@ export class SampleHubbleMeasurement extends Model<InferAttributes<SampleHubbleM
   declare est_dist_value: CreationOptional<number | null>;
   declare est_dist_unit: CreationOptional<string | null>;
   declare last_modified: CreationOptional<Date>;
+  declare measurement_number: CreationOptional<string>;
 }
 
 export function initializeSampleHubbleMeasurementModel(sequelize: Sequelize) {
@@ -38,6 +39,12 @@ export function initializeSampleHubbleMeasurementModel(sequelize: Sequelize) {
         model: Galaxy,
         key: "id"
       }
+    },
+    measurement_number: {
+      type: DataTypes.ENUM("first", "second"),
+      allowNull: false,
+      defaultValue: "first",
+      primaryKey: true
     },
     rest_wave_value: {
       type: DataTypes.FLOAT
