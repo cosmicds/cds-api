@@ -1,7 +1,7 @@
 CREATE TABLE SampleHubbleMeasurements (
     student_id int(11) UNSIGNED NOT NULL,
     galaxy_id int(11) UNSIGNED NOT NULL,
-
+    measurement_number ENUM('first', 'second') NOT NULL DEFAULT 'first',
     rest_wave_value FLOAT,
     rest_wave_unit varchar(20),
     obs_wave_value FLOAT,
@@ -15,7 +15,7 @@ CREATE TABLE SampleHubbleMeasurements (
     last_modified TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
         ON UPDATE CURRENT_TIMESTAMP,
 
-    PRIMARY KEY(student_id, galaxy_id),
+    PRIMARY KEY(student_id, galaxy_id, measurement_number),
     INDEX(student_id),
     INDEX(galaxy_id),
     FOREIGN KEY(student_id)
