@@ -8,6 +8,7 @@ export class StudentOptions extends Model<InferAttributes<StudentOptions>, Infer
   declare speech_pitch: CreationOptional<number>;
 }
 
+// TODO: Can we generate this automatically from the class definition?
 const STUDENT_OPTIONS = ["speech_autoread", "speech_rate", "speech_pitch"] as const;
 export type StudentOption = (typeof STUDENT_OPTIONS)[number];
 
