@@ -8,16 +8,23 @@ export class StudentOptions extends Model<InferAttributes<StudentOptions>, Infer
   declare speech_pitch: CreationOptional<number>;
 }
 
-export function initializeStudentOptions(sequelize: Sequelize) {
+const STUDENT_OPTIONS = ["speech_autoread", "speech_rate", "speech_pitch"] as const;
+export type StudentOption = (typeof STUDENT_OPTIONS)[number];
+
+export function isStudentOption(o: any): o is StudentOption {
+  return typeof o === "string" && ([...STUDENT_OPTIONS] as string[]).includes(o);
+}
+
+export function initializeStudentOptionsModel(sequelize: Sequelize) {
   StudentOptions.init({
     student_id: {
       type: DataTypes.INTEGER.UNSIGNED,
       allowNull: false,
-        primaryKey: true,
-        references: {
-          model: Student,
-          key: "id"
-        }
+      primaryKey: true,
+      references: {
+        model: Student,
+        key: "id"
+      }
     },
     speech_autoread: {
       type: DataTypes.TINYINT,

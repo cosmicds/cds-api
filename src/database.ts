@@ -30,6 +30,7 @@ import { User } from "./user";
 
 import { setUpAssociations } from "./associations";
 import { initializeModels } from "./models";
+import { StudentOption, StudentOptions } from "./models/student_options";
 
 type SequelizeError = { parent: { code: string } };
 
@@ -568,4 +569,24 @@ export async function classForStudentStory(studentID: number, storyName: string)
       }
     ]
   });
+}
+
+export async function getStudentOptions(studentID: number): Promise<StudentOptions | null> {
+  return StudentOptions.findOne({ where: { student_id: studentID } }).catch((_error) => null);
+}
+
+async function createStudentOptions(studentID: number): Promise<StudentOptions | null> {
+  return StudentOptions.create({student_id: studentID}).catch((_error) => null);
+}
+
+// Change the typing of value as we add more student options
+export async function setStudentOption(studentID: number, option: StudentOption, value: number): Promise<StudentOptions | null> {
+  let options = await getStudentOptions(studentID);
+  if (options === null) {
+    options = await createStudentOptions(studentID);
+  }
+  if (options !== null) {
+    options.update({ [option]: value });
+  }
+  return options;
 }

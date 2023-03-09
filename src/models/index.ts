@@ -8,6 +8,7 @@ import { Story, initializeStoryModel } from "./story";
 import { StudentsClasses, initializeStudentClassModel } from "./student_class";
 import { Student, initializeStudentModel } from "./student";
 import { Sequelize } from "sequelize/types";
+import { initializeStudentOptionsModel } from "./student_options";
 
 export {
   Class,
@@ -31,4 +32,5 @@ export function initializeModels(db: Sequelize) {
   initializeDummyClassModel(db);
   initializeStoryStateModel(db);
   initializeStudentClassModel(db);
+  initializeStudentOptionsModel(db);
 }

@@ -21,6 +21,8 @@ import {
   findStudentById,
   findStudentByUsername,
   classForStudentStory,
+  getStudentOptions,
+  setStudentOption,
   
 } from "./database";
 
@@ -43,6 +45,7 @@ import sequelizeStore from "connect-session-sequelize";
 import { v4 } from "uuid";
 import cors from "cors";
 import jwt from "jsonwebtoken";
+import { isStudentOption } from "./models/student_options";
 export const app = express();
 
 // TODO: Clean up these type definitions
@@ -462,4 +465,33 @@ app.get("/class-for-student-story/:studentID/:storyName", async (req, res) => {
   if (cls == null) {
     res.statusCode = 404;
   }
+});
+
+app.get("/options/:studentID", async (req, res) => {
+  const studentID = parseInt(req.params.studentID);
+  const options = await getStudentOptions(studentID);
+  res.json({options});
+  if (options == null) {
+    res.statusCode = 404;
+  }
+});
+
+app.put("/options/:studentID", async (req, res) => {
+  const studentID = parseInt(req.params.studentID);
+  const option = req.body.option;
+  const value = req.body.value;
+  if (!isStudentOption(option)) {
+    res.statusCode = 404;
+    res.statusMessage = `${option} is not a valid option`;
+    res.send();
+    return;
+  }
+  const updatedOptions = await setStudentOption(studentID, option, value);
+  if (updatedOptions === null) {
+    res.statusCode = 404;
+    res.statusMessage = "Invalid student ID";
+    res.send();
+    return;
+  }
+  res.json({updated_options: updatedOptions});
 });
