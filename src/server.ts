@@ -470,7 +470,7 @@ app.get("/class-for-student-story/:studentID/:storyName", async (req, res) => {
 app.get("/options/:studentID", async (req, res) => {
   const studentID = parseInt(req.params.studentID);
   const options = await getStudentOptions(studentID);
-  res.json({options});
+  res.json(options);
   if (options == null) {
     res.statusCode = 404;
   }
@@ -493,5 +493,5 @@ app.put("/options/:studentID", async (req, res) => {
     res.send();
     return;
   }
-  res.json({updated_options: updatedOptions});
+  res.json(updatedOptions);
 });
