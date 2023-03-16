@@ -3,6 +3,7 @@ CREATE TABLE StudentOptions (
     speech_autoread tinyint(2) NOT NULL DEFAULT 0,
     speech_rate FLOAT NOT NULL DEFAULT 1,
     speech_pitch FLOAT NOT NULL DEFAULT 1,
+    speech_voice varchar(100),
 
     PRIMARY KEY(student_id),
     FOREIGN KEY(student_id)
