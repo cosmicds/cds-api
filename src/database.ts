@@ -580,7 +580,7 @@ async function createStudentOptions(studentID: number): Promise<StudentOptions |
 }
 
 // Change the typing of value as we add more student options
-export async function setStudentOption(studentID: number, option: StudentOption, value: number): Promise<StudentOptions | null> {
+export async function setStudentOption(studentID: number, option: StudentOption, value: number | string): Promise<StudentOptions | null> {
   let options = await getStudentOptions(studentID);
   if (options === null) {
     options = await createStudentOptions(studentID);
