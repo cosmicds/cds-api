@@ -219,8 +219,10 @@ router.get("/sample-measurements/:studentID/:measurementNumber", async (req, res
   });
 });
 
-router.get("/sample-measurements", async (_req, res) => {
-  const measurements = await getAllSampleHubbleMeasurements();
+router.get("/sample-measurements", async (req, res) => {
+  const filterNullString = ((req.query.filter_null as string) ?? "true").toLowerCase();
+  const filterNull = filterNullString !== "false";
+  const measurements = await getAllSampleHubbleMeasurements(filterNull);
   res.json(measurements);
 });
 

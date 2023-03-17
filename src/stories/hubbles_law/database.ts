@@ -159,8 +159,17 @@ export async function getSampleHubbleMeasurement(studentID: number, measurementN
   });
 }
 
-export async function getAllSampleHubbleMeasurements(): Promise<SampleHubbleMeasurement[]> {
-  return SampleHubbleMeasurement.findAll().catch(_error => []);
+export async function getAllSampleHubbleMeasurements(excludeWithNull = true): Promise<SampleHubbleMeasurement[]> {
+  const query = excludeWithNull ? 
+  {
+    where: {
+      obs_wave_value: { [Op.not]: null },
+      velocity_value: { [Op.not]: null },
+      ang_size_value: { [Op.not]: null },
+      est_dist_value: { [Op.not]: null }
+    }
+  } : {};
+  return SampleHubbleMeasurement.findAll(query).catch(_error => []);
 }
 
 export async function getAllNthSampleHubbleMeasurements(measurementNumber: "first" | "second"): Promise<SampleHubbleMeasurement[]> {
