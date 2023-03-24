@@ -57,7 +57,8 @@ router.put("/submit-measurement", async (req, res) => {
     (!data.ang_size_value || typeof data.ang_size_value === "number") &&
     (!data.ang_size_unit || typeof data.ang_size_unit === "string") &&
     (!data.est_dist_value || typeof data.est_dist_value === "number") &&
-    (!data.est_dist_unit || typeof data.est_dist_unit === "string")
+    (!data.est_dist_unit || typeof data.est_dist_unit === "string") &&
+    (!data.brightness || typeof data.brightness === "number")
   );
 
   if (typeof data.galaxy_id !== "number") {
@@ -98,7 +99,8 @@ router.put("/sample-measurement", async (req, res) => {
     (!data.ang_size_unit || typeof data.ang_size_unit === "string") &&
     (!data.est_dist_value || typeof data.est_dist_value === "number") &&
     (!data.est_dist_unit || typeof data.est_dist_unit === "string") &&
-    (!data.measurement_number || typeof data.measurement_number == "string")
+    (!data.measurement_number || typeof data.measurement_number == "string") &&
+    (!data.brightness || typeof data.brightness === "number")
   );
 
   let galaxy;
