@@ -12,6 +12,7 @@ CREATE TABLE SampleHubbleMeasurements (
     ang_size_unit varchar(20),
     est_dist_value int(11),
     est_dist_unit varchar(20),
+    brightness FLOAT NOT NULL DEFAULT 1,
     last_modified TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
         ON UPDATE CURRENT_TIMESTAMP,
 

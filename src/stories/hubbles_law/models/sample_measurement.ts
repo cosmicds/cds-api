@@ -16,6 +16,7 @@ export class SampleHubbleMeasurement extends Model<InferAttributes<SampleHubbleM
   declare ang_size_unit: CreationOptional<string | null>;
   declare est_dist_value: CreationOptional<number | null>;
   declare est_dist_unit: CreationOptional<string | null>;
+  declare brightness: CreationOptional<number>;
   declare last_modified: CreationOptional<Date>;
   declare measurement_number: CreationOptional<string>;
 }
@@ -75,6 +76,11 @@ export function initializeSampleHubbleMeasurementModel(sequelize: Sequelize) {
     },
     est_dist_unit: {
       type: DataTypes.STRING
+    },
+    brightness: {
+      type: DataTypes.FLOAT,
+      allowNull: false,
+      defaultValue: 1
     },
     last_modified: {
       type: DataTypes.DATE,
