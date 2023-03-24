@@ -24,7 +24,8 @@ export async function submitHubbleMeasurement(data: {
   ang_size_value: number | null,
   ang_size_unit: string | null,
   est_dist_value: number | null,
-  est_dist_unit: string | null
+  est_dist_unit: string | null,
+  brightness?: number
 }): Promise<SubmitHubbleMeasurementResult> {
 
   const student = await findStudentById(data.student_id);
@@ -72,7 +73,8 @@ export async function submitSampleHubbleMeasurement(data: {
   ang_size_value: number | null,
   ang_size_unit: string | null,
   est_dist_value: number | null,
-  est_dist_unit: string | null
+  est_dist_unit: string | null,
+  brightness?: number,
 }): Promise<SubmitHubbleMeasurementResult> {
 
   const student = await findStudentById(data.student_id);
