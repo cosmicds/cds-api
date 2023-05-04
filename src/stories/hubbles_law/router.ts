@@ -246,13 +246,9 @@ router.get("/sample-galaxy", async (_req, res) => {
 
 router.get("/stage-3-data/:studentID/:classID", async (req, res) => {
   const lastCheckedStr = req.query.last_checked as string;
-  let lastChecked;
-  if (lastCheckedStr) {
-    try {
-      lastChecked = new Date(lastCheckedStr);
-    } catch {
-      lastChecked = null;
-    }
+  let lastChecked: number | null = parseInt(lastCheckedStr);
+  if (isNaN(lastChecked)) {
+    lastChecked = null;
   }
   const params = req.params;
   let studentID = parseInt(params.studentID);
