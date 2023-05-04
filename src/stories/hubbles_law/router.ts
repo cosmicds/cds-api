@@ -245,6 +245,11 @@ router.get("/sample-galaxy", async (_req, res) => {
 });
 
 router.get("/stage-3-data/:studentID/:classID", async (req, res) => {
+  const lastCheckedStr = req.query.last_checked as string;
+  let lastChecked: number | null = parseInt(lastCheckedStr);
+  if (isNaN(lastChecked)) {
+    lastChecked = null;
+  }
   const params = req.params;
   let studentID = parseInt(params.studentID);
   let classID = parseInt(params.classID);
@@ -254,7 +259,7 @@ router.get("/stage-3-data/:studentID/:classID", async (req, res) => {
   if (classID === 0) {
     classID = 159;
   }
-  const measurements = await getStageThreeMeasurements(studentID, classID);
+  const measurements = await getStageThreeMeasurements(studentID, classID, lastChecked);
   res.json({
     studentID,
     classID,

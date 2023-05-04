@@ -284,7 +284,7 @@ async function getHubbleMeasurementsForAsyncStudent(studentID: number, classID: 
   return getHubbleMeasurementsForClasses(classIDs);
 }
 
-export async function getStageThreeMeasurements(studentID: number, classID: number | null): Promise<HubbleMeasurement[]> {
+export async function getStageThreeMeasurements(studentID: number, classID: number | null, lastChecked: number | null = null): Promise<HubbleMeasurement[]> {
   const cls = classID !== null ? await findClassById(classID) : null;
   const asyncClass = cls?.asynchronous ?? true;
   let data: HubbleMeasurement[] | null;
@@ -292,6 +292,12 @@ export async function getStageThreeMeasurements(studentID: number, classID: numb
     data = await getHubbleMeasurementsForAsyncStudent(studentID, classID);
   } else {
     data = await getHubbleMeasurementsForSyncClass(classID);
+  }
+  if (data != null && lastChecked != null) {
+    const lastModified = Math.max(...data.map(meas => meas.last_modified.getTime()));
+    if (lastModified <= lastChecked) {
+      data = null;
+    }
   }
   return data ?? [];
 }
