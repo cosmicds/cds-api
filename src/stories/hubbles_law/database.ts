@@ -222,7 +222,7 @@ async function getHubbleMeasurementsForClasses(classIDs: number[]): Promise<Hubb
       {
         model: IgnoreStudent,
         required: false,
-        attributes: ["student_id", "story_name"],
+        attributes: [],
         where: {
           story_name: "hubbles_law"
         }
@@ -367,7 +367,7 @@ export async function getAllHubbleMeasurements(): Promise<HubbleMeasurement[]> {
       {
         model: IgnoreStudent,
         required: false,
-        attributes: ["student_id", "story_name"],
+        attributes: [],
         where: {
           story_name: "hubbles_law"
         }
@@ -394,7 +394,7 @@ export async function getAllHubbleStudentData(): Promise<HubbleStudentData[]> {
       include: [{
         model: IgnoreStudent,
         required: false,
-        attributes: ["student_id", "story_name"],
+        attributes: [],
         where: {
           story_name: "hubbles_law"
         }
