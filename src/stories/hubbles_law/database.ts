@@ -244,6 +244,9 @@ async function getHubbleStudentDataForClasses(classIDs: number[]): Promise<Hubbl
       attributes: ["id"],
       as: "student",
       required: true,
+      where: {
+        "$IgnoreStudents.student_id$": null
+      },
       include: [{
         model: Class,
         attributes: ["id"],
@@ -251,6 +254,14 @@ async function getHubbleStudentDataForClasses(classIDs: number[]): Promise<Hubbl
           id: {
             [Op.in]: classIDs
           }
+        }
+      },
+      {
+        model: IgnoreStudent,
+        required: false,
+        attributes: ["student_id", "story_name"],
+        where: {
+          student_id: null
         }
       }]
     }]
