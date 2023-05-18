@@ -1,6 +1,7 @@
 import { Class, initializeClassModel } from "./class";
 import { DummyClass, initializeDummyClassModel } from "./dummy_class";
 import { Educator, initializeEducatorModel } from "./educator";
+import { IgnoreStudent, initializeIgnoreStudentModel } from "./ignore_student";
 import { ClassStories, initializeClassStoryModel } from "./story_class";
 import { CosmicDSSession, initializeSessionModel } from "./session";
 import { StoryState, initializeStoryStateModel } from "./story_state";
@@ -16,12 +17,12 @@ export {
   CosmicDSSession,
   DummyClass,
   Educator,
+  IgnoreStudent,
   Story,
   StoryState,
   Student,
   StudentsClasses,
 };
-
 export function initializeModels(db: Sequelize) {
   initializeSessionModel(db);
   initializeEducatorModel(db);
@@ -33,4 +34,5 @@ export function initializeModels(db: Sequelize) {
   initializeStoryStateModel(db);
   initializeStudentClassModel(db);
   initializeStudentOptionsModel(db);
+  initializeIgnoreStudentModel(db);
 }
