@@ -6,6 +6,7 @@ import { setUpHubbleAssociations } from "./associations";
 import { Class, Student, StudentsClasses } from "../../models";
 import { HubbleStudentData } from "./models/hubble_student_data";
 import { HubbleClassData } from "./models/hubble_class_data";
+import { IgnoreStudent } from "../../models/ignore_student";
 
 initializeModels(cosmicdsDB);
 setUpHubbleAssociations();
@@ -169,7 +170,7 @@ export async function getAllSampleHubbleMeasurements(excludeWithNull = true): Pr
       velocity_value: { [Op.not]: null },
       ang_size_value: { [Op.not]: null },
       est_dist_value: { [Op.not]: null }
-    }
+    },
   } : {};
   return SampleHubbleMeasurement.findAll(query).catch(_error => []);
 }
@@ -214,7 +215,15 @@ async function getHubbleMeasurementsForClasses(classIDs: number[]): Promise<Hubb
             [Op.in]: classIDs
           }
         }
-      }]
+      },
+      {
+        model: IgnoreStudent,
+        required: false,
+        attributes: [],
+        where: {
+          story_name: "hubbles_law"
+        }
+      }],
     },
     {
       model: Galaxy,
@@ -239,6 +248,14 @@ async function getHubbleStudentDataForClasses(classIDs: number[]): Promise<Hubbl
           id: {
             [Op.in]: classIDs
           }
+        }
+      },
+      {
+        model: IgnoreStudent,
+        required: false,
+        attributes: ["student_id", "story_name"],
+        where: {
+          student_id: null
         }
       }]
     }]
@@ -331,6 +348,9 @@ export async function getAllHubbleMeasurements(): Promise<HubbleMeasurement[]> {
       // We do this so that we get access to the included field as just "class_id"
       include: [[Sequelize.col("student.Classes.id"), "class_id"]]
     },
+    where: {
+      "$student.IgnoreStudents.student_id$": null
+    },
     include: [{
       model: Galaxy,
       as: "galaxy",
@@ -348,6 +368,14 @@ export async function getAllHubbleMeasurements(): Promise<HubbleMeasurement[]> {
         model: Class,
         attributes: [],
         through: { attributes: [] }
+      },
+      {
+        model: IgnoreStudent,
+        required: false,
+        attributes: [],
+        where: {
+          story_name: "hubbles_law"
+        }
       }]
     }]
   });
@@ -361,20 +389,31 @@ export async function getAllHubbleStudentData(): Promise<HubbleStudentData[]> {
       // We do this so that we get access to the included field as just "class_id"
       include: [[Sequelize.col("student.Classes.id"), "class_id"]]
     },
+    where: {
+      "$student.IgnoreStudents.student_id$": null
+    },
     include: [{
       model: Student,
       as: "student",
       attributes: ["seed", "dummy"],
-      where: {
-        [Op.or]: [
-          { seed: 1 }, { dummy: 0 }
-        ]
-      },
       include: [{
+        model: IgnoreStudent,
+        required: false,
+        attributes: [],
+        where: {
+          story_name: "hubbles_law"
+        }
+      },
+      {
         model: Class,
         attributes: [],
         through: { attributes: [] }
-      }]
+      }],
+      where: {
+         [Op.or]: [
+          { seed: 1 }, { dummy: 0 }
+        ]
+      }
     }],
   });
 
