@@ -202,9 +202,6 @@ export async function getStudentHubbleMeasurements(studentID: number): Promise<H
 async function getHubbleMeasurementsForClasses(classIDs: number[]): Promise<HubbleMeasurement[]> {
 
   return HubbleMeasurement.findAll({
-    where: {
-      "$student.IgnoreStudents.student_id$": null
-    },
     include: [{
       model: Student,
       attributes: ["id"],
@@ -244,9 +241,6 @@ async function getHubbleStudentDataForClasses(classIDs: number[]): Promise<Hubbl
       attributes: ["id"],
       as: "student",
       required: true,
-      where: {
-        "$IgnoreStudents.student_id$": null
-      },
       include: [{
         model: Class,
         attributes: ["id"],
