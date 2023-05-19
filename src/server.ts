@@ -194,6 +194,7 @@ app.post("/educator-sign-up", async (req, res) => {
     result = await signUpEducator(data.firstName, data.lastName, data.password, data.institution, data.email, data.age, data.gender);
   } else {
     result = SignUpResult.BadRequest;
+    res.status(400);
   }
   res.json({
     educator_info: data,
@@ -220,6 +221,7 @@ app.post("/student-sign-up", async (req, res) => {
     result = await signUpStudent(data.username, data.password, data.institution, data.email, data.age, data.gender, data.classroomCode);
   } else {
     result = SignUpResult.BadRequest;
+    res.status(400);
   }
   res.json({
     student_info: data,
@@ -243,8 +245,10 @@ async function handleLogin(request: GenericRequest, checker: (email: string, pw:
 app.put("/login", async (req, res) => {
   const sess = req.session as CDSSession;
   let result = LoginResult.BadSession;
+  res.status(401);
   if (sess.user_id && sess.user_type) {
     result = LoginResult.Ok;
+    res.status(200);
   }
   res.json({
     result: result,
@@ -260,7 +264,8 @@ app.put("/student-login", async (req, res) => {
     sess.user_id = loginResponse.id;
     sess.user_type = UserType.Student;
   }
-  res.json(loginResponse);
+  const status = loginResponse.success ? 200 : 401;
+  res.status(status).json(loginResponse);
 });
 
 app.put("/educator-login", async (req, res) => {
@@ -270,7 +275,8 @@ app.put("/educator-login", async (req, res) => {
     sess.user_id = loginResponse.id;
     sess.user_type = UserType.Educator;
   }
-  res.json(loginResponse);
+  const status = loginResponse.success ? 200 : 401;
+  res.status(status).json(loginResponse);
 });
 
 app.post("/create-class", async (req, res) => {
@@ -288,6 +294,7 @@ app.post("/create-class", async (req, res) => {
     cls = createClassResponse.class;
   } else {
     result = CreateClassResult.BadRequest;
+    res.status(400);
   }
   res.json({
     class: cls,
@@ -312,9 +319,23 @@ async function verify(request: VerificationRequest, verifier: (code: string) => 
   };
 }
 
+function statusCodeForVericationResult(result: VerificationResult): number {
+  switch (result) {
+    case VerificationResult.Ok:
+      return 200;
+    case VerificationResult.BadRequest:
+      return 400;
+    case VerificationResult.InvalidCode:
+      return 401;
+    case VerificationResult.AlreadyVerified:
+      return 409;
+  }
+}
+
 app.post("/verify-student/:verificationCode", async (req, res) => {
   const verificationResponse = await verify(req, verifyStudent);
-  res.json({
+  const statusCode = statusCodeForVericationResult(verificationResponse.status);
+  res.status(statusCode).json({
     code: req.params.verificationCode,
     status: verificationResponse
   });
@@ -322,7 +343,8 @@ app.post("/verify-student/:verificationCode", async (req, res) => {
 
 app.post("/verify-educator/:verificationCode", async (req, res) => {
   const verificationResponse = await verify(req, verifyEducator);
-  res.json({
+  const statusCode = statusCodeForVericationResult(verificationResponse.status);
+  res.status(statusCode).json({
     code: req.params.verificationCode,
     status: verificationResponse
   });
@@ -331,7 +353,9 @@ app.post("/verify-educator/:verificationCode", async (req, res) => {
 app.get("/validate-classroom-code/:code", async (req, res) => {
   const code = req.params.code;
   const cls = await findClassByCode(code);
-  res.json({
+  const valid = cls !== null;
+  const status = valid ? 200 : 404;
+  res.status(status).json({
     code: code,
     valid: cls !== null
   });
@@ -353,7 +377,8 @@ app.get("/story-state/:studentID/:storyName", async (req, res) => {
   const studentID = parseInt(params.studentID);
   const storyName = params.storyName;
   const state = await getStoryState(studentID, storyName);
-  res.json({
+  const status = state !== null ? 200 : 404;
+  res.status(status).json({
     student_id: studentID,
     story_name: storyName,
     state: state
@@ -366,7 +391,8 @@ app.put("/story-state/:studentID/:storyName", async (req, res) => {
   const storyName = params.storyName;
   const newState = req.body;
   const state = await updateStoryState(studentID, storyName, newState);
-  res.json({
+  const status = state !== null ? 200 : 404;
+  res.status(status).json({
     student_id: studentID,
     story_name: storyName,
     state: state
@@ -459,12 +485,12 @@ app.get("/class-for-student-story/:studentID/:storyName", async (req, res) => {
   const studentID = parseInt(req.params.studentID);
   const storyName = req.params.storyName;
   const cls = isNaN(studentID) ? null : await classForStudentStory(studentID, storyName);
-  res.json({
-    class: cls
-  });
   if (cls == null) {
     res.statusCode = 404;
   }
+  res.json({
+    class: cls
+  });
 });
 
 app.get("/options/:studentID", async (req, res) => {

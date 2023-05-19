@@ -76,6 +76,7 @@ router.put("/submit-measurement", async (req, res) => {
     result = await submitHubbleMeasurement(data);
   } else {
     result = SubmitHubbleMeasurementResult.BadRequest;
+    res.status(400);
   }
   res.json({
     measurement: data,
@@ -125,6 +126,7 @@ router.put("/sample-measurement", async (req, res) => {
     result = await submitSampleHubbleMeasurement(data);
   } else {
     result = SubmitHubbleMeasurementResult.BadRequest;
+    res.status(400);
   }
   res.json({
     measurement: data,
@@ -149,6 +151,7 @@ router.delete("/measurement/:studentID/:galaxyIdentifier", async (req, res) => {
     result = await removeHubbleMeasurement(studentID, galaxyID);
   } else {
     result = RemoveHubbleMeasurementResult.BadRequest;
+    res.status(400);
   }
   res.status(RemoveHubbleMeasurementResult.statusCode(result))
     .json({
@@ -170,6 +173,7 @@ router.delete("/sample-measurement/:studentID/:measurementNumber", async (req, r
     result = await removeSampleHubbleMeasurement(studentID, measurementNumber);
   } else {
     result = RemoveHubbleMeasurementResult.BadRequest;
+    res.status(400);
   }
   res.status(RemoveHubbleMeasurementResult.statusCode(result))
     .json({
@@ -183,7 +187,8 @@ router.get("/measurements/:studentID", async (req, res) => {
   const params = req.params;
   const studentID = parseInt(params.studentID);
   const measurements = await getStudentHubbleMeasurements(studentID);
-  res.json({
+  const status = measurements === null ? 404 : 200;
+  res.status(status).json({
     student_id: studentID,
     measurements: measurements
   });
@@ -194,7 +199,8 @@ router.get("/measurements/:studentID/:galaxyID", async (req, res) => {
   const studentID = parseInt(params.studentID);
   const galaxyID = parseInt(params.galaxyID);
   const measurement = await getHubbleMeasurement(studentID, galaxyID);
-  res.json({
+  const status = measurement === null ? 404 : 200;
+  res.status(status).json({
     student_id: studentID,
     galaxy_id: galaxyID,
     measurement: measurement
@@ -205,7 +211,8 @@ router.get("/sample-measurements/:studentID", async (req, res) => {
   const params = req.params;
   const studentID = parseInt(params.studentID);
   const measurements = await getSampleHubbleMeasurements(studentID);
-  res.json({
+  const status = measurements === null ? 404 : 200;
+  res.status(status).json({
     student_id: studentID,
     measurements: measurements
   });
@@ -215,7 +222,8 @@ router.get("/sample-measurements/:studentID/:measurementNumber", async (req, res
   const params = req.params;
   const studentID = parseInt(params.studentID);
   const measurement = await getSampleHubbleMeasurement(studentID, params.measurementNumber);
-  res.json({
+  const status = measurement === null ? 404 : 200;
+  res.status(status).json({
     student_id: studentID,
     measurement: measurement
   });
@@ -260,7 +268,8 @@ router.get("/stage-3-data/:studentID/:classID", async (req, res) => {
     classID = 159;
   }
   const measurements = await getStageThreeMeasurements(studentID, classID, lastChecked);
-  res.json({
+  const status = measurements.length === 0 ? 404 : 200;
+  res.status(status).json({
     studentID,
     classID,
     measurements
@@ -271,7 +280,8 @@ router.get("/stage-3-data/:studentID", async (req, res) => {
   const params = req.params;
   const studentID = parseInt(params.studentID);
   const measurements = await getStageThreeMeasurements(studentID, null);
-  res.json({
+  const status = measurements.length === 0 ? 404 : 200;
+  res.status(status).json({
     studentID,
     measurements,
     classID: null
@@ -327,7 +337,7 @@ async function markBad(req: GenericRequest, res: GenericResponse, marker: (galax
   }
 
   if (galaxy === null) {
-    res.status(404).json({
+    res.status(400).json({
       status: "no_such_galaxy"
     });
     return;
@@ -377,14 +387,14 @@ router.post("/set-spectrum-status", async (req, res) => {
 
   const galaxy = await getGalaxyByName(name);
   if (galaxy === null) {
-    res.json({
+    res.status(400).json({
       status: "no_such_galaxy",
       galaxy: name
     });
     return;
   }
   if (typeof good !== "boolean") { 
-    res.json({
+    res.status(400).json({
       status: "invalid_status",
       galaxy: name
     });
