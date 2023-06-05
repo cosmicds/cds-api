@@ -23,6 +23,7 @@ import {
   classForStudentStory,
   getStudentOptions,
   setStudentOption,
+  classSize,
   
 } from "./database";
 
@@ -485,11 +486,13 @@ app.get("/class-for-student-story/:studentID/:storyName", async (req, res) => {
   const studentID = parseInt(req.params.studentID);
   const storyName = req.params.storyName;
   const cls = isNaN(studentID) ? null : await classForStudentStory(studentID, storyName);
+  const size = cls != null ? await classSize(cls.id) : 0;
   if (cls == null) {
     res.statusCode = 404;
   }
   res.json({
-    class: cls
+    class: cls,
+    size
   });
 });
 
