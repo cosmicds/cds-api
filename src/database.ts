@@ -571,6 +571,14 @@ export async function classForStudentStory(studentID: number, storyName: string)
   });
 }
 
+export async function classSize(classID: number): Promise<number> {
+  return StudentsClasses.count({
+    where: {
+      class_id: classID
+    }
+  });
+}
+
 export async function getStudentOptions(studentID: number): Promise<StudentOptions | null> {
   return StudentOptions.findOne({ where: { student_id: studentID } }).catch((_error) => null);
 }
