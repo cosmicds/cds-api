@@ -46,6 +46,7 @@ import sequelizeStore from "connect-session-sequelize";
 import { v4 } from "uuid";
 import cors from "cors";
 import jwt from "jsonwebtoken";
+import { logger } from "./logger";
 import { isStudentOption } from "./models/student_options";
 export const app = express();
 

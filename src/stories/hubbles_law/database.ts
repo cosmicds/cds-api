@@ -7,6 +7,7 @@ import { Class, Student, StudentsClasses } from "../../models";
 import { HubbleStudentData } from "./models/hubble_student_data";
 import { HubbleClassData } from "./models/hubble_class_data";
 import { IgnoreStudent } from "../../models/ignore_student";
+import { logger } from "../../logger";
 
 initializeModels(cosmicdsDB);
 setUpHubbleAssociations();
@@ -29,8 +30,11 @@ export async function submitHubbleMeasurement(data: {
   brightness?: number
 }): Promise<SubmitHubbleMeasurementResult> {
 
+  logger.verbose(`Attempting to submit measurement for student ${data.student_id}, galaxy ${data.galaxy_id}`);
+
   const student = await findStudentById(data.student_id);
   if (student === null) {
+    logger.verbose("No such student!");
     return SubmitHubbleMeasurementResult.NoSuchStudent;
   }
 
@@ -42,7 +46,11 @@ export async function submitHubbleMeasurement(data: {
       ]
     }
   })
-  .catch(console.log);
+  .catch((_error) => {
+    logger.verbose("Measurement not found");
+  });
+
+  logger.verbose(`Measurement data is ${JSON.stringify(data)}`);
 
   if (measurement) {
     measurement.update(data, {
@@ -53,9 +61,14 @@ export async function submitHubbleMeasurement(data: {
         ]
       }
     })
-    .catch(console.log);
+    .catch((error) => {
+      logger.error("Error updating measurement!");
+      logger.error(error);
+    });
+    logger.verbose("Updated measurement");
     return SubmitHubbleMeasurementResult.MeasurementUpdated;
   } else {
+    logger.verbose("Creating new measurement");
     HubbleMeasurement.create(data).catch(console.log);
     return SubmitHubbleMeasurementResult.MeasurementCreated;
   }
