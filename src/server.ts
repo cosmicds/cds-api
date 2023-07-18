@@ -375,7 +375,7 @@ app.get("/educators", async (_req, res) => {
 
 app.get("/story-state/:studentID/:storyName", async (req, res) => {
   const params = req.params;
-  const studentID = parseInt(params.studentID);
+  const studentID = Number(params.studentID);
   const storyName = params.storyName;
   const state = await getStoryState(studentID, storyName);
   const status = state !== null ? 200 : 404;
@@ -388,7 +388,7 @@ app.get("/story-state/:studentID/:storyName", async (req, res) => {
 
 app.put("/story-state/:studentID/:storyName", async (req, res) => {
   const params = req.params;
-  const studentID = parseInt(params.studentID);
+  const studentID = Number(params.studentID);
   const storyName = params.storyName;
   const newState = req.body;
   const state = await updateStoryState(studentID, storyName, newState);
@@ -402,7 +402,7 @@ app.put("/story-state/:studentID/:storyName", async (req, res) => {
 
 app.get("/educator-classes/:educatorID", async (req, res) => {
   const params = req.params;
-  const educatorID = parseInt(params.educatorID);
+  const educatorID = Number(params.educatorID);
   const classes = await getClassesForEducator(educatorID);
   res.json({
     educator_id: educatorID,
@@ -412,7 +412,7 @@ app.get("/educator-classes/:educatorID", async (req, res) => {
 
 app.get("/student-classes/:studentID", async (req, res) => {
   const params = req.params;
-  const studentID = parseInt(params.studentID);
+  const studentID = Number(params.studentID);
   const classes = await getClassesForStudent(studentID);
   res.json({
     student_id: studentID,
@@ -422,14 +422,14 @@ app.get("/student-classes/:studentID", async (req, res) => {
 
 app.get("/roster-info/:classID", async (req, res) => {
   const params = req.params;
-  const classID = parseInt(params.classID);
+  const classID = Number(params.classID);
   const info = await getRosterInfo(classID);
   res.json(info);
 });
 
 app.get("/roster-info/:classID/:storyName", async (req, res) => {
   const params = req.params;
-  const classID = parseInt(params.classID);
+  const classID = Number(params.classID);
   const storyName = params.storyName;
   const info = await getRosterInfoForStory(classID, storyName);
   res.json(info);
@@ -444,7 +444,7 @@ app.get("/logout", (req, res) => {
 
 app.get("/student/:identifier", async (req, res) => {
   const params = req.params;
-  const id = parseInt(params.identifier);
+  const id = Number(params.identifier);
 
   let student;
   if (isNaN(id)) {
@@ -483,7 +483,7 @@ app.post("/new-dummy-student", async (req, res) => {
 });
 
 app.get("/class-for-student-story/:studentID/:storyName", async (req, res) => {
-  const studentID = parseInt(req.params.studentID);
+  const studentID = Number(req.params.studentID);
   const storyName = req.params.storyName;
   const cls = isNaN(studentID) ? null : await classForStudentStory(studentID, storyName);
   const size = cls != null ? await classSize(cls.id) : 0;
@@ -497,7 +497,7 @@ app.get("/class-for-student-story/:studentID/:storyName", async (req, res) => {
 });
 
 app.get("/options/:studentID", async (req, res) => {
-  const studentID = parseInt(req.params.studentID);
+  const studentID = Number(req.params.studentID);
   const options = await getStudentOptions(studentID);
   res.json(options);
   if (options == null) {
@@ -506,7 +506,7 @@ app.get("/options/:studentID", async (req, res) => {
 });
 
 app.put("/options/:studentID", async (req, res) => {
-  const studentID = parseInt(req.params.studentID);
+  const studentID = Number(req.params.studentID);
   const option = req.body.option;
   const value = req.body.value;
   if (!isStudentOption(option)) {

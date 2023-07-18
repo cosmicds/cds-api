@@ -3,7 +3,7 @@ CREATE TABLE Students (
     verified tinyint(2) NOT NULL DEFAULT 0,
     email varchar(50) COLLATE utf8_unicode_ci NOT NULL UNIQUE,
     verification_code varchar(50) COLLATE utf8_unicode_ci NOT NULL UNIQUE,
-    username varchar(50) COLLATE utf8_unicode_ci NOT NULL UNIQUE,
+    username varchar(64) COLLATE utf8_unicode_ci NOT NULL UNIQUE,
     password varchar(64) COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
     institution varchar(100) COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
     age int(5),
