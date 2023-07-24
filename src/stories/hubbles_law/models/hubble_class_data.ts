@@ -7,6 +7,7 @@ export class HubbleClassData extends Model<InferAttributes<HubbleClassData>, Inf
   declare hubble_fit_unit: string;
   declare age_value: number;
   declare age_unit: string;
+  declare last_data_update: Date;
 }
 
 export function initializeHubbleClassDataModel(sequelize: Sequelize) {
@@ -35,6 +36,10 @@ export function initializeHubbleClassDataModel(sequelize: Sequelize) {
     age_unit: {
       type: DataTypes.STRING,
       allowNull: true
+    },
+    last_data_update: {
+      type: DataTypes.DATE,
+      allowNull: false
     }
   }, {
     sequelize,
