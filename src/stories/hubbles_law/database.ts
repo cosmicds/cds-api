@@ -354,12 +354,12 @@ export async function _getStageThreeStudentData(studentID: number, classID: numb
   return data ?? [];
 }
 
-export async function getAllHubbleMeasurements(beforeDate: Date | null = null): Promise<HubbleMeasurement[]> {
+export async function getAllHubbleMeasurements(before: Date | null = null): Promise<HubbleMeasurement[]> {
   const whereConditions: WhereOptions = [
      { "$student.IgnoreStudents.student_id$": null }
   ];
-  if (beforeDate !== null) {
-    whereConditions.push({ last_modified: { [Op.lt]: beforeDate } });
+  if (before !== null) {
+    whereConditions.push({ last_modified: { [Op.lt]: before } });
   }
   return HubbleMeasurement.findAll({
     attributes: {
@@ -400,7 +400,13 @@ export async function getAllHubbleMeasurements(beforeDate: Date | null = null): 
   });
 }
 
-export async function getAllHubbleStudentData(): Promise<HubbleStudentData[]> {
+export async function getAllHubbleStudentData(before: Date | null = null): Promise<HubbleStudentData[]> {
+  const whereConditions: WhereOptions = [
+    { "$student.IgnoreStudents.student_id$": null }
+  ];
+  if (before !== null) {
+    whereConditions.push({ last_data_update: { [Op.lt]: before } });
+  }
   const data = await HubbleStudentData.findAll({
     raw: true, // We want a flattened object
     attributes: {
@@ -409,7 +415,7 @@ export async function getAllHubbleStudentData(): Promise<HubbleStudentData[]> {
       include: [[Sequelize.col("student.Classes.id"), "class_id"]]
     },
     where: {
-      "$student.IgnoreStudents.student_id$": null
+      [Op.and]: whereConditions
     },
     include: [{
       model: Student,
@@ -439,13 +445,17 @@ export async function getAllHubbleStudentData(): Promise<HubbleStudentData[]> {
   return data;
 }
 
-export async function getAllHubbleClassData(): Promise<HubbleClassData[]> {
+export async function getAllHubbleClassData(before: Date | null = null): Promise<HubbleClassData[]> {
+  const whereConditions = before !== null ? [{ last_data_update: { [Op.lt]: before } }] : [];
   return HubbleClassData.findAll({
     include: [{
       model: StudentsClasses,
       as: "class_data",
       attributes: []
     }],
+    where: {
+      [Op.and]: whereConditions
+    },
     group: ["HubbleClassData.class_id"],
     having: Sequelize.where(Sequelize.fn("count", Sequelize.col("HubbleClassData.class_id")), { [Op.gte]: 13 })
   });
