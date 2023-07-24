@@ -1,4 +1,4 @@
-import { Op, Sequelize } from "sequelize";
+import { Op, Sequelize, WhereOptions } from "sequelize";
 import { AsyncMergedHubbleStudentClasses, Galaxy, HubbleMeasurement, SampleHubbleMeasurement, initializeModels, SyncMergedHubbleClasses } from "./models";
 import { cosmicdsDB, findClassById, findStudentById } from "../../database";
 import { RemoveHubbleMeasurementResult, SubmitHubbleMeasurementResult } from "./request_results";
@@ -354,7 +354,13 @@ export async function _getStageThreeStudentData(studentID: number, classID: numb
   return data ?? [];
 }
 
-export async function getAllHubbleMeasurements(): Promise<HubbleMeasurement[]> {
+export async function getAllHubbleMeasurements(beforeDate: Date | null = null): Promise<HubbleMeasurement[]> {
+  const whereConditions: WhereOptions = [
+     { "$student.IgnoreStudents.student_id$": null }
+  ];
+  if (beforeDate !== null) {
+    whereConditions.push({ last_modified: { [Op.lt]: beforeDate } });
+  }
   return HubbleMeasurement.findAll({
     attributes: {
       // The "student" here comes from the alias below
@@ -362,7 +368,7 @@ export async function getAllHubbleMeasurements(): Promise<HubbleMeasurement[]> {
       include: [[Sequelize.col("student.Classes.id"), "class_id"]]
     },
     where: {
-      "$student.IgnoreStudents.student_id$": null
+      [Op.and]: whereConditions
     },
     include: [{
       model: Galaxy,

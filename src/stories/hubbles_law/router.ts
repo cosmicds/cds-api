@@ -288,10 +288,12 @@ router.get("/stage-3-data/:studentID", async (req, res) => {
   });
 });
 
-router.get("/all-data", async (_req, res) => {
+router.get("/all-data", async (req, res) => {
+  const beforeMs: number = parseInt(req.query.before as string);
+  const before = isNaN(beforeMs) ? null : new Date(beforeMs);
   const [measurements, studentData, classData] =
     await Promise.all([
-      getAllHubbleMeasurements(),
+      getAllHubbleMeasurements(before),
       getAllHubbleStudentData(),
       getAllHubbleClassData()
     ]);
