@@ -4,6 +4,7 @@ CREATE TABLE HubbleClassData (
     hubble_fit_unit varchar(20),
     age_value FLOAT,
     age_unit varchar(20),
+    last_data_update TIMESTAMP NOT NULL,
 
     PRIMARY KEY(class_id),
     FOREIGN KEY(class_id)
