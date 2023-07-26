@@ -40,6 +40,7 @@ import {
 } from "./request_results";
 
 import { Router } from "express";
+import { findClassById, findStudentById } from "../../database";
 
 const router = Router();
 
@@ -267,9 +268,22 @@ router.get("/stage-3-data/:studentID/:classID", async (req, res) => {
   if (classID === 0) {
     classID = 159;
   }
+
+  const invalidStudent = (await findStudentById(studentID)) === null;
+  const invalidClass = (await findClassById(classID)) === null;
+  if (invalidStudent || invalidClass) {
+    const invalidItems = [];
+    if (invalidStudent) { invalidItems.push("student"); }
+    if (invalidClass) { invalidItems.push("class"); }
+    const message = `Invalid ${invalidItems.join(" and ")} ID${invalidItems.length == 2 ? "s": ""}`;
+    res.status(404).json({
+      message
+    });
+    return;
+  }
+
   const measurements = await getStageThreeMeasurements(studentID, classID, lastChecked);
-  const status = measurements.length === 0 ? 404 : 200;
-  res.status(status).json({
+  res.status(200).json({
     studentID,
     classID,
     measurements
@@ -279,9 +293,16 @@ router.get("/stage-3-data/:studentID/:classID", async (req, res) => {
 router.get("/stage-3-data/:studentID", async (req, res) => {
   const params = req.params;
   const studentID = parseInt(params.studentID);
+  const isValidStudent = (await findStudentById(studentID)) !== null;
+  if (!isValidStudent) {
+    res.status(404).json({
+      message: "Invalid student ID"
+    });
+    return;
+  }
+
   const measurements = await getStageThreeMeasurements(studentID, null);
-  const status = measurements.length === 0 ? 404 : 200;
-  res.status(status).json({
+  res.status(200).json({
     studentID,
     measurements,
     classID: null
