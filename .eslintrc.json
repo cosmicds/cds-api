@@ -18,10 +18,10 @@
         "@typescript-eslint"
     ],
     "rules": {
-        "@typescript-esline/ban-ts-comment": [
+        "@typescript-eslint/ban-ts-comment": [
           "error",
           {
-            "ts-ignore": "allow-with-description",
+            "ts-ignore": "allow-with-description"
           }
         ],
         "@typescript-eslint/no-namespace": "off",
