@@ -323,8 +323,8 @@ export async function getClassDataIDsForStudent(studentID: number): Promise<numb
       [fn("JSON_EXTRACT", col("story_state"), literal("'$.class_data_students'")), "class_data_students"]
     ]
   }));
-  // TODO: What's the right way to do this?
-  // @ts-ignore
+  // TODO: Remove the need for ts-ignore here
+  // @ts-ignore: Not sure how to add AS-ed in fields to type of the output
   return state.getDataValue("class_data_students");
 }
 

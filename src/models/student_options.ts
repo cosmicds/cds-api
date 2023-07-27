@@ -11,10 +11,10 @@ export class StudentOptions extends Model<InferAttributes<StudentOptions>, Infer
 
 // TODO: Can we generate this automatically from the class definition?
 const STUDENT_OPTIONS = ["speech_autoread", "speech_rate", "speech_pitch", "speech_voice"] as const;
-export type StudentOption = (typeof STUDENT_OPTIONS)[number];
+export type StudentOption = typeof STUDENT_OPTIONS[number];
 
-export function isStudentOption(o: any): o is StudentOption {
-  return typeof o === "string" && ([...STUDENT_OPTIONS] as string[]).includes(o);
+export function isStudentOption(o: string): o is StudentOption {
+  return typeof o === "string" && (STUDENT_OPTIONS as readonly string[]).includes(o);
 }
 
 export function initializeStudentOptionsModel(sequelize: Sequelize) {
