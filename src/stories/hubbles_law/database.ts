@@ -1,9 +1,9 @@
-import { Op, Sequelize, WhereOptions } from "sequelize";
+import { Op, Sequelize, WhereOptions, col, fn, literal } from "sequelize";
 import { AsyncMergedHubbleStudentClasses, Galaxy, HubbleMeasurement, SampleHubbleMeasurement, initializeModels, SyncMergedHubbleClasses } from "./models";
 import { cosmicdsDB, findClassById, findStudentById } from "../../database";
 import { RemoveHubbleMeasurementResult, SubmitHubbleMeasurementResult } from "./request_results";
 import { setUpHubbleAssociations } from "./associations";
-import { Class, Student, StudentsClasses } from "../../models";
+import { Class, StoryState, Student, StudentsClasses } from "../../models";
 import { HubbleStudentData } from "./models/hubble_student_data";
 import { HubbleClassData } from "./models/hubble_class_data";
 import { IgnoreStudent } from "../../models/ignore_student";
@@ -212,7 +212,18 @@ export async function getStudentHubbleMeasurements(studentID: number): Promise<H
   });
 }
 
-async function getHubbleMeasurementsForClasses(classIDs: number[]): Promise<HubbleMeasurement[]> {
+async function getHubbleMeasurementsForStudentClasses(studentID: number, classIDs: number[]): Promise<HubbleMeasurement[]> {
+
+  const studentWhereConditions: WhereOptions = [];
+  const classDataStudentIDs = await getClassDataIDsForStudent(studentID);
+  if (classDataStudentIDs.length > 0) {
+    classDataStudentIDs.push(studentID);
+    studentWhereConditions.push({
+      id: {
+        [Op.in]: classDataStudentIDs
+      }
+    });
+  }
 
   return HubbleMeasurement.findAll({
     include: [{
@@ -220,6 +231,7 @@ async function getHubbleMeasurementsForClasses(classIDs: number[]): Promise<Hubb
       attributes: ["id"],
       as: "student",
       required: true,
+      where: studentWhereConditions,
       include: [{
         model: Class,
         attributes: ["id"],
@@ -304,14 +316,26 @@ async function getClassIDsForSyncClass(classID: number): Promise<number[]> {
   return classIDs;
 }
 
-async function getHubbleMeasurementsForSyncClass(classID: number): Promise<HubbleMeasurement[] | null> {
+export async function getClassDataIDsForStudent(studentID: number): Promise<number[]> {
+  const state = (await StoryState.findOne({
+    where: { student_id: studentID },
+    attributes: [
+      [fn("JSON_EXTRACT", col("story_state"), literal("'$.class_data_students'")), "class_data_students"]
+    ]
+  }));
+  // TODO: Remove the need for ts-ignore here
+  // @ts-ignore: Not sure how to add AS-ed in fields to type of the output
+  return state.getDataValue("class_data_students") ?? [];
+}
+
+async function getHubbleMeasurementsForSyncStudent(studentID: number, classID: number): Promise<HubbleMeasurement[] | null> {
   const classIDs = await getClassIDsForSyncClass(classID);
-  return getHubbleMeasurementsForClasses(classIDs);
+  return getHubbleMeasurementsForStudentClasses(studentID, classIDs);
 }
 
 async function getHubbleMeasurementsForAsyncStudent(studentID: number, classID: number | null): Promise<HubbleMeasurement[] | null> {
   const classIDs = await getClassIDsForAsyncStudent(studentID, classID);
-  return getHubbleMeasurementsForClasses(classIDs);
+  return getHubbleMeasurementsForStudentClasses(studentID, classIDs);
 }
 
 export async function getStageThreeMeasurements(studentID: number, classID: number | null, lastChecked: number | null = null): Promise<HubbleMeasurement[]> {
@@ -321,7 +345,7 @@ export async function getStageThreeMeasurements(studentID: number, classID: numb
   if (classID === null || asyncClass) {
     data = await getHubbleMeasurementsForAsyncStudent(studentID, classID);
   } else {
-    data = await getHubbleMeasurementsForSyncClass(classID);
+    data = await getHubbleMeasurementsForSyncStudent(studentID, classID);
   }
   if (data != null && lastChecked != null) {
     const lastModified = Math.max(...data.map(meas => meas.last_modified.getTime()));
