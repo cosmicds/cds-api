@@ -325,7 +325,7 @@ export async function getClassDataIDsForStudent(studentID: number): Promise<numb
   }));
   // TODO: Remove the need for ts-ignore here
   // @ts-ignore: Not sure how to add AS-ed in fields to type of the output
-  return state.getDataValue("class_data_students") ?? [];
+  return state?.getDataValue("class_data_students") ?? [];
 }
 
 async function getHubbleMeasurementsForSyncStudent(studentID: number, classID: number): Promise<HubbleMeasurement[] | null> {
