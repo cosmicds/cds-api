@@ -10,7 +10,7 @@ CREATE TABLE Questions (
     PRIMARY KEY(id),
     INDEX(tag),
     FOREIGN KEY(story_name)
-		REFERENCES Stories(name)
+	    REFERENCES Stories(name)
         ON UPDATE CASCADE
         ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci PACK_KEYS=0;
