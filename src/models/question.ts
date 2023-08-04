@@ -56,6 +56,11 @@ export function initializeQuestionModel(sequelize: Sequelize) {
     indexes: [
       {
         fields: ["tag"]
+      },
+      {
+        fields: ["tag", "story_name", "version"],
+        name: "unique_tag_story_version",
+        unique: true
       }
     ]
   });

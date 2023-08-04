@@ -9,6 +9,7 @@ CREATE TABLE Questions (
     
     PRIMARY KEY(id),
     INDEX(tag),
+    UNIQUE KEY unique_tag_story_version (tag, story_name, version),
     FOREIGN KEY(story_name)
 	    REFERENCES Stories(name)
         ON UPDATE CASCADE
