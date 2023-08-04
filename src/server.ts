@@ -26,6 +26,7 @@ import {
   classSize,
   findQuestion,
   addQuestion,
+  currentVersionForQuestion,
   
 } from "./database";
 
@@ -467,11 +468,17 @@ app.get("/question/:tag", async (req, res) => {
   const tag = req.params.tag;
   let version = parseInt(req.query.version as string);
   let hasVersion = true;
+  let mightExist = true;
   if (isNaN(version)) {
     hasVersion = false;
-    version = 1;
+    const currentVersion = await currentVersionForQuestion(tag) || 1;
+    if (currentVersion === null) {
+      mightExist = false;
+    } else {
+      version = currentVersion;
+    }
   }
-  const question = await findQuestion(tag, version);
+  const question = mightExist ? await findQuestion(tag, version) : null;
   if (question === null) {
     res.statusCode = 404;
     let error = "Could not find question with specified ";
