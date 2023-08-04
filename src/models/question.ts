@@ -1,4 +1,4 @@
-import { Sequelize, DataTypes, Model, InferAttributes, InferCreationAttributes, CreationOptional } from "sequelize/types";
+import { Sequelize, DataTypes, Model, InferAttributes, InferCreationAttributes, CreationOptional } from "sequelize";
 import { Story } from "./story";
 
 export class Question extends Model<InferAttributes<Question>, InferCreationAttributes<Question>> {

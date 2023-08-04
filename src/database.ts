@@ -31,6 +31,7 @@ import { User } from "./user";
 import { setUpAssociations } from "./associations";
 import { initializeModels } from "./models";
 import { StudentOption, StudentOptions } from "./models/student_options";
+import { Question } from "./models/question";
 
 type SequelizeError = { parent: { code: string } };
 
@@ -597,4 +598,11 @@ export async function setStudentOption(studentID: number, option: StudentOption,
     options.update({ [option]: value });
   }
   return options;
+}
+
+export async function findQuestion(tag: string, version?: number): Promise<Question | null> {
+  version = version || 1;
+  return Question.findOne({
+    where: { tag, version }
+  });
 }

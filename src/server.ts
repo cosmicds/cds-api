@@ -24,6 +24,7 @@ import {
   getStudentOptions,
   setStudentOption,
   classSize,
+  findQuestion,
   
 } from "./database";
 
@@ -172,7 +173,7 @@ function _sendLoginCookie(userId: number, res: ExpressResponse): void {
 }
 
 // set port, listen for requests
-const PORT = process.env.PORT || 8081;
+const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}.`);
 });
@@ -457,6 +458,35 @@ app.get("/student/:identifier", async (req, res) => {
   }
   res.json({
     student: student
+  });
+});
+
+// Question information
+app.get("/question/:tag", async (req, res) => {
+  const tag = req.params.tag;
+  let version = parseInt(req.query.version as string);
+  let hasVersion = true;
+  if (isNaN(version)) {
+    hasVersion = false;
+    version = 1;
+  }
+  const question = await findQuestion(tag, version);
+  if (question === null) {
+    res.statusCode = 404;
+    let error = "Could not find question with specified ";
+    if (hasVersion) {
+      error += "tag/version combination";
+    } else {
+      error += "tag";
+    }
+    res.json({
+      error
+    });
+    return;
+  }
+
+  res.json({
+    question
   });
 });
 
