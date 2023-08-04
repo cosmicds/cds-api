@@ -25,6 +25,7 @@ import {
   setStudentOption,
   classSize,
   findQuestion,
+  addQuestion,
   
 } from "./database";
 
@@ -487,6 +488,42 @@ app.get("/question/:tag", async (req, res) => {
 
   res.json({
     question
+  });
+});
+
+
+app.post("/question/:tag", async (req, res) => {
+
+  const tag = req.params.tag;
+  const text = req.body.text;
+  const shorthand = req.body.shorthand;
+  const story_name = req.body.story_name;
+
+  const valid = typeof tag === "string" &&
+                typeof text === "string" &&
+                typeof shorthand === "string" &&
+                typeof story_name === "string";
+  if (!valid) {
+    res.statusCode = 400;
+    res.json({
+      error: "One of your fields is missing or of the incorrect type"
+    });
+    return;
+  }
+
+  const currentQuestion = await findQuestion(tag);
+  const version = currentQuestion !== null ? currentQuestion.version + 1 : 1;
+  const addedQuestion = await addQuestion(tag, text, shorthand, story_name, version);
+  if (addedQuestion === null) {
+    res.statusCode = 500;
+    res.json({
+      error: "There was an error creating the question entry."
+    });
+    return;
+  }
+
+  res.json({
+    question: addedQuestion
   });
 });
 

@@ -1,6 +1,6 @@
 CREATE TABLE Questions (
 	id int(11) UNSIGNED NOT NULL UNIQUE AUTO_INCREMENT,
-    tag varchar(50) NOT NULL UNIQUE,
+    tag varchar(50) NOT NULL,
     text varchar(3000) NOT NULL,
     shorthand varchar(500) NOT NULL,
     story_name varchar(50) NOT NULL,

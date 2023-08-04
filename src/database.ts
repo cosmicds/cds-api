@@ -1,4 +1,4 @@
-import { Model, Op, Sequelize } from "sequelize";
+import { Model, Op, Sequelize, WhereOptions } from "sequelize";
 import dotenv from "dotenv";
 
 import {
@@ -601,8 +601,13 @@ export async function setStudentOption(studentID: number, option: StudentOption,
 }
 
 export async function findQuestion(tag: string, version?: number): Promise<Question | null> {
-  version = version || 1;
-  return Question.findOne({
-    where: { tag, version }
-  });
+  const whereQuery: WhereOptions = { tag };
+  if (version !== undefined) {
+    whereQuery["version"] = version;
+  }
+  return Question.findOne({ where: whereQuery });
+}
+
+export async function addQuestion(tag: string, text: string, shorthand: string, story_name: string, version?: number): Promise<Question | null> {
+  return Question.create({ tag, text, shorthand, story_name, version: version || 1 }).catch((_error) => null);
 }

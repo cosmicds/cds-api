@@ -23,7 +23,6 @@ export function initializeQuestionModel(sequelize: Sequelize) {
     tag: {
       type: DataTypes.STRING,
       allowNull: false,
-      unique: true
     },
     text: {
       type: DataTypes.STRING,
@@ -56,7 +55,6 @@ export function initializeQuestionModel(sequelize: Sequelize) {
     engine: "InnoDB",
     indexes: [
       {
-        unique: true,
         fields: ["tag"]
       }
     ]
