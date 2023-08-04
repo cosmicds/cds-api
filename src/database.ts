@@ -1,4 +1,4 @@
-import { Model, Op, Sequelize } from "sequelize";
+import { Model, Op, Sequelize, WhereOptions } from "sequelize";
 import dotenv from "dotenv";
 
 import {
@@ -31,6 +31,7 @@ import { User } from "./user";
 import { setUpAssociations } from "./associations";
 import { initializeModels } from "./models";
 import { StudentOption, StudentOptions } from "./models/student_options";
+import { Question } from "./models/question";
 
 type SequelizeError = { parent: { code: string } };
 
@@ -597,4 +598,20 @@ export async function setStudentOption(studentID: number, option: StudentOption,
     options.update({ [option]: value });
   }
   return options;
+}
+
+export async function findQuestion(tag: string, version?: number): Promise<Question | null> {
+  const whereQuery: WhereOptions = { tag };
+  if (version !== undefined) {
+    whereQuery["version"] = version;
+  }
+  return Question.findOne({ where: whereQuery });
+}
+
+export async function addQuestion(tag: string, text: string, shorthand: string, story_name: string, version?: number): Promise<Question | null> {
+  return Question.create({ tag, text, shorthand, story_name, version: version || 1 }).catch((_error) => null);
+}
+
+export async function currentVersionForQuestion(tag: string): Promise<number | null> {
+  return Question.max("version", { where: { tag } });
 }

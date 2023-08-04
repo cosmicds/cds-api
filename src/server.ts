@@ -24,6 +24,9 @@ import {
   getStudentOptions,
   setStudentOption,
   classSize,
+  findQuestion,
+  addQuestion,
+  currentVersionForQuestion,
   
 } from "./database";
 
@@ -457,6 +460,77 @@ app.get("/student/:identifier", async (req, res) => {
   }
   res.json({
     student: student
+  });
+});
+
+// Question information
+app.get("/question/:tag", async (req, res) => {
+  const tag = req.params.tag;
+  let version = parseInt(req.query.version as string);
+  let hasVersion = true;
+  let mightExist = true;
+  if (isNaN(version)) {
+    hasVersion = false;
+    const currentVersion = await currentVersionForQuestion(tag) || 1;
+    if (currentVersion === null) {
+      mightExist = false;
+    } else {
+      version = currentVersion;
+    }
+  }
+  const question = mightExist ? await findQuestion(tag, version) : null;
+  if (question === null) {
+    res.statusCode = 404;
+    let error = "Could not find question with specified ";
+    if (hasVersion) {
+      error += "tag/version combination";
+    } else {
+      error += "tag";
+    }
+    res.json({
+      error
+    });
+    return;
+  }
+
+  res.json({
+    question
+  });
+});
+
+
+app.post("/question/:tag", async (req, res) => {
+
+  const tag = req.params.tag;
+  const text = req.body.text;
+  const shorthand = req.body.shorthand;
+  const story_name = req.body.story_name;
+
+  const valid = typeof tag === "string" &&
+                typeof text === "string" &&
+                typeof shorthand === "string" &&
+                typeof story_name === "string";
+  if (!valid) {
+    res.statusCode = 400;
+    res.json({
+      error: "One of your fields is missing or of the incorrect type"
+    });
+    return;
+  }
+
+  const currentQuestion = await findQuestion(tag);
+  const version = currentQuestion !== null ? currentQuestion.version + 1 : 1;
+  const addedQuestion = await addQuestion(tag, text, shorthand, story_name, version);
+  if (addedQuestion === null) {
+    res.statusCode = 500;
+    res.json({
+      error: "There was an error creating the question entry."
+    });
+    return;
+  }
+
+  res.json({
+    question: addedQuestion
   });
 });
 

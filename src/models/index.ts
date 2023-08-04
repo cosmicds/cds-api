@@ -10,6 +10,7 @@ import { StudentsClasses, initializeStudentClassModel } from "./student_class";
 import { Student, initializeStudentModel } from "./student";
 import { Sequelize } from "sequelize/types";
 import { initializeStudentOptionsModel } from "./student_options";
+import { initializeQuestionModel } from "./question";
 
 export {
   Class,
@@ -35,4 +36,5 @@ export function initializeModels(db: Sequelize) {
   initializeStudentClassModel(db);
   initializeStudentOptionsModel(db);
   initializeIgnoreStudentModel(db);
+  initializeQuestionModel(db);
 }
