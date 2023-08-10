@@ -32,6 +32,7 @@ import { setUpAssociations } from "./associations";
 import { initializeModels } from "./models";
 import { StudentOption, StudentOptions } from "./models/student_options";
 import { Question } from "./models/question";
+import { logger } from "./logger";
 
 type SequelizeError = { parent: { code: string } };
 
@@ -601,15 +602,38 @@ export async function setStudentOption(studentID: number, option: StudentOption,
 }
 
 export async function findQuestion(tag: string, version?: number): Promise<Question | null> {
-  const whereQuery: WhereOptions = { tag };
   if (version !== undefined) {
-    whereQuery["version"] = version;
+    return Question.findOne({ where: { tag, version } });
+  } else {
+    const questions = await Question.findAll({
+      where: { tag },
+      order: [["version", "DESC"]],
+      limit: 1
+    });
+    return questions[0] ?? null;
   }
-  return Question.findOne({ where: whereQuery });
 }
 
-export async function addQuestion(tag: string, text: string, shorthand: string, story_name: string, version?: number): Promise<Question | null> {
-  return Question.create({ tag, text, shorthand, story_name, version: version || 1 }).catch((_error) => null);
+interface QuestionInfo {
+  tag: string;
+  text: string;
+  shorthand: string;
+  story_name: string;
+  answers_text?: string[];
+  correct_answers?: number[];
+  neutral_answers?: number[];
+  version?: number;
+}
+export async function addQuestion(info: QuestionInfo): Promise<Question | null> {
+  if (!info.version) {
+    const currentVersion = await currentVersionForQuestion(info.tag);
+    info.version = currentVersion || 1;
+  }
+  return Question.create(info).catch((error) => {
+    logger.error(error);
+    logger.error(`Question info: ${JSON.stringify(info)}`);
+    return null;
+  });
 }
 
 export async function currentVersionForQuestion(tag: string): Promise<number | null> {

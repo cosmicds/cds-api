@@ -50,6 +50,7 @@ import { v4 } from "uuid";
 import cors from "cors";
 import jwt from "jsonwebtoken";
 import { isStudentOption } from "./models/student_options";
+import { isNumberArray, isStringArray } from "./utils";
 export const app = express();
 
 // TODO: Clean up these type definitions
@@ -505,11 +506,17 @@ app.post("/question/:tag", async (req, res) => {
   const text = req.body.text;
   const shorthand = req.body.shorthand;
   const story_name = req.body.story_name;
+  const answers_text = req.body.answers_text;
+  const correct_answers = req.body.correct_answers;
+  const neutral_answers = req.body.neutral_answers;
 
   const valid = typeof tag === "string" &&
                 typeof text === "string" &&
                 typeof shorthand === "string" &&
-                typeof story_name === "string";
+                typeof story_name === "string" &&
+                (answers_text === undefined || isStringArray(answers_text)) &&
+                (correct_answers === undefined || isNumberArray(correct_answers)) &&
+                (neutral_answers === undefined || isNumberArray(neutral_answers));
   if (!valid) {
     res.statusCode = 400;
     res.json({
@@ -520,7 +527,7 @@ app.post("/question/:tag", async (req, res) => {
 
   const currentQuestion = await findQuestion(tag);
   const version = currentQuestion !== null ? currentQuestion.version + 1 : 1;
-  const addedQuestion = await addQuestion(tag, text, shorthand, story_name, version);
+  const addedQuestion = await addQuestion({tag, text, shorthand, story_name, answers_text, correct_answers, neutral_answers, version});
   if (addedQuestion === null) {
     res.statusCode = 500;
     res.json({
