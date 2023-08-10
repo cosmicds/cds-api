@@ -9,6 +9,9 @@ export class Question extends Model<InferAttributes<Question>, InferCreationAttr
   declare story_name: string;
   declare version: CreationOptional<number>;
   declare created: CreationOptional<Date>;
+  declare answers_text: CreationOptional<string[]>;
+  declare correct_answers: CreationOptional<number[]>;
+  declare neutral_answers: CreationOptional<number[]>;
 }
 
 export function initializeQuestionModel(sequelize: Sequelize) {
@@ -49,6 +52,18 @@ export function initializeQuestionModel(sequelize: Sequelize) {
       type: DataTypes.DATE,
       allowNull: false,
       defaultValue: Sequelize.literal("CURRENT_TIMESTAMP")
+    },
+    answers_text: {
+      type: DataTypes.JSON,
+      defaultValue: null
+    },
+    correct_answers: {
+      type: DataTypes.JSON,
+      defaultValue: null
+    },
+    neutral_answers: {
+      type: DataTypes.JSON,
+      defaultValue: null
     }
   }, {
     sequelize,
