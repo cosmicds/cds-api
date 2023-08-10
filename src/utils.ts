@@ -20,3 +20,13 @@ export function createClassCode(educatorID: number, className: string) {
   const nameString = `${educatorID}_${className}`;
   return createV5(nameString);
 }
+
+// eslint-disable-next-line  @typescript-eslint/no-explicit-any
+export function isNumberArray(arr: any): arr is number[] {
+  return Array.isArray(arr) && arr.every(x => typeof x === "number");
+}
+
+// eslint-disable-next-line  @typescript-eslint/no-explicit-any
+export function isStringArray(arr: any): arr is string[] {
+  return Array.isArray(arr) && arr.every(x => typeof x === "string");
+}
