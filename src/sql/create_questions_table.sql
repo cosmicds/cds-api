@@ -6,6 +6,9 @@ CREATE TABLE Questions (
     story_name varchar(50) NOT NULL,
     version int(11) NOT NULL DEFAULT 1,
     created datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    answers_text JSON DEFAULT NULL,
+    correct_answers JSON DEFAULT NULL,
+    neutral_answers JSON DEFAULT NULL,
     
     PRIMARY KEY(id),
     INDEX(tag),
