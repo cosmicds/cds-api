@@ -27,7 +27,7 @@ import {
   findQuestion,
   addQuestion,
   currentVersionForQuestion,
-  
+  getQuestionsForStory,
 } from "./database";
 
 import {
@@ -538,6 +538,17 @@ app.post("/question/:tag", async (req, res) => {
 
   res.json({
     question: addedQuestion
+  });
+});
+
+
+app.get("/questions/:storyName", async (req, res) => {
+  const storyName = req.params.storyName;
+  const newestOnlyString = req.query.newest_only as string;
+  const newestOnly = newestOnlyString.toLowerCase() !== "false";
+  const questions = await getQuestionsForStory(storyName, newestOnly);
+  res.json({
+    questions
   });
 });
 
