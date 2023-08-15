@@ -27,7 +27,7 @@ import {
   findQuestion,
   addQuestion,
   currentVersionForQuestion,
-  
+  getQuestionsForStory,
 } from "./database";
 
 import {
@@ -538,6 +538,15 @@ app.post("/question/:tag", async (req, res) => {
 
   res.json({
     question: addedQuestion
+  });
+});
+
+
+app.get("/questions/:storyName", async (req, res) => {
+  const storyName = req.params.storyName;
+  const questions = await getQuestionsForStory(storyName);
+  res.json({
+    questions
   });
 });
 

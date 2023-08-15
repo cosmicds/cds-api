@@ -639,3 +639,11 @@ export async function addQuestion(info: QuestionInfo): Promise<Question | null> 
 export async function currentVersionForQuestion(tag: string): Promise<number | null> {
   return Question.max("version", { where: { tag } });
 }
+
+export async function getQuestionsForStory(storyName: string): Promise<Question[]> {
+  return Question.findAll({
+    where: {
+      story_name: storyName
+    }
+  });
+}
