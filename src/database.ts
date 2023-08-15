@@ -1,4 +1,4 @@
-import { Model, Op, Sequelize, WhereOptions } from "sequelize";
+import { Model, Op, QueryTypes, Sequelize } from "sequelize";
 import dotenv from "dotenv";
 
 import {
@@ -640,10 +640,24 @@ export async function currentVersionForQuestion(tag: string): Promise<number | n
   return Question.max("version", { where: { tag } });
 }
 
-export async function getQuestionsForStory(storyName: string): Promise<Question[]> {
-  return Question.findAll({
-    where: {
-      story_name: storyName
-    }
-  });
+export async function getQuestionsForStory(storyName: string, newestOnly=true): Promise<Question[]> {
+  if (!newestOnly) {
+    return Question.findAll({ where: { story_name: storyName } });
+
+  }
+  const sequelize = Question.sequelize;
+  if (sequelize === undefined) {
+    return [];
+  }
+  
+  // Is there a good way to do this (i.e. join on a subquery) using the ORM?
+  // It seemed simpler to just write out the query.
+  // We can at least specify the model and the query type
+  return sequelize.query(`SELECT * FROM (SELECT tag, max(version) AS version FROM Questions GROUP BY tag) t1
+                         INNER JOIN Questions ON Questions.tag = t1.tag AND Questions.version = t1.version
+                         WHERE story_name = '${storyName}'`,
+                         {
+                           model: Question,
+                           type: QueryTypes.SELECT
+                         });
 }
