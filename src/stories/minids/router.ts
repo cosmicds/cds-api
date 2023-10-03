@@ -9,7 +9,7 @@ import { getEclipseMiniResponses, submitEclipseMiniResponse } from "./database";
 
 const router = Router();
 
-router.put("/annular-eclipse-2023/response", async (req, res) => {
+router.post("/annular-eclipse-2023/response", async (req, res) => {
   const data = req.body; 
   const valid = (
     typeof data.user_uuid === "string" &&
