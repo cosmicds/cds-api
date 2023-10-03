@@ -5,7 +5,7 @@ import {
 } from "../../utils";
 
 import { Router } from "express";
-import { getEclipseMiniResponses, submitEclipseMiniResponse } from "./database";
+import { getEclipseMiniResponses, getAllEclipseMiniResponses, submitEclipseMiniResponse } from "./database";
 
 const router = Router();
 
@@ -35,6 +35,11 @@ router.post("/annular-eclipse-2023/response", async (req, res) => {
 
   res.json({ response });
 
+});
+
+router.get("/annular-eclipse-2023/responses", async (_req, res) => {
+  const responses = await getAllEclipseMiniResponses();
+  res.json({ responses });
 });
 
 router.get("/annular-eclipse-2023/responses/:userUUID", async (req, res) => {

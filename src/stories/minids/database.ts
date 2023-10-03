@@ -21,6 +21,10 @@ export async function submitEclipseMiniResponse(data: {
   });
 }
 
+export async function getAllEclipseMiniResponses(): Promise<EclipseMiniResponse[]> {
+  return EclipseMiniResponse.findAll();
+}
+
 export async function getEclipseMiniResponses(userUUID: string): Promise<EclipseMiniResponse[]> {
   return EclipseMiniResponse.findAll({
     where: { user_uuid: userUUID }
