@@ -4,14 +4,14 @@ export class EclipseMiniResponse extends Model<InferAttributes<EclipseMiniRespon
   declare id: CreationOptional<number>;
   declare user_uuid: string;
   declare response: string;
-  declare preset_locations: JSON;
+  declare preset_locations: string[];
   declare preset_locations_count: number;
-  declare user_selected_locations: JSON;
+  declare user_selected_locations: [number, number][];
   declare user_selected_locations_count: number;
   declare timestamp: CreationOptional<Date>;
 }
 
-export function initialEclipseMiniModel(sequelize: Sequelize) {
+export function initializeEclipseMiniResponseModel(sequelize: Sequelize) {
   EclipseMiniResponse.init({
     id: {
       type: DataTypes.INTEGER.UNSIGNED,
@@ -28,16 +28,20 @@ export function initialEclipseMiniModel(sequelize: Sequelize) {
       allowNull: false
     },
     preset_locations: {
-      type: DataTypes.JSON
+      type: DataTypes.JSON,
+      allowNull: false
     },
     preset_locations_count: {
-      type: DataTypes.INTEGER
+      type: DataTypes.INTEGER,
+      allowNull: false
     },
     user_selected_locations: {
-      type: DataTypes.JSON
+      type: DataTypes.JSON,
+      allowNull: false
     },
     user_selected_locations_count: {
-      type: DataTypes.INTEGER
+      type: DataTypes.INTEGER,
+      allowNull: false
     },
     timestamp: {
       type: DataTypes.DATE,
