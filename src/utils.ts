@@ -22,6 +22,11 @@ export function createClassCode(educatorID: number, className: string) {
 }
 
 // eslint-disable-next-line  @typescript-eslint/no-explicit-any
+export function isArrayThatSatisfies<T extends Array<any>>(array: any, condition: (t: Array<any>) => boolean): array is T {
+  return Array.isArray(array) && condition(array);
+}
+
+// eslint-disable-next-line  @typescript-eslint/no-explicit-any
 export function isNumberArray(arr: any): arr is number[] {
   return Array.isArray(arr) && arr.every(x => typeof x === "number");
 }
