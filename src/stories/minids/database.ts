@@ -22,7 +22,7 @@ export interface EclipseMiniData {
 export function isValidEclipseMiniData(data: any): data is EclipseMiniData {
 
   return typeof data.user_uuid === "string" &&
-    typeof data.response === "string" &&
+    (!data.response || typeof data.response === "string") &&
     isStringArray(data.preset_locations) &&
     isArrayThatSatisfies(data.user_selected_locations, (arr) => {
       return arr.every(x => isNumberArray(x) && x.length === 2);

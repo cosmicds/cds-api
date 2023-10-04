@@ -26,7 +26,7 @@ export function initializeEclipseMiniResponseModel(sequelize: Sequelize) {
     },
     response: {
       type: DataTypes.CHAR,
-      allowNull: false
+      defaultValue: null
     },
     preset_locations: {
       type: DataTypes.JSON,
