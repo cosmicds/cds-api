@@ -21,6 +21,7 @@ export function initializeEclipseMiniResponseModel(sequelize: Sequelize) {
     },
     user_uuid: {
       type: DataTypes.STRING,
+      unique: true,
       allowNull: false
     },
     response: {
