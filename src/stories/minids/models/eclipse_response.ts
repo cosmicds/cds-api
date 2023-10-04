@@ -3,7 +3,7 @@ import { Sequelize, DataTypes, Model, InferAttributes, InferCreationAttributes, 
 export class EclipseMiniResponse extends Model<InferAttributes<EclipseMiniResponse>, InferCreationAttributes<EclipseMiniResponse>> {
   declare id: CreationOptional<number>;
   declare user_uuid: string;
-  declare response: string;
+  declare mc_responses: string[];
   declare preset_locations: string[];
   declare preset_locations_count: number;
   declare user_selected_locations: [number, number][];
@@ -24,8 +24,8 @@ export function initializeEclipseMiniResponseModel(sequelize: Sequelize) {
       unique: true,
       allowNull: false
     },
-    response: {
-      type: DataTypes.CHAR,
+    mc_responses: {
+      type: DataTypes.JSON,
       defaultValue: null
     },
     preset_locations: {
