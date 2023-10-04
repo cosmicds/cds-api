@@ -1,7 +1,7 @@
 CREATE TABLE EclipseMiniResponses (
 	id int(11) UNSIGNED NOT NULL UNIQUE AUTO_INCREMENT,
 	user_uuid varchar(36) NOT NULL UNIQUE,
-    response char(1) DEFAULT NULL,
+    mc_responses JSON DEFAULT NULL,
     preset_locations JSON NOT NULL,
     preset_locations_count INT NOT NULL,
     user_selected_locations JSON NOT NULL,

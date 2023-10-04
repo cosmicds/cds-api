@@ -12,7 +12,7 @@ initializeModels(cosmicdsDB);
 
 export interface EclipseMiniData {
   user_uuid: string;
-  response: string;
+  mc_responses: string[];
   preset_locations: string[],
   user_selected_locations: [number, number][],
   timestamp: Date
@@ -22,7 +22,7 @@ export interface EclipseMiniData {
 export function isValidEclipseMiniData(data: any): data is EclipseMiniData {
 
   return typeof data.user_uuid === "string" &&
-    (!data.response || typeof data.response === "string") &&
+    (!data.mc_responses || isStringArray(data.mc_responses)) &&
     isStringArray(data.preset_locations) &&
     isArrayThatSatisfies(data.user_selected_locations, (arr) => {
       return arr.every(x => isNumberArray(x) && x.length === 2);
