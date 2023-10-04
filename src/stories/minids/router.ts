@@ -1,24 +1,16 @@
-import {
-  isArrayThatSatisfies,
-  isNumberArray,
-  isStringArray
-} from "../../utils";
-
 import { Router } from "express";
-import { getEclipseMiniResponse, getAllEclipseMiniResponses, submitEclipseMiniResponse } from "./database";
+import {
+  getEclipseMiniResponse,
+  getAllEclipseMiniResponses,
+  isValidEclipseMiniData,
+  submitEclipseMiniResponse
+} from "./database";
 
 const router = Router();
 
 router.put("/annular-eclipse-2023/response", async (req, res) => {
   const data = req.body; 
-  const valid = (
-    typeof data.user_uuid === "string" &&
-    typeof data.response === "string" &&
-    isStringArray(data.preset_locations) &&
-    isArrayThatSatisfies(data.user_selected_locations, (arr) => {
-      return arr.every(x => isNumberArray(x) && x.length === 2);
-    })
-  );
+  const valid = isValidEclipseMiniData(data);
 
   if (!valid) {
     res.status(400);

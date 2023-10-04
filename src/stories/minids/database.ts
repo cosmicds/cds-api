@@ -1,5 +1,11 @@
 import { cosmicdsDB } from "../../database";
 import { logger } from "../../logger";
+import {
+  isArrayThatSatisfies,
+  isNumberArray,
+  isStringArray
+} from "../../utils";
+
 import { initializeModels, EclipseMiniResponse } from "./models";
 
 initializeModels(cosmicdsDB);
@@ -10,6 +16,17 @@ export interface EclipseMiniData {
   preset_locations: string[],
   user_selected_locations: [number, number][],
   timestamp: Date
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function isValidEclipseMiniData(data: any): data is EclipseMiniData {
+
+  return typeof data.user_uuid === "string" &&
+    typeof data.response === "string" &&
+    isStringArray(data.preset_locations) &&
+    isArrayThatSatisfies(data.user_selected_locations, (arr) => {
+      return arr.every(x => isNumberArray(x) && x.length === 2);
+    });
 }
 
 export async function submitEclipseMiniResponse(data: EclipseMiniData): Promise<EclipseMiniResponse | null> {
