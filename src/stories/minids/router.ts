@@ -1,24 +1,16 @@
-import {
-  isArrayThatSatisfies,
-  isNumberArray,
-  isStringArray
-} from "../../utils";
-
 import { Router } from "express";
-import { getEclipseMiniResponses, getAllEclipseMiniResponses, submitEclipseMiniResponse } from "./database";
+import {
+  getEclipseMiniResponse,
+  getAllEclipseMiniResponses,
+  isValidEclipseMiniData,
+  submitEclipseMiniResponse
+} from "./database";
 
 const router = Router();
 
-router.post("/annular-eclipse-2023/response", async (req, res) => {
+router.put("/annular-eclipse-2023/response", async (req, res) => {
   const data = req.body; 
-  const valid = (
-    typeof data.user_uuid === "string" &&
-    typeof data.response === "string" &&
-    isStringArray(data.preset_locations) &&
-    isArrayThatSatisfies(data.user_selected_locations, (arr) => {
-      return arr.every(x => isNumberArray(x) && x.length === 2);
-    })
-  );
+  const valid = isValidEclipseMiniData(data);
 
   if (!valid) {
     res.status(400);
@@ -42,10 +34,10 @@ router.get("/annular-eclipse-2023/responses", async (_req, res) => {
   res.json({ responses });
 });
 
-router.get("/annular-eclipse-2023/responses/:userUUID", async (req, res) => {
+router.get("/annular-eclipse-2023/response/:userUUID", async (req, res) => {
   const uuid = req.params.userUUID as string;
-  const responses = await getEclipseMiniResponses(uuid);
-  res.json({ responses });
+  const response = await getEclipseMiniResponse(uuid);
+  res.json({ response });
 });
 
 export default router;
