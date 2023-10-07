@@ -110,7 +110,7 @@ const store = new SequelizeStore({
 async function apiKeyMiddleware(req: Request, res: ExpressResponse, next: NextFunction): Promise<void> {
 
   // The whitelisting of hosts is temporary!
-  const host = req.headers.referer;
+  const host = req.headers.origin;
   const validOrigin = host && ALLOWED_HOSTS.includes(host);
   const key = req.get("Authorization");
   const apiKey = key ? await getAPIKey(key) : null;
