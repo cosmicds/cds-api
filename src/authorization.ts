@@ -1,3 +1,4 @@
+import { Request } from "express";
 import SHA3 from "sha3";
 import { APIKey } from "./models/api_key";
 
@@ -12,7 +13,10 @@ export async function getAPIKey(key: string): Promise<APIKey | null> {
 }
 
 // TODO: Is there a better way to set this system up?
-export function hasPermission(key: APIKey, relativeURL: string): boolean {
+export function hasPermission(key: APIKey, req: Request): boolean {
+  const relativeURL = req.originalUrl;
   const permissionsRoot = key.permissions_root;
-  return permissionsRoot === null || relativeURL.startsWith(permissionsRoot);
+  const routePermission = permissionsRoot === null || relativeURL.startsWith(permissionsRoot);
+  const methodPermission = key.allowed_methods === null || key.allowed_methods.includes(req.method);
+  return routePermission && methodPermission;
 }

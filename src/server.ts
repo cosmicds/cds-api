@@ -115,7 +115,7 @@ async function apiKeyMiddleware(req: Request, res: ExpressResponse, next: NextFu
   const key = req.get("Authorization");
   const apiKey = key ? await getAPIKey(key) : null;
   const apiKeyExists = apiKey !== null;
-  if (validOrigin || (apiKeyExists && hasPermission(apiKey, req.originalUrl))) {
+  if (validOrigin || (apiKeyExists && hasPermission(apiKey, req))) {
     next();
   } else {
     res.statusCode = apiKeyExists ? 403 : 401;
