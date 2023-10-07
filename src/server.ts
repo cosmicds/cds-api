@@ -114,11 +114,15 @@ async function apiKeyMiddleware(req: Request, res: ExpressResponse, next: NextFu
   const validOrigin = host && ALLOWED_HOSTS.includes(host);
   const key = req.get("Authorization");
   const apiKey = key ? await getAPIKey(key) : null;
-  if (validOrigin || (apiKey !== null && hasPermission(apiKey, req.originalUrl))) {
+  const apiKeyExists = apiKey !== null;
+  if (validOrigin || (apiKeyExists && hasPermission(apiKey, req.originalUrl))) {
     next();
   } else {
-    res.statusCode = 401;
-    res.json({ message: "You must provide a valid CosmicDS API key!" });
+    res.statusCode = apiKeyExists ? 403 : 401;
+    const message = apiKeyExists ?
+      "Your API key does not provide permission to access this endpoint!" :
+      "You must provide a valid CosmicDS API key!";
+    res.json({ message });
     res.end();
   }
 }
