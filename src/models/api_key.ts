@@ -5,6 +5,7 @@ export class APIKey extends Model<InferAttributes<APIKey>, InferCreationAttribut
   declare hashed_key: string;
   declare client: string;
   declare permissions_root: CreationOptional<string>;
+  declare allowed_methods: CreationOptional<string[]>;
 }
 
 export function initializeAPIKeyModel(sequelize: Sequelize) {
@@ -26,6 +27,10 @@ export function initializeAPIKeyModel(sequelize: Sequelize) {
     },
     permissions_root: {
       type: DataTypes.STRING,
+      defaultValue: null
+    },
+    allowed_methods: {
+      type: DataTypes.JSON,
       defaultValue: null
     }
   }, {
