@@ -30,6 +30,8 @@ import {
   getQuestionsForStory,
 } from "./database";
 
+import { getAPIKey, hasPermission } from "./authorization";
+
 import {
   CreateClassResult,
   LoginResult,
@@ -40,7 +42,7 @@ import {
 import { CosmicDSSession } from "./models";
 
 import { ParsedQs } from "qs";
-import express, { Request, Response as ExpressResponse } from "express";
+import express, { Request, Response as ExpressResponse, NextFunction } from "express";
 import { Response } from "express-serve-static-core";
 import bodyParser from "body-parser";
 import cookieParser from "cookie-parser";
@@ -49,8 +51,10 @@ import sequelizeStore from "connect-session-sequelize";
 import { v4 } from "uuid";
 import cors from "cors";
 import jwt from "jsonwebtoken";
+
 import { isStudentOption } from "./models/student_options";
 import { isNumberArray, isStringArray } from "./utils";
+
 export const app = express();
 
 // TODO: Clean up these type definitions
@@ -72,10 +76,7 @@ export enum UserType {
   Admin
 }
 
-const ALLOWED_ORIGINS = [
-  "http://192.168.99.136:8081",
-  "https://cosmicds.github.io"
-];
+const ALLOWED_HOSTS = process.env.ALLOWED_HOSTS ? process.env.ALLOWED_HOSTS.split(",") : [];
 
 const corsOptions: cors.CorsOptions = {
     origin: "*",
@@ -106,6 +107,26 @@ const store = new SequelizeStore({
   }
 });
 
+async function apiKeyMiddleware(req: Request, res: ExpressResponse, next: NextFunction): Promise<void> {
+
+  // The whitelisting of hosts is temporary!
+  const host = req.headers.origin;
+  const validOrigin = host && ALLOWED_HOSTS.includes(host);
+  const key = req.get("Authorization");
+  const apiKey = key ? await getAPIKey(key) : null;
+  const apiKeyExists = apiKey !== null;
+  if (validOrigin || (apiKeyExists && hasPermission(apiKey, req))) {
+    next();
+  } else {
+    res.statusCode = apiKeyExists ? 403 : 401;
+    const message = apiKeyExists ?
+      "Your API key does not provide permission to access this endpoint!" :
+      "You must provide a valid CosmicDS API key!";
+    res.json({ message });
+    res.end();
+  }
+}
+
 const SECRET = "ADD_REAL_SECRET";
 const SESSION_NAME = "cosmicds";
 
@@ -126,6 +147,8 @@ app.use(session({
 }));
 store.sync();
 
+app.use(apiKeyMiddleware);
+
 // parse requests of content-type - application/json
 app.use(bodyParser.json());
 
@@ -136,7 +159,7 @@ app.use(function(req, res, next) {
 
   const origin = req.get("origin");
   console.log(origin);
-  if (origin !== undefined && ALLOWED_ORIGINS.includes(origin)) {
+  if (origin !== undefined && ALLOWED_HOSTS.includes(origin)) {
     res.header("Access-Control-Allow-Origin", origin);
   }
   next();
