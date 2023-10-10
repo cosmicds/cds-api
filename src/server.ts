@@ -76,13 +76,13 @@ export enum UserType {
   Admin
 }
 
-const ALLOWED_HOSTS = process.env.ALLOWED_HOSTS ? process.env.ALLOWED_HOSTS.split(",") : [];
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(",") : [];
 
 const corsOptions: cors.CorsOptions = {
-    origin: "*",
-    credentials: true,
-    preflightContinue: true,
-    exposedHeaders: ["set-cookie"]
+  origin: "*",
+  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 };
 
 const PRODUCTION = process.env.NODE_ENV === "production";
@@ -107,11 +107,12 @@ const store = new SequelizeStore({
   }
 });
 
+
 async function apiKeyMiddleware(req: Request, res: ExpressResponse, next: NextFunction): Promise<void> {
 
   // The whitelisting of hosts is temporary!
   const host = req.headers.origin;
-  const validOrigin = host && ALLOWED_HOSTS.includes(host);
+  const validOrigin = host && ALLOWED_ORIGINS.includes(host);
   const key = req.get("Authorization");
   const apiKey = key ? await getAPIKey(key) : null;
   const apiKeyExists = apiKey !== null;
@@ -159,7 +160,7 @@ app.use(function(req, res, next) {
 
   const origin = req.get("origin");
   console.log(origin);
-  if (origin !== undefined && ALLOWED_HOSTS.includes(origin)) {
+  if (origin !== undefined && ALLOWED_ORIGINS.includes(origin)) {
     res.header("Access-Control-Allow-Origin", origin);
   }
   next();
