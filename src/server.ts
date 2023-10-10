@@ -110,6 +110,11 @@ const store = new SequelizeStore({
 
 async function apiKeyMiddleware(req: Request, res: ExpressResponse, next: NextFunction): Promise<void> {
 
+  if (req.originalUrl === "/") {
+    next();
+    return;
+  }
+
   // The whitelisting of hosts is temporary!
   const host = req.headers.origin;
   const validOrigin = host && ALLOWED_ORIGINS.includes(host);
@@ -172,8 +177,15 @@ app.all("*", (req, _res, next) => {
 });
 
 // simple route
-app.get("/", (_req, res) => {
-  res.json({ message: "Welcome to the CosmicDS server." });
+app.get("/", async (req, res) => {
+  const key = req.get("Authorization");
+  const apiKey = key ? await getAPIKey(key) : null;
+  const apiKeyExists = apiKey !== null;
+  let message = "Welcome to the CosmicDS server!";
+  if (!apiKeyExists) {
+    message += " You'll need to include a valid API key with your requests in order to access other endpoints.";
+  }
+  res.json({ message: message });
 });
 
 function _sendUserIdCookie(userId: number, res: ExpressResponse): void {
