@@ -28,6 +28,7 @@ import {
   addQuestion,
   currentVersionForQuestion,
   getQuestionsForStory,
+  getDashboardGroupClasses,
 } from "./database";
 
 import { getAPIKey, hasPermission } from "./authorization";
@@ -651,4 +652,12 @@ app.put("/options/:studentID", async (req, res) => {
     return;
   }
   res.json(updatedOptions);
+});
+
+app.get("/dashboard-group-classes/:code", async (req, res) => {
+  const classIDs = await getDashboardGroupClasses(req.params.code);
+  res.statusCode = classIDs.length > 0 ? 200 : 404;
+  res.json({
+    class_ids: classIDs
+  });
 });

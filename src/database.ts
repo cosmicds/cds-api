@@ -9,13 +9,15 @@ import {
   Story,
   StudentsClasses,
   Student,
-  DummyClass
+  DummyClass,
+  DashboardClassGroup,
 } from "./models";
 
 import {
   createClassCode,
   createVerificationCode,
   encryptPassword,
+  isNumberArray,
 } from "./utils";
 
 
@@ -660,4 +662,14 @@ export async function getQuestionsForStory(storyName: string, newestOnly=true): 
                            model: Question,
                            type: QueryTypes.SELECT
                          });
+}
+
+
+export async function getDashboardGroupClasses(code: string): Promise<number[]> {
+  const group = await DashboardClassGroup.findOne({ where: { code } });
+  if (group === null) {
+    return [];
+  }
+  const classIDs = group.class_ids;
+  return isNumberArray(classIDs) ? classIDs : [];
 }
