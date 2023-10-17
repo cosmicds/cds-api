@@ -1,0 +1,8 @@
+CREATE TABLE DashboardClassGroups (
+	id int(11) UNSIGNED NOT NULL UNIQUE AUTO_INCREMENT,
+    name varchar(50) UNIQUE NOT NULL,
+    code varchar(36) UNIQUE NOT NULL,
+    class_ids JSON NOT NULL,
+    
+    PRIMARY KEY(id)
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci PACK_KEYS=0;

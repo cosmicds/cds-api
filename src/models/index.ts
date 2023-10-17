@@ -1,4 +1,5 @@
 import { Class, initializeClassModel } from "./class";
+import { DashboardClassGroup, initializeDashboardClassGroupModel } from "./dashboard_class_group";
 import { DummyClass, initializeDummyClassModel } from "./dummy_class";
 import { Educator, initializeEducatorModel } from "./educator";
 import { IgnoreStudent, initializeIgnoreStudentModel } from "./ignore_student";
@@ -17,6 +18,7 @@ export {
   Class,
   ClassStories,
   CosmicDSSession,
+  DashboardClassGroup,
   DummyClass,
   Educator,
   IgnoreStudent,
@@ -39,4 +41,5 @@ export function initializeModels(db: Sequelize) {
   initializeStudentOptionsModel(db);
   initializeIgnoreStudentModel(db);
   initializeQuestionModel(db);
+  initializeDashboardClassGroupModel(db);
 }
