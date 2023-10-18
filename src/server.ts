@@ -656,8 +656,14 @@ app.put("/options/:studentID", async (req, res) => {
 
 app.get("/dashboard-group-classes/:code", async (req, res) => {
   const classIDs = await getDashboardGroupClasses(req.params.code);
-  res.statusCode = classIDs.length > 0 ? 200 : 404;
-  res.json({
-    class_ids: classIDs
-  });
+  if (classIDs === null) {
+    res.statusCode = 404;
+    res.json({
+      error: `Could not find a dashboard group for code ${req.params.code}`
+    });
+  } else {
+    res.json({
+      class_ids: classIDs
+    });
+  }
 });

@@ -665,10 +665,10 @@ export async function getQuestionsForStory(storyName: string, newestOnly=true): 
 }
 
 
-export async function getDashboardGroupClasses(code: string): Promise<number[]> {
+export async function getDashboardGroupClasses(code: string): Promise<number[] | null> {
   const group = await DashboardClassGroup.findOne({ where: { code } });
   if (group === null) {
-    return [];
+    return null;
   }
   const classIDs = group.class_ids;
   return isNumberArray(classIDs) ? classIDs : [];
