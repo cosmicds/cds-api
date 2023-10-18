@@ -28,6 +28,7 @@ import {
   addQuestion,
   currentVersionForQuestion,
   getQuestionsForStory,
+  getDashboardGroupClasses,
 } from "./database";
 
 import { getAPIKey, hasPermission } from "./authorization";
@@ -651,4 +652,18 @@ app.put("/options/:studentID", async (req, res) => {
     return;
   }
   res.json(updatedOptions);
+});
+
+app.get("/dashboard-group-classes/:code", async (req, res) => {
+  const classIDs = await getDashboardGroupClasses(req.params.code);
+  if (classIDs === null) {
+    res.statusCode = 404;
+    res.json({
+      error: `Could not find a dashboard group for code ${req.params.code}`
+    });
+  } else {
+    res.json({
+      class_ids: classIDs
+    });
+  }
 });
