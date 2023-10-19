@@ -663,7 +663,7 @@ app.get("/dashboard-group-classes/:code", async (req, res) => {
     });
   } else {
     res.json({
-      class_ids: classIDs
+      classes: classIDs
     });
   }
 });
