@@ -31,7 +31,8 @@ import {
   getSampleGalaxy,
   getGalaxyById,
   removeSampleHubbleMeasurement,
-  getAllNthSampleHubbleMeasurements
+  getAllNthSampleHubbleMeasurements,
+  tryToMergeClass
 } from "./database";
 
 import { 
@@ -322,6 +323,30 @@ router.get("/all-data", async (req, res) => {
     measurements,
     studentData,
     classData
+  });
+});
+
+router.put("/sync-merged-class/:classID", async(req, res) => {
+  const classID = parseInt(req.params.classID);
+  if (isNaN(classID)) {
+    res.statusCode = 400;
+    res.json({
+      error: "Class ID must be a number"
+    });
+    return;
+  }
+  const data = await tryToMergeClass(classID);
+  if (data.mergeData === null) {
+    res.statusCode = 404;
+    res.json({
+      error: data.message
+    });
+    return;
+  }
+
+  res.json({
+    merge_info: data.mergeData,
+    message: data.message
   });
 });
 

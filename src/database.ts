@@ -664,7 +664,6 @@ export async function getQuestionsForStory(storyName: string, newestOnly=true): 
                          });
 }
 
-
 export async function getDashboardGroupClasses(code: string): Promise<Class[] | null> {
   const group = await DashboardClassGroup.findOne({ where: { code } });
   if (group === null) {
