@@ -10,6 +10,7 @@ export class Class extends Model<InferAttributes<Class>, InferCreationAttributes
   declare active: CreationOptional<boolean>;
   declare code: string;
   declare asynchronous: CreationOptional<boolean>;
+  declare test: CreationOptional<boolean>;
 }
 
 export function initializeClassModel(sequelize: Sequelize) {
@@ -55,6 +56,11 @@ export function initializeClassModel(sequelize: Sequelize) {
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: false
+    },
+    test: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: 0
     }
   }, {
     sequelize,

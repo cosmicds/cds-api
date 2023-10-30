@@ -1,6 +1,6 @@
-import { Op, Sequelize, WhereOptions, col, fn, literal } from "sequelize";
+import { Op, QueryTypes, Sequelize, WhereOptions, col, fn, literal } from "sequelize";
 import { AsyncMergedHubbleStudentClasses, Galaxy, HubbleMeasurement, SampleHubbleMeasurement, initializeModels, SyncMergedHubbleClasses } from "./models";
-import { cosmicdsDB, findClassById, findStudentById } from "../../database";
+import { classSize, cosmicdsDB, findClassById, findStudentById } from "../../database";
 import { RemoveHubbleMeasurementResult, SubmitHubbleMeasurementResult } from "./request_results";
 import { setUpHubbleAssociations } from "./associations";
 import { Class, StoryState, Student, StudentsClasses } from "../../models";
@@ -661,4 +661,68 @@ export async function getGalaxiesForDataGeneration(types=["Sp"]): Promise<Galaxy
     order: [["id", "DESC"]]
   });
   return noMeasurements.concat(measurements);
+}
+
+export async function getMergeDataForClass(classID: number): Promise<SyncMergedHubbleClasses | null> {
+  return SyncMergedHubbleClasses.findOne({ where: { class_id: classID } });
+}
+
+export async function eligibleClassesForMerge(classID: number, sizeThreshold=20): Promise<Class[]> {
+  const size = await classSize(classID);
+
+  // Running into the limits of the ORM a bit here
+  // Maybe there's a clever way to write this?
+  // But straight SQL gets the job done
+  return cosmicdsDB.query(
+    `SELECT * FROM (SELECT
+    id,
+    test,
+    (SELECT
+            COUNT(*)
+        FROM
+            StudentsClasses
+        WHERE
+            StudentsClasses.class_id = id) AS size
+    FROM
+        Classes) q
+    WHERE
+        (size >= ${sizeThreshold - size} AND test = 0)
+  `, { type: QueryTypes.SELECT }) as Promise<Class[]>;
+}
+
+// Try and merge the class with the given ID with another class such that the total size is above the threshold
+// We say "try" because if a client doesn't know that the merge has already occurred, we may get
+// multiple such requests from different student clients.
+// If a merge has already been created, we don't make another one - we just return the existing one, with a
+// message that indicates that this was the case.
+export interface MergeAttemptData {
+  mergeData: SyncMergedHubbleClasses | null;
+  message: string;
+}
+export async function tryToMergeClass(classID: number): Promise<MergeAttemptData> {
+  const cls = await findClassById(classID);
+  if (cls === null) {
+    return { mergeData: null, message: "Invalid class ID!" };
+  }
+
+  let mergeData = await getMergeDataForClass(classID);
+  if (mergeData !== null) {
+    return { mergeData, message: "Class already merged" };
+  }
+
+  const eligibleClasses = await eligibleClassesForMerge(classID);
+  if (eligibleClasses.length > 0) {
+    const index = Math.floor(Math.random() * eligibleClasses.length);
+    console.log(eligibleClasses);
+    console.log(index);
+    const classToMerge = eligibleClasses[index];
+    mergeData = await SyncMergedHubbleClasses.create({ class_id: classID, merged_class_id: classToMerge.id });
+    if (mergeData === null) {
+      return { mergeData, message: "Error creating merge!" };
+    }
+    return { mergeData, message: "New merge created" };
+  }
+
+  return { mergeData: null, message: "No eligible classes to merge" };
+
 }
