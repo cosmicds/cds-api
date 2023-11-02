@@ -40,7 +40,7 @@ import {
   VerificationResult,
 } from "./request_results";
 
-import { CosmicDSSession } from "./models";
+import { CosmicDSSession, StudentsClasses } from "./models";
 
 import { ParsedQs } from "qs";
 import express, { Request, Response as ExpressResponse, NextFunction } from "express";
@@ -255,12 +255,12 @@ app.post("/student-sign-up", async (req, res) => {
     typeof data.email === "string" &&
     ((typeof data.age === "number") || (data.age == null)) &&
     ((typeof data.gender === "string") || (data.gender == null)) &&
-    ((typeof data.classroomCode === "string") || (data.classroomCode == null))
+    ((typeof data.classroom_code === "string") || (data.classroom_code == null))
   );
 
   let result: SignUpResult;
   if (valid) {
-    result = await signUpStudent(data.username, data.password, data.institution, data.email, data.age, data.gender, data.classroomCode);
+    result = await signUpStudent(data);
   } else {
     result = SignUpResult.BadRequest;
     res.status(400);
@@ -465,6 +465,77 @@ app.get("/students/:identifier/classes", async (req, res) => {
     classes: classes
   });
 
+});
+
+
+app.post("/classes/join", async (req, res) => {
+  const username = req.body.username as string;
+  const classCode = req.body.class_code as string;
+  const student = await findStudentByUsername(username);
+  const cls = await findClassByCode(classCode);
+  const isStudent = student !== null;
+  const isClass = cls !== null;
+
+  if (!(isStudent && isClass)) {
+    let message = "The following were invalid:";
+    const invalid: string[] = [];
+    if (!isStudent) {
+      invalid.push("username");
+    }
+    if (!isClass) {
+      invalid.push("class_code");
+    }
+    message += invalid.join(", ");
+    res.statusCode = 404;
+    res.json({
+      success: false,
+      message: message
+    });
+    return;
+  }
+
+  const [join, created] = await StudentsClasses.upsert({
+    class_id: cls.id,
+    student_id: student.id
+  });
+  const success = join !== null;
+  res.statusCode = success ? 200 : 404;
+  let message: string;
+  if (!success) {
+    message = "Error adding student to class";
+  } else if (!created) {
+    message = "Student was already enrolled in class";
+  } else {
+    message = "Student added to class successfully";
+  }
+
+  res.json({ success, message });
+});
+
+app.post("/educators/create", async (req, res) => {
+  const data = req.body;
+  const valid = (
+    typeof data.first_name === "string" &&
+    typeof data.last_name === "string" &&
+    typeof data.password === "string" &&
+    ((typeof data.institution === "string") || (data.institution == null)) &&
+    typeof data.email === "string" &&
+    ((typeof data.age === "number") || (data.age == null)) &&
+    ((typeof data.gender === "string") || data.gender == null)
+  );
+
+  let result: SignUpResult;
+  if (valid) {
+    result = await signUpEducator(data.first_name, data.last_name, data.password, data.institution, data.email, data.age, data.gender);
+  } else {
+    result = SignUpResult.BadRequest;
+    res.status(400);
+  }
+  res.json({
+    educator_info: data,
+    status: result,
+    success: SignUpResult.success(result)
+  });
 });
 
 
