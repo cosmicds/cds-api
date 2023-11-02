@@ -404,6 +404,8 @@ app.get("/validate-classroom-code/:code", async (req, res) => {
 });
 
 
+/* Users (students and educators) */
+
 app.get("/students", async (_req, res) => {
   const queryResponse = await getAllStudents();
   res.json(queryResponse);
@@ -413,6 +415,58 @@ app.get("/educators", async (_req, res) => {
   const queryResponse = await getAllEducators();
   res.json(queryResponse);
 });
+
+app.get("/users", async (_req, res) => {
+  const students = await getAllStudents();
+  const educators = await getAllEducators();
+  res.json({ students, educators });
+});
+
+app.get("/students/:identifier", async (req, res) => {
+  const params = req.params;
+  const id = Number(params.identifier);
+
+  let student;
+  if (isNaN(id)) {
+    student = await findStudentByUsername(params.identifier);
+  } else {
+    student = await findStudentById(id);
+  }
+  if (student == null) {
+    res.statusCode = 404;
+  }
+  res.json({
+    student: student
+  });
+});
+
+app.get("/students/:identifier/classes", async (req, res) => {
+  const id = Number(req.params.identifier);
+
+  let student;
+  if (isNaN(id)) {
+    student = await findStudentByUsername(req.params.identifier);
+  } else {
+    student = await findStudentById(id);
+  }
+
+  if (student === null) {
+    res.statusCode = 404;
+    res.json({
+      student_id: null,
+      classes: []
+    });
+    return;
+  }
+
+  const classes = await getClassesForStudent(student.id);
+  res.json({
+    student_id: student.id,
+    classes: classes
+  });
+
+});
+
 
 app.get("/story-state/:studentID/:storyName", async (req, res) => {
   const params = req.params;
@@ -483,23 +537,7 @@ app.get("/logout", (req, res) => {
   });
 });
 
-app.get("/student/:identifier", async (req, res) => {
-  const params = req.params;
-  const id = Number(params.identifier);
 
-  let student;
-  if (isNaN(id)) {
-    student = await findStudentByUsername(params.identifier);
-  } else {
-    student = await findStudentById(id);
-  }
-  if (student == null) {
-    res.statusCode = 404;
-  }
-  res.json({
-    student: student
-  });
-});
 
 // Question information
 app.get("/question/:tag", async (req, res) => {
