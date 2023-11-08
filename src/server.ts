@@ -233,7 +233,7 @@ app.post("/educator-sign-up", async (req, res) => {
 
   let result: SignUpResult;
   if (valid) {
-    result = await signUpEducator(data.firstName, data.lastName, data.password, data.institution, data.email, data.age, data.gender);
+    result = await signUpEducator(data);
   } else {
     result = SignUpResult.BadRequest;
     res.status(400);
@@ -526,7 +526,7 @@ app.post("/educators/create", async (req, res) => {
 
   let result: SignUpResult;
   if (valid) {
-    result = await signUpEducator(data.first_name, data.last_name, data.password, data.institution, data.email, data.age, data.gender);
+    result = await signUpEducator(data);
   } else {
     result = SignUpResult.BadRequest;
     res.status(400);
@@ -538,6 +538,31 @@ app.post("/educators/create", async (req, res) => {
   });
 });
 
+app.post("/students/create", async (req, res) => {
+  const data = req.body;
+  const valid = (
+    typeof data.username === "string" &&
+    typeof data.password === "string" &&
+    ((typeof data.institution === "string") || (data.institution == null)) &&
+    typeof data.email === "string" &&
+    ((typeof data.age === "number") || (data.age == null)) &&
+    ((typeof data.gender === "string") || (data.gender == null)) &&
+    ((typeof data.classroom_code === "string") || (data.classroom_code == null))
+  );
+
+  let result: SignUpResult;
+  if (valid) {
+    result = await signUpStudent(data);
+  } else {
+    result = SignUpResult.BadRequest;
+    res.status(400);
+  }
+  res.json({
+    student_info: data,
+    status: result,
+    success: SignUpResult.success(result)
+  });
+});
 
 app.get("/story-state/:studentID/:storyName", async (req, res) => {
   const params = req.params;
