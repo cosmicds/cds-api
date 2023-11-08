@@ -386,6 +386,7 @@ export async function getAllHubbleMeasurements(before: Date | null = null): Prom
     whereConditions.push({ last_modified: { [Op.lt]: before } });
   }
   return HubbleMeasurement.findAll({
+    raw: true,
     attributes: {
       // The "student" here comes from the alias below
       // We do this so that we get access to the included field as just "class_id"
@@ -397,11 +398,11 @@ export async function getAllHubbleMeasurements(before: Date | null = null): Prom
     include: [{
       model: Galaxy,
       as: "galaxy",
-      attributes: ["id", "type"]
+      attributes: []
     }, {
       model: Student,
       as: "student",
-      attributes: ["seed", "dummy"],
+      attributes: [],
       where: {
         [Op.or]: [
           { seed: 1 }, { dummy: 0 }
