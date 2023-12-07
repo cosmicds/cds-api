@@ -29,6 +29,7 @@ import {
   currentVersionForQuestion,
   getQuestionsForStory,
   getDashboardGroupClasses,
+  CreateClassResponse,
 } from "./database";
 
 import { getAPIKey, hasPermission } from "./authorization";
@@ -561,6 +562,45 @@ app.post("/students/create", async (req, res) => {
     student_info: data,
     status: result,
     success: SignUpResult.success(result)
+  });
+});
+
+/* Classes */
+app.post("/classes/create", async (req, res) => {
+  const data = req.body;
+  const valid = (
+    typeof data.username === "string" &&
+    typeof data.educator_id === "string"
+  );
+  let response: CreateClassResponse;
+  if (valid) {
+    response = await createClass(data.educator_id, data.username);
+  } else {
+    response = {
+      result: CreateClassResult.BadRequest,
+    };
+    res.status(400);
+  }
+  res.json({
+    class_info: response.class,
+    status: response.result,
+    success: CreateClassResult.success(response.result)
+  });
+});
+
+app.delete("/classes/:code", async (req, res) => {
+  const cls = await findClassByCode(req.params.code);
+  const success = cls !== null;
+  if (!success) {
+    res.status(400);
+  }
+  cls?.destroy();
+  const message = success ?
+    "Class deleted" :
+    "No class with the given code exists";
+  res.json({
+    success,
+    message
   });
 });
 
