@@ -30,6 +30,7 @@ import {
   getQuestionsForStory,
   getDashboardGroupClasses,
   CreateClassResponse,
+  UserType
 } from "./database";
 
 import { getAPIKey, hasPermission } from "./authorization";
@@ -71,12 +72,7 @@ type VerificationRequest = Request<{verificationCode: string}, any, any, ParsedQ
 
 type CDSSession = session.Session & Partial<session.SessionData> & CosmicDSSession;
 
-export enum UserType {
-  None = 0, // Not logged in
-  Student,
-  Educator,
-  Admin
-}
+
 
 const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(",") : [];
 
@@ -214,7 +210,7 @@ function _sendLoginCookie(userId: number, res: ExpressResponse): void {
 }
 
 // set port, listen for requests
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 8081;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}.`);
 });
@@ -273,38 +269,58 @@ app.post("/student-sign-up", async (req, res) => {
   });
 });
 
-async function handleLogin(request: GenericRequest, checker: (email: string, pw: string) => Promise<LoginResponse>): Promise<LoginResponse> {
+async function handleLogin(request: GenericRequest, identifierField: string, checker: (identifier: string, pw: string) => Promise<LoginResponse>): Promise<LoginResponse> {
   const data = request.body;
-  const valid = typeof data.email === "string" && typeof data.password === "string";
+  const valid = typeof data[identifierField] === "string" && typeof data.password === "string";
   let res: LoginResponse;
   if (valid) {
-    res = await checker(data.email, data.password);
+    res = await checker(data[identifierField], data.password);
   } else {
-    res = { result: LoginResult.BadRequest, success: false };
+    res = { result: LoginResult.BadRequest, success: false, type: "none" };
   }
   return res;
 }
 
+// app.put("/login", async (req, res) => {
+//   const sess = req.session as CDSSession;
+//   let result = LoginResult.BadSession;
+//   res.status(401);
+//   if (sess.user_id && sess.user_type) {
+//     result = LoginResult.Ok;
+//     res.status(200);
+//   }
+//   res.json({
+//     result: result,
+//     id: sess.user_id,
+//     success: LoginResult.success(result)
+//   });
+// });
+
 app.put("/login", async (req, res) => {
-  const sess = req.session as CDSSession;
-  let result = LoginResult.BadSession;
-  res.status(401);
-  if (sess.user_id && sess.user_type) {
-    result = LoginResult.Ok;
-    res.status(200);
+  let response = await handleLogin(req, "username", checkStudentLogin);
+  let type = UserType.Student;
+  if (!(response.success && response.user)) {
+    response = await handleLogin(req, "username", checkEducatorLogin);
+    type = UserType.Educator;
   }
-  res.json({
-    result: result,
-    id: sess.user_id,
-    success: LoginResult.success(result)
-  });
+
+  if (response.success && response.user) {
+    const sess = req.session as CDSSession;
+    if (sess) {
+      sess.user_id = response.user.id;
+      sess.user_type = type;
+    }
+  }
+
+  const status = response.success ? 200 : 401;
+  res.status(status).json(response);
 });
 
 app.put("/student-login", async (req, res) => {
-  const loginResponse = await handleLogin(req, checkStudentLogin);
-  if (loginResponse.success && loginResponse.id) {
+  const loginResponse = await handleLogin(req, "username", checkStudentLogin);
+  if (loginResponse.success && loginResponse.user) {
     const sess = req.session as CDSSession;
-    sess.user_id = loginResponse.id;
+    sess.user_id = loginResponse.user.id;
     sess.user_type = UserType.Student;
   }
   const status = loginResponse.success ? 200 : 401;
@@ -312,10 +328,10 @@ app.put("/student-login", async (req, res) => {
 });
 
 app.put("/educator-login", async (req, res) => {
-  const loginResponse = await handleLogin(req, checkEducatorLogin);
-  if (loginResponse.success && loginResponse.id) {
+  const loginResponse = await handleLogin(req, "email", checkEducatorLogin);
+  if (loginResponse.success && loginResponse.user) {
     const sess = req.session as CDSSession;
-    sess.user_id = loginResponse.id;
+    sess.user_id = loginResponse.user.id;
     sess.user_type = UserType.Educator;
   }
   const status = loginResponse.success ? 200 : 401;
@@ -545,7 +561,7 @@ app.post("/students/create", async (req, res) => {
     typeof data.username === "string" &&
     typeof data.password === "string" &&
     ((typeof data.institution === "string") || (data.institution == null)) &&
-    typeof data.email === "string" &&
+    ((typeof data.email === "string") || (data.email == null)) &&
     ((typeof data.age === "number") || (data.age == null)) &&
     ((typeof data.gender === "string") || (data.gender == null)) &&
     ((typeof data.classroom_code === "string") || (data.classroom_code == null))

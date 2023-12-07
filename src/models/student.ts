@@ -5,7 +5,7 @@ export class Student extends Model<InferAttributes<Student>, InferCreationAttrib
   declare id: CreationOptional<number>;
   declare verified: number;
   declare verification_code: string;
-  declare email: string;
+  declare email: CreationOptional<string | null>;
   declare username: string;
   declare password: string;
   declare institution: string | null;

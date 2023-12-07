@@ -39,14 +39,22 @@ import { logger } from "./logger";
 type SequelizeError = { parent: { code: string } };
 
 export type LoginResponse = {
+  type: "none" | "student" | "educator" | "admin",
   result: LoginResult;
-  id?: number;
+  user?: User;
   success: boolean;
 };
 
 export type CreateClassResponse = {
   result: CreateClassResult;
   class?: object;
+}
+
+export enum UserType {
+  None = 0, // Not logged in
+  Student,
+  Educator,
+  Admin
 }
 
 // Grab any environment variables
@@ -217,7 +225,7 @@ export async function signUpEducator(options: SignUpEducatorOptions): Promise<Si
 export interface SignUpStudentOptions {
   username: string;
   password: string;
-  email: string;
+  email?: string;
   age?: number;
   gender?: string;
   institution?: string;
@@ -301,11 +309,11 @@ export async function addStudentToClass(studentID: number, classID: number): Pro
   });
 }
 
-async function checkLogin<T extends Model & User>(email: string, password: string, emailFinder: (email: string)
+async function checkLogin<T extends Model & User>(identifier: string, password: string, identifierFinder: (identifier: string)
   => Promise<T | null>): Promise<LoginResponse> {
 
   const encryptedPassword = encryptPassword(password);
-  const user = await emailFinder(email);
+  const user = await identifierFinder(identifier);
   let result: LoginResult;
   if (user === null) {
     result = LoginResult.EmailNotExist;
@@ -322,22 +330,32 @@ async function checkLogin<T extends Model & User>(email: string, password: strin
       where: { id: user.id }
     });
   }
-  return {
+  
+  let type: LoginResponse["type"] = "none";
+  if (user instanceof Student) {
+    type = "student";
+  } else if (user instanceof Educator) {
+    type = "educator";
+  }
+
+  const response: LoginResponse = {
     result: result,
-    id: user?.id,
-    success: LoginResult.success(result)
+    success: LoginResult.success(result),
+    type
   };
+  if (user) {
+    response.user = user;
+  }
+  return response;
 }
 
-export async function checkStudentLogin(email: string, password: string): Promise<LoginResponse> {
-  return checkLogin(email, password, findStudentByEmail);
+export async function checkStudentLogin(username: string, password: string): Promise<LoginResponse> {
+  return checkLogin(username, password, findStudentByUsername);
 }
 
 export async function checkEducatorLogin(email: string, password: string): Promise<LoginResponse> {
   return checkLogin(email, password, findEducatorByEmail);
 }
-
-
 
 export async function getAllStudents(): Promise<Student[]> {
   return Student.findAll();
