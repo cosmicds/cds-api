@@ -5,7 +5,7 @@ CREATE TABLE Students (
     verification_code varchar(50) COLLATE utf8_unicode_ci NOT NULL UNIQUE,
     username varchar(64) COLLATE utf8_unicode_ci NOT NULL UNIQUE,
     password varchar(64) COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
-    institution varchar(100) COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
+    institution varchar(100) COLLATE utf8_unicode_ci DEFAULT NULL,
     age int(5),
     gender varchar(20) COLLATE utf8_unicode_ci,
     ip varchar(50) COLLATE utf8_unicode_ci,
