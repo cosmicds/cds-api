@@ -1,4 +1,4 @@
-import { Op, QueryTypes, Sequelize, WhereOptions, col, fn, literal } from "sequelize";
+import { Attributes, FindOptions, Op, QueryTypes, Sequelize, WhereOptions, col, fn, literal } from "sequelize";
 import { AsyncMergedHubbleStudentClasses, Galaxy, HubbleMeasurement, SampleHubbleMeasurement, initializeModels, SyncMergedHubbleClasses } from "./models";
 import { classSize, cosmicdsDB, findClassById, findStudentById } from "../../database";
 import { RemoveHubbleMeasurementResult, SubmitHubbleMeasurementResult } from "./request_results";
@@ -12,7 +12,7 @@ import { logger } from "../../logger";
 initializeModels(cosmicdsDB);
 setUpHubbleAssociations();
 
-const galaxyAttributes = ["ra", "decl", "z", "type", "name", "element"];
+const galaxyAttributes = ["id", "ra", "decl", "z", "type", "name", "element"];
 
 export async function submitHubbleMeasurement(data: {
   student_id: number,
@@ -506,25 +506,37 @@ export async function removeSampleHubbleMeasurement(studentID: number, measureme
   return count > 0 ? RemoveHubbleMeasurementResult.MeasurementDeleted : RemoveHubbleMeasurementResult.NoSuchMeasurement;
 }
 
-export async function getGalaxiesForTypes(types: string[]): Promise<Galaxy[]> {
-  return Galaxy.findAll({
+export async function getGalaxiesForTypes(types: string[], flags=false): Promise<Galaxy[]> {
+  const query: FindOptions<Attributes<Galaxy>> = {
     where: {
       is_bad: 0,
       spec_is_bad: 0,
       is_sample: 0,
       type: { [Op.in]: types }
     }
-  });
+  };
+
+  if (!flags) {
+    query.attributes = galaxyAttributes;
+  }
+
+  return Galaxy.findAll(query);
 }
 
-export async function getAllGalaxies(): Promise<Galaxy[]> {
-  return Galaxy.findAll({
+export async function getAllGalaxies(flags=false): Promise<Galaxy[]> {
+  const query: FindOptions<Attributes<Galaxy>> = {
     where: {
       is_bad: 0,
       spec_is_bad: 0,
       is_sample: 0
     }
-  });
+  };
+
+  if (!flags) {
+    query.attributes = galaxyAttributes;
+  }
+
+  return Galaxy.findAll(query);
 }
 
 export async function getGalaxyByName(name: string): Promise<Galaxy | null> {
