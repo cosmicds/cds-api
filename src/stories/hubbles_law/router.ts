@@ -352,9 +352,10 @@ router.put("/sync-merged-class/:classID", async(req, res) => {
 
 router.get("/galaxies", async (req, res) => {
   const types = req.query?.types ?? undefined;
+  const flags = (/true/i).test((req.query?.flags as string) ?? undefined);
   let galaxies: Galaxy[];
   if (types === undefined) {
-    galaxies = await getAllGalaxies();
+    galaxies = await getAllGalaxies(flags);
   } else {
     let galaxyTypes: string[];
     if (Array.isArray(types)) {
@@ -362,7 +363,7 @@ router.get("/galaxies", async (req, res) => {
     } else {
       galaxyTypes = (types as string).split(",");
     }
-    galaxies = await getGalaxiesForTypes(galaxyTypes);
+    galaxies = await getGalaxiesForTypes(galaxyTypes, flags);
   }
   res.json(galaxies);
 });
