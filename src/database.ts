@@ -39,14 +39,22 @@ import { logger } from "./logger";
 type SequelizeError = { parent: { code: string } };
 
 export type LoginResponse = {
+  type: "none" | "student" | "educator" | "admin",
   result: LoginResult;
-  id?: number;
+  user?: User;
   success: boolean;
 };
 
 export type CreateClassResponse = {
   result: CreateClassResult;
   class?: object;
+}
+
+export enum UserType {
+  None = 0, // Not logged in
+  Student,
+  Educator,
+  Admin
 }
 
 // Grab any environment variables
@@ -180,11 +188,19 @@ async function educatorVerificationCodeExists(code: string): Promise<boolean> {
   return result.length > 0;
 }
 
-export async function signUpEducator(firstName: string, lastName: string,
-                              password: string, institution: string | null,
-                              email: string, age: number | null, gender: string): Promise<SignUpResult> {
+export interface SignUpEducatorOptions {
+  first_name: string;
+  last_name: string;
+  password: string;
+  email: string;
+  institution?: string;
+  age?: number;
+  gender?: string;
+}
+
+export async function signUpEducator(options: SignUpEducatorOptions): Promise<SignUpResult> {
                          
-  const encryptedPassword = encryptPassword(password);
+  const encryptedPassword = encryptPassword(options.password);
 
   let validCode;
   let verificationCode: string;
@@ -195,15 +211,10 @@ export async function signUpEducator(firstName: string, lastName: string,
 
   let result = SignUpResult.Ok;
   await Educator.create({
-      first_name: firstName,
-      last_name: lastName,
+      ...options,
       verified: 0,
       verification_code: verificationCode,
       password: encryptedPassword,
-      institution: institution,
-      email: email,
-      age: age,
-      gender: gender,
     })
     .catch(error => {
       result = signupResultFromError(error);
@@ -211,12 +222,20 @@ export async function signUpEducator(firstName: string, lastName: string,
     return result;
 }
 
-export async function signUpStudent(username: string,
-                             password: string, institution: string | null,
-                             email: string, age: number, gender: string,
-                             classroomCode: string | null): Promise<SignUpResult> {
+export interface SignUpStudentOptions {
+  username: string;
+  password: string;
+  email?: string;
+  age?: number;
+  gender?: string;
+  institution?: string;
+  classroom_code?: string;
+}
+
+
+export async function signUpStudent(options: SignUpStudentOptions): Promise<SignUpResult> {
   
-  const encryptedPassword = encryptPassword(password);
+  const encryptedPassword = encryptPassword(options.password);
 
   let validCode;
   let verificationCode: string;
@@ -231,10 +250,10 @@ export async function signUpStudent(username: string,
     verified: 0,
     verification_code: verificationCode,
     password: encryptedPassword,
-    institution: institution,
-    email: email,
-    age: age,
-    gender: gender,
+    institution: options.institution,
+    email: options.email,
+    age: options.age,
+    gender: options.gender,
   })
   .catch(error => {
     result = signupResultFromError(error);
@@ -242,8 +261,8 @@ export async function signUpStudent(username: string,
 
   // If the student has a valid classroom code,
   // add them to the class
-  if (student && classroomCode) {
-    const cls = await findClassByCode(classroomCode);
+  if (student && options.classroom_code) {
+    const cls = await findClassByCode(options.classroom_code);
     if (cls !== null) {
       StudentsClasses.create({
         student_id: student.id,
@@ -290,11 +309,11 @@ export async function addStudentToClass(studentID: number, classID: number): Pro
   });
 }
 
-async function checkLogin<T extends Model & User>(email: string, password: string, emailFinder: (email: string)
+async function checkLogin<T extends Model & User>(identifier: string, password: string, identifierFinder: (identifier: string)
   => Promise<T | null>): Promise<LoginResponse> {
 
   const encryptedPassword = encryptPassword(password);
-  const user = await emailFinder(email);
+  const user = await identifierFinder(identifier);
   let result: LoginResult;
   if (user === null) {
     result = LoginResult.EmailNotExist;
@@ -311,22 +330,32 @@ async function checkLogin<T extends Model & User>(email: string, password: strin
       where: { id: user.id }
     });
   }
-  return {
+  
+  let type: LoginResponse["type"] = "none";
+  if (user instanceof Student) {
+    type = "student";
+  } else if (user instanceof Educator) {
+    type = "educator";
+  }
+
+  const response: LoginResponse = {
     result: result,
-    id: user?.id,
-    success: LoginResult.success(result)
+    success: LoginResult.success(result),
+    type
   };
+  if (user) {
+    response.user = user;
+  }
+  return response;
 }
 
-export async function checkStudentLogin(email: string, password: string): Promise<LoginResponse> {
-  return checkLogin(email, password, findStudentByEmail);
+export async function checkStudentLogin(username: string, password: string): Promise<LoginResponse> {
+  return checkLogin(username, password, findStudentByUsername);
 }
 
 export async function checkEducatorLogin(email: string, password: string): Promise<LoginResponse> {
   return checkLogin(email, password, findEducatorByEmail);
 }
-
-
 
 export async function getAllStudents(): Promise<Student[]> {
   return Student.findAll();
