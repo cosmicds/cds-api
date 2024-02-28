@@ -21,7 +21,7 @@ router.put("/annular-eclipse-2023/response", async (req, res) => {
   const response = await submitEclipseMiniResponse(data);
   if (!response) {
     res.status(400);
-    res.json({ error: "Error creating eclipse mini response" });
+    res.json({ error: "Error creating annular eclipse 2023 mini response" });
     return;
   }
 
