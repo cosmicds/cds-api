@@ -5,7 +5,7 @@ import {
   isNumberArray,
 } from "../../utils";
 
-import { initializeModels, SolarEclipse2024Response, SolarEclipse2024Response, SolarEclipse2024Response, SolarEclipse2024Response } from "./models";
+import { initializeModels, SolarEclipse2024Response } from "./models";
 
 initializeModels(cosmicdsDB);
 
