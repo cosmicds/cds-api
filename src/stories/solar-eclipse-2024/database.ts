@@ -1,7 +1,6 @@
 import * as S from "@effect/schema/Schema";
 import { cosmicdsDB } from "../../database";
 import { logger } from "../../logger";
-import { literal } from "sequelize";
 
 import { UpdateAttributes } from "../../utils";
 import { initializeModels, SolarEclipse2024Data } from "./models";
