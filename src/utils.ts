@@ -2,6 +2,11 @@ import { nanoid } from "nanoid";
 import { enc, SHA256 } from "crypto-js";
 import { v5 } from "uuid";
 
+import { Model } from "sequelize";
+
+// This type describes objects that we're allowed to pass to a model's `update` method
+export type UpdateAttributes<M extends Model> = Parameters<M["update"]>[0];
+
 export function createVerificationCode(): string {
   return nanoid(21);
 }
