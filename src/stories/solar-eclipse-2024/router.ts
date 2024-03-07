@@ -2,10 +2,10 @@ import * as S from "@effect/schema/Schema";
 import * as Either from "effect/Either";
 import { Router } from "express";
 import {
-  getAllSolarEclipse2024Responses,
-  getSolarEclipse2024Response,
+  getAllSolarEclipse2024Data,
+  getSolarEclipse2024Data,
   submitSolarEclipse2024Response,
-  SolarEclipse2024Data,
+  SolarEclipse2024Datum,
   SolarEclipse2024Update,
 } from "./database";
 
@@ -13,7 +13,7 @@ const router = Router();
 
 router.put("/responses", async (req, res) => {
   const data = req.body;
-  const maybe = S.decodeUnknownEither(SolarEclipse2024Data)(data);
+  const maybe = S.decodeUnknownEither(SolarEclipse2024Datum)(data);
 
   if (Either.isLeft(maybe)) {
     res.status(400);
@@ -32,13 +32,13 @@ router.put("/responses", async (req, res) => {
 });
 
 router.get("/responses", async (_req, res) => {
-  const responses = await getAllSolarEclipse2024Responses();
+  const responses = await getAllSolarEclipse2024Data();
   res.json({ responses });
 });
 
 router.get("/responses/:uuid", async (req, res) => {
   const uuid = req.params.uuid as string;
-  const response = await getSolarEclipse2024Response(uuid);
+  const response = await getSolarEclipse2024Data(uuid);
   res.json({ response });
 });
 
@@ -52,14 +52,11 @@ router.patch("/responses/:uuid", async (req, res) => {
     return;
   }
 
-  const response = await getSolarEclipse2024Response(uuid);
+  const response = await getSolarEclipse2024Data(uuid);
   if (response === null) {
     res.status(404).json({ error: "Specified user response does not exist" });
     return;
   }
-
-  
-
 
 });
 
