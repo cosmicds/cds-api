@@ -13,14 +13,14 @@ const LatLonArray = S.mutable(S.array(S.mutable(S.tuple(S.number, S.number))));
 
 export const SolarEclipse2024Entry = S.struct({
   user_uuid: S.string,
-  selected_locations: LatLonArray,
+  user_selected_locations: LatLonArray,
   cloud_cover_selected_locations: LatLonArray,
   info_time_ms: S.optional(S.number.pipe(S.int()), { exact: true }),
   app_time_ms: S.optional(S.number.pipe(S.int()), { exact: true }),
 });
 
 export const SolarEclipse2024Update = S.struct({
-  selected_locations: S.optional(LatLonArray, { exact: true }),
+  user_selected_locations: S.optional(LatLonArray, { exact: true }),
   cloud_cover_selected_locations: S.optional(LatLonArray, { exact: true }),
   delta_info_time_ms: S.optional(S.number.pipe(S.int()), { exact: true }),
   delta_app_time_ms: S.optional(S.number.pipe(S.int()), { exact: true }),
@@ -34,7 +34,7 @@ export async function submitSolarEclipse2024Response(data: SolarEclipse2024DataT
 
   const dataWithCounts = {
     ...data,
-    selected_locations_count: data.selected_locations.length,
+    user_selected_locations_count: data.user_selected_locations.length,
     cloud_cover_selected_locations_count: data.cloud_cover_selected_locations.length,
   };
 
@@ -57,10 +57,10 @@ export async function updateSolarEclipse2024Data(userUUID: string, update: Solar
     return false;
   }
   const dbUpdate: SolarEclipse2024UpdateAttributes = {};
-  if (update.selected_locations) {
-    const selected = data.selected_locations.concat(update.selected_locations);
-    dbUpdate.selected_locations = selected;
-    dbUpdate.selected_locations_count = selected.length;
+  if (update.user_selected_locations) {
+    const selected = data.user_selected_locations.concat(update.user_selected_locations);
+    dbUpdate.user_selected_locations = selected;
+    dbUpdate.user_selected_locations_count = selected.length;
   }
   if (update.cloud_cover_selected_locations) {
     const selected = data.cloud_cover_selected_locations.concat(update.cloud_cover_selected_locations);

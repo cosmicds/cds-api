@@ -3,8 +3,8 @@ import { Sequelize, DataTypes, Model, InferAttributes, InferCreationAttributes, 
 export class SolarEclipse2024Data extends Model<InferAttributes<SolarEclipse2024Data>, InferCreationAttributes<SolarEclipse2024Data>> {
   declare id: CreationOptional<number>;
   declare user_uuid: string;
-  declare selected_locations: [number, number][];
-  declare selected_locations_count: number;
+  declare user_selected_locations: [number, number][];
+  declare user_selected_locations_count: number;
   declare cloud_cover_selected_locations: [number, number][];
   declare cloud_cover_selected_locations_count: number;
   declare info_time_ms: CreationOptional<number>;
@@ -25,11 +25,11 @@ export function initializeSolarEclipse2024DataModel(sequelize: Sequelize) {
       unique: true,
       allowNull: false
     },
-    selected_locations: {
+    user_selected_locations: {
       type: DataTypes.JSON,
       allowNull: false
     },
-    selected_locations_count: {
+    user_selected_locations_count: {
       type: DataTypes.INTEGER,
       allowNull: false
     },
@@ -43,10 +43,12 @@ export function initializeSolarEclipse2024DataModel(sequelize: Sequelize) {
     },
     info_time_ms: {
       type: DataTypes.INTEGER,
+      allowNull: false,
       defaultValue: 0
     },
     app_time_ms: {
       type: DataTypes.INTEGER,
+      allowNull: false,
       defaultValue: 0
     },
     timestamp: {
