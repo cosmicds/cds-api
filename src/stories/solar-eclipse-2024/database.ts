@@ -20,7 +20,6 @@ export const SolarEclipse2024Entry = S.struct({
 });
 
 export const SolarEclipse2024Update = S.struct({
-  user_uuid: S.string,
   selected_locations: S.optional(LatLonArray, { exact: true }),
   cloud_cover_selected_locations: S.optional(LatLonArray, { exact: true }),
   delta_info_time_ms: S.optional(S.number.pipe(S.int()), { exact: true }),
@@ -57,9 +56,7 @@ export async function updateSolarEclipse2024Data(userUUID: string, update: Solar
   if (data === null) {
     return false;
   }
-  const dbUpdate: SolarEclipse2024UpdateAttributes = {
-    user_uuid: update.user_uuid,
-  };
+  const dbUpdate: SolarEclipse2024UpdateAttributes = {};
   if (update.selected_locations) {
     const selected = data.selected_locations.concat(update.selected_locations);
     dbUpdate.selected_locations = selected;
