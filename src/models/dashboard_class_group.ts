@@ -1,4 +1,4 @@
-import { Sequelize, DataTypes, Model, InferAttributes, InferCreationAttributes, CreationOptional, DATE } from "sequelize";
+import { Sequelize, DataTypes, Model, InferAttributes, InferCreationAttributes, CreationOptional } from "sequelize";
 
 export class DashboardClassGroup extends Model<InferAttributes<DashboardClassGroup>, InferCreationAttributes<DashboardClassGroup>> {
   declare id: CreationOptional<number>;
