@@ -29,7 +29,7 @@ export const SolarEclipse2024Update = S.struct({
 export type SolarEclipse2024DataT = S.Schema.To<typeof SolarEclipse2024Entry>;
 export type SolarEclipse2024UpdateT = S.Schema.To<typeof SolarEclipse2024Update>;
 
-export async function submitSolarEclipse2024Response(data: SolarEclipse2024DataT): Promise<SolarEclipse2024Data | null> {
+export async function submitSolarEclipse2024Data(data: SolarEclipse2024DataT): Promise<SolarEclipse2024Data | null> {
   logger.verbose(`Attempting to submit solar eclipse 2024 measurement for user ${data.user_uuid}`);
 
   const dataWithCounts = {
