@@ -46,7 +46,7 @@ export type LoginResponse = {
 
 export type CreateClassResponse = {
   result: CreateClassResult;
-  class?: object;
+  class?: object | undefined;
 }
 
 // Grab any environment variables
@@ -313,7 +313,7 @@ async function checkLogin<T extends Model & User>(email: string, password: strin
   }
   return {
     result: result,
-    id: user?.id,
+    id: user?.id ?? 0,
     success: LoginResult.success(result)
   };
 }

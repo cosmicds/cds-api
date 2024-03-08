@@ -1,46 +1,78 @@
+import * as S from "@effect/schema/Schema";
 import { cosmicdsDB } from "../../database";
 import { logger } from "../../logger";
-import {
-  isArrayThatSatisfies,
-  isNumberArray,
-} from "../../utils";
 
-import { initializeModels, SolarEclipse2024Response } from "./models";
+import { UpdateAttributes } from "../../utils";
+import { initializeModels, SolarEclipse2024Data } from "./models";
+
+type SolarEclipse2024UpdateAttributes = UpdateAttributes<SolarEclipse2024Data>;
 
 initializeModels(cosmicdsDB);
 
-export interface SolarEclipse2024Data {
-  user_uuid: string;
-  user_selected_locations: [number, number][],
-  timestamp: Date
-}
+const LatLonArray = S.mutable(S.array(S.mutable(S.tuple(S.number, S.number))));
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function isValidSolarEclipseData(data: any): data is SolarEclipse2024Response {
-  return typeof data.user_uuid === "string" &&
-    isArrayThatSatisfies(data.user_selected_locations, (arr) => {
-      return arr.every(x => isNumberArray(x) && x.length === 2);
-    });
-}
+export const SolarEclipse2024Entry = S.struct({
+  user_uuid: S.string,
+  user_selected_locations: LatLonArray,
+  cloud_cover_selected_locations: LatLonArray,
+  info_time_ms: S.optional(S.number.pipe(S.int()), { exact: true }),
+  app_time_ms: S.optional(S.number.pipe(S.int()), { exact: true }),
+});
 
-export async function submitSolarEclipse2024Response(data: SolarEclipse2024Response): Promise<SolarEclipse2024Response | null> {
+export const SolarEclipse2024Update = S.struct({
+  user_selected_locations: S.optional(LatLonArray, { exact: true }),
+  cloud_cover_selected_locations: S.optional(LatLonArray, { exact: true }),
+  delta_info_time_ms: S.optional(S.number.pipe(S.int()), { exact: true }),
+  delta_app_time_ms: S.optional(S.number.pipe(S.int()), { exact: true }),
+});
 
+export type SolarEclipse2024DataT = S.Schema.To<typeof SolarEclipse2024Entry>;
+export type SolarEclipse2024UpdateT = S.Schema.To<typeof SolarEclipse2024Update>;
+
+export async function submitSolarEclipse2024Data(data: SolarEclipse2024DataT): Promise<SolarEclipse2024Data | null> {
   logger.verbose(`Attempting to submit solar eclipse 2024 measurement for user ${data.user_uuid}`);
 
   const dataWithCounts = {
     ...data,
-    user_selected_locations_count: data.user_selected_locations.length
+    user_selected_locations_count: data.user_selected_locations.length,
+    cloud_cover_selected_locations_count: data.cloud_cover_selected_locations.length,
   };
 
-  return SolarEclipse2024Response.upsert(dataWithCounts).then(([item, _]) => item);
+  return SolarEclipse2024Data.upsert(dataWithCounts).then(([item, _]) => item);
 }
 
-export async function getAllSolarEclipse2024Responses(): Promise<SolarEclipse2024Response[]> {
-  return SolarEclipse2024Response.findAll();
+export async function getAllSolarEclipse2024Data(): Promise<SolarEclipse2024Data[]> {
+  return SolarEclipse2024Data.findAll();
 }
 
-export async function getSolarEclipse2024Response(userUUID: string): Promise<SolarEclipse2024Response | null> {
-  return SolarEclipse2024Response.findOne({
+export async function getSolarEclipse2024Data(userUUID: string): Promise<SolarEclipse2024Data | null> {
+  return SolarEclipse2024Data.findOne({
     where: { user_uuid: userUUID }
   });
+}
+
+export async function updateSolarEclipse2024Data(userUUID: string, update: SolarEclipse2024UpdateT): Promise<boolean> {
+  const data = await SolarEclipse2024Data.findOne({ where: { user_uuid: userUUID } });
+  if (data === null) {
+    return false;
+  }
+  const dbUpdate: SolarEclipse2024UpdateAttributes = {};
+  if (update.user_selected_locations) {
+    const selected = data.user_selected_locations.concat(update.user_selected_locations);
+    dbUpdate.user_selected_locations = selected;
+    dbUpdate.user_selected_locations_count = selected.length;
+  }
+  if (update.cloud_cover_selected_locations) {
+    const selected = data.cloud_cover_selected_locations.concat(update.cloud_cover_selected_locations);
+    dbUpdate.cloud_cover_selected_locations = selected;
+    dbUpdate.cloud_cover_selected_locations_count = selected.length;
+  }
+  if (update.delta_info_time_ms) {
+    dbUpdate.info_time_ms = data.info_time_ms + update.delta_info_time_ms;
+  }
+  if (update.delta_app_time_ms) {
+    dbUpdate.app_time_ms = data.app_time_ms + update.delta_app_time_ms;
+  }
+  const result = await data.update(dbUpdate);
+  return result !== null;
 }

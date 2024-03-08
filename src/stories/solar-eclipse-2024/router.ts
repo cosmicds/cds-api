@@ -1,37 +1,71 @@
+import * as S from "@effect/schema/Schema";
+import * as Either from "effect/Either";
 import { Router } from "express";
-import { getAllSolarEclipse2024Responses, getSolarEclipse2024Response, isValidSolarEclipseData, submitSolarEclipse2024Response } from "./database";
+import {
+  getAllSolarEclipse2024Data,
+  getSolarEclipse2024Data,
+  submitSolarEclipse2024Data,
+  SolarEclipse2024Entry,
+  updateSolarEclipse2024Data,
+  SolarEclipse2024Update,
+} from "./database";
 
 const router = Router();
 
-router.put("/response", async (req, res) => {
+router.put("/data", async (req, res) => {
   const data = req.body;
-  const valid = isValidSolarEclipseData(data);
+  const maybe = S.decodeUnknownEither(SolarEclipse2024Entry)(data);
 
-  if (!valid) {
+  if (Either.isLeft(maybe)) {
     res.status(400);
-    res.json({ error: "Malformed response submission" });
+    res.json({ error: "Malformed data submission" });
     return;
   }
 
-  const response = await submitSolarEclipse2024Response(data);
+  const response = await submitSolarEclipse2024Data(maybe.right);
   if (response === null) {
     res.status(400);
-    res.json({ error: "Error creating solar eclipse 2024 response" });
+    res.json({ error: "Error creating solar eclipse 2024 entry" });
     return;
   }
 
   res.json({ response });
 });
 
-router.get("/responses", async (_req, res) => {
-  const responses = await getAllSolarEclipse2024Responses();
+router.get("/data", async (_req, res) => {
+  const responses = await getAllSolarEclipse2024Data();
   res.json({ responses });
 });
 
-router.get("/response/:userUUID", async (req, res) => {
-  const uuid = req.params.userUUID as string;
-  const response = await getSolarEclipse2024Response(uuid);
+router.get("/data/:uuid", async (req, res) => {
+  const uuid = req.params.uuid as string;
+  const response = await getSolarEclipse2024Data(uuid);
   res.json({ response });
+});
+
+router.patch("/data/:uuid", async (req, res) => {
+  const uuid = req.params.uuid as string;
+  const data = req.body;
+
+  const maybe = S.decodeUnknownEither(SolarEclipse2024Update)(data);
+  if (Either.isLeft(maybe)) {
+    res.status(400).json({ error: "Malformed update submission" }); 
+    return;
+  }
+
+  const response = await getSolarEclipse2024Data(uuid);
+  if (response === null) {
+    res.status(404).json({ error: "Specified user data does not exist" });
+    return;
+  }
+
+  const success = await updateSolarEclipse2024Data(uuid, maybe.right);
+  if (!success) {
+    res.status(500).json({ error: "Error updating user data" });
+    return;
+  }
+  res.json({ response });
+
 });
 
 export default router;
