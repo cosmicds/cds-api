@@ -32,11 +32,6 @@ router.put("/data", async (req, res) => {
   res.json({ response });
 });
 
-router.get("/data", async (_req, res) => {
-  const responses = await getAllSolarEclipse2024Data();
-  res.json({ responses });
-});
-
 router.get("/data/:uuid", async (req, res) => {
   const uuid = req.params.uuid as string;
   const response = await getSolarEclipse2024Data(uuid);
