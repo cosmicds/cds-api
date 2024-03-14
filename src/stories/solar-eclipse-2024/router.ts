@@ -35,6 +35,10 @@ router.put("/data", async (req, res) => {
 router.get("/data/:uuid", async (req, res) => {
   const uuid = req.params.uuid as string;
   const response = await getSolarEclipse2024Data(uuid);
+  if (response === null) {
+    res.status(404).json({ error: "Specified user data does not exist" });
+    return;
+  }
   res.json({ response });
 });
 
