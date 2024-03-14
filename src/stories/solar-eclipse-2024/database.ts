@@ -17,6 +17,7 @@ export const SolarEclipse2024Entry = S.struct({
   cloud_cover_selected_locations: LatLonArray,
   info_time_ms: S.optional(S.number.pipe(S.int()), { exact: true }),
   app_time_ms: S.optional(S.number.pipe(S.int()), { exact: true }),
+  advanced_weather_time_ms: S.optional(S.number.pipe(S.int()), { exact: true }),
 });
 
 export const SolarEclipse2024Update = S.struct({
@@ -24,6 +25,7 @@ export const SolarEclipse2024Update = S.struct({
   cloud_cover_selected_locations: S.optional(LatLonArray, { exact: true }),
   delta_info_time_ms: S.optional(S.number.pipe(S.int()), { exact: true }),
   delta_app_time_ms: S.optional(S.number.pipe(S.int()), { exact: true }),
+  delta_advanced_weather_time_ms: S.optional(S.number.pipe(S.int()), { exact: true }),
 });
 
 export type SolarEclipse2024DataT = S.Schema.To<typeof SolarEclipse2024Entry>;
@@ -72,6 +74,9 @@ export async function updateSolarEclipse2024Data(userUUID: string, update: Solar
   }
   if (update.delta_app_time_ms) {
     dbUpdate.app_time_ms = data.app_time_ms + update.delta_app_time_ms;
+  }
+  if (update.delta_advanced_weather_time_ms) {
+    dbUpdate.advanced_weather_time_ms = data.advanced_weather_time_ms + update.delta_advanced_weather_time_ms;
   }
   const result = await data.update(dbUpdate);
   return result !== null;
