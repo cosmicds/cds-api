@@ -8,6 +8,7 @@ CREATE TABLE SolarEclipse2024Data (
     app_time_ms INT NOT NULL DEFAULT 0,
     info_time_ms INT NOT NULL DEFAULT 0,
     advanced_weather_time_ms INT NOT NULL DEFAULT 0,
+    weather_info_time_ms INT NOT NULL DEFAULT 0,
     timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     
     PRIMARY KEY(id),
