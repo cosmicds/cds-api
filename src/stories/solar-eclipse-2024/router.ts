@@ -2,7 +2,6 @@ import * as S from "@effect/schema/Schema";
 import * as Either from "effect/Either";
 import { Router } from "express";
 import {
-  getAllSolarEclipse2024Data,
   getSolarEclipse2024Data,
   submitSolarEclipse2024Data,
   SolarEclipse2024Entry,
