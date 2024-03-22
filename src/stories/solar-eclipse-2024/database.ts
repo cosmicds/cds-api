@@ -15,7 +15,7 @@ export const SolarEclipse2024Entry = S.struct({
   user_uuid: S.string,
   user_selected_locations: LatLonArray,
   cloud_cover_selected_locations: LatLonArray,
-  text_search_locations: LatLonArray,
+  text_search_selected_locations: LatLonArray,
   info_time_ms: S.optional(S.number.pipe(S.int()), { exact: true }),
   app_time_ms: S.optional(S.number.pipe(S.int()), { exact: true }),
   advanced_weather_time_ms: S.optional(S.number.pipe(S.int()), { exact: true }),
@@ -27,7 +27,7 @@ export const SolarEclipse2024Entry = S.struct({
 export const SolarEclipse2024Update = S.struct({
   user_selected_locations: S.optional(LatLonArray, { exact: true }),
   cloud_cover_selected_locations: S.optional(LatLonArray, { exact: true }),
-  text_search_locations: S.optional(LatLonArray, { exact: true }),
+  text_search_selected_locations: S.optional(LatLonArray, { exact: true }),
   delta_info_time_ms: S.optional(S.number.pipe(S.int()), { exact: true }),
   delta_app_time_ms: S.optional(S.number.pipe(S.int()), { exact: true }),
   delta_advanced_weather_time_ms: S.optional(S.number.pipe(S.int()), { exact: true }),
@@ -46,7 +46,7 @@ export async function submitSolarEclipse2024Data(data: SolarEclipse2024DataT): P
     ...data,
     user_selected_locations_count: data.user_selected_locations.length,
     cloud_cover_selected_locations_count: data.cloud_cover_selected_locations.length,
-    text_search_locations_count: data.text_search_locations.length,
+    text_search_selected_locations_count: data.text_search_selected_locations.length,
   };
 
   return SolarEclipse2024Data.upsert(dataWithCounts).then(([item, _]) => item);
@@ -78,10 +78,10 @@ export async function updateSolarEclipse2024Data(userUUID: string, update: Solar
     dbUpdate.cloud_cover_selected_locations = selected;
     dbUpdate.cloud_cover_selected_locations_count = selected.length;
   }
-  if (update.text_search_locations) {
-    const selected = data.text_search_locations.concat(update.text_search_locations);
-    dbUpdate.text_search_locations = selected;
-    dbUpdate.text_search_locations_count = selected.length;
+  if (update.text_search_selected_locations) {
+    const selected = data.text_search_selected_locations.concat(update.text_search_selected_locations);
+    dbUpdate.text_search_selected_locations = selected;
+    dbUpdate.text_search_selected_locations_count = selected.length;
   }
   if (update.delta_info_time_ms) {
     dbUpdate.info_time_ms = data.info_time_ms + update.delta_info_time_ms;

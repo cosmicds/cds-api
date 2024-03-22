@@ -7,8 +7,8 @@ export class SolarEclipse2024Data extends Model<InferAttributes<SolarEclipse2024
   declare user_selected_locations_count: number;
   declare cloud_cover_selected_locations: [number, number][];
   declare cloud_cover_selected_locations_count: number;
-  declare text_search_locations: [number, number][];
-  declare text_search_locations_count: number;
+  declare text_search_selected_locations: [number, number][];
+  declare text_search_selected_locations_count: number;
   declare info_time_ms: CreationOptional<number>;
   declare app_time_ms: CreationOptional<number>;
   declare advanced_weather_time_ms: CreationOptional<number>;
@@ -47,11 +47,11 @@ export function initializeSolarEclipse2024DataModel(sequelize: Sequelize) {
       type: DataTypes.INTEGER,
       allowNull: false
     },
-    text_search_locations: {
+    text_search_selected_locations: {
       type: DataTypes.JSON,
       allowNull: false
     },
-    text_search_locations_count: {
+    text_search_selected_locations_count: {
       type: DataTypes.INTEGER,
       allowNull: false
     },
