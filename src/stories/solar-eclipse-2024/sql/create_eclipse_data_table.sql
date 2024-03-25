@@ -7,6 +7,7 @@ CREATE TABLE SolarEclipse2024Data (
     cloud_cover_selected_locations_count INT NOT NULL,
     text_search_selected_locations JSON NOT NULL, 
     text_search_selected_locations_count INT NOT NULL,
+    advanced_weather_selected_locations_count INT NOT NULL,
     app_time_ms INT NOT NULL DEFAULT 0,
     info_time_ms INT NOT NULL DEFAULT 0,
     advanced_weather_time_ms INT NOT NULL DEFAULT 0,
