@@ -17,6 +17,7 @@ export const SolarEclipse2024Entry = S.struct({
   cloud_cover_selected_locations: LatLonArray,
   text_search_selected_locations: LatLonArray,
   advanced_weather_selected_locations_count: S.number,
+  cloud_cover_selected_locations_count: S.optional(S.number, { exact: true }),
   info_time_ms: S.optional(S.number.pipe(S.int()), { exact: true }),
   app_time_ms: S.optional(S.number.pipe(S.int()), { exact: true }),
   advanced_weather_time_ms: S.optional(S.number.pipe(S.int()), { exact: true }),
@@ -30,6 +31,7 @@ export const SolarEclipse2024Update = S.struct({
   cloud_cover_selected_locations: S.optional(LatLonArray, { exact: true }),
   text_search_selected_locations: S.optional(LatLonArray, { exact: true }),
   delta_advanced_weather_selected_locations_count: S.optional(S.number, { exact: true }),
+  delta_cloud_cover_selected_locations_count: S.optional(S.number, { exact: true }),
   delta_info_time_ms: S.optional(S.number.pipe(S.int()), { exact: true }),
   delta_app_time_ms: S.optional(S.number.pipe(S.int()), { exact: true }),
   delta_advanced_weather_time_ms: S.optional(S.number.pipe(S.int()), { exact: true }),
@@ -38,16 +40,16 @@ export const SolarEclipse2024Update = S.struct({
   delta_eclipse_timer_time_ms: S.optional(S.number.pipe(S.int()), { exact: true }),
 });
 
-export type SolarEclipse2024DataT = S.Schema.To<typeof SolarEclipse2024Entry>;
+export type SolarEclipse2024EntryT = S.Schema.To<typeof SolarEclipse2024Entry>;
 export type SolarEclipse2024UpdateT = S.Schema.To<typeof SolarEclipse2024Update>;
 
-export async function submitSolarEclipse2024Data(data: SolarEclipse2024DataT): Promise<SolarEclipse2024Data | null> {
+export async function submitSolarEclipse2024Data(data: SolarEclipse2024EntryT): Promise<SolarEclipse2024Data | null> {
   logger.verbose(`Attempting to submit solar eclipse 2024 measurement for user ${data.user_uuid}`);
 
   const dataWithCounts = {
     ...data,
+    cloud_cover_selected_locations_count: data.cloud_cover_selected_locations_count ?? data.cloud_cover_selected_locations.length,
     user_selected_locations_count: data.user_selected_locations.length,
-    cloud_cover_selected_locations_count: data.cloud_cover_selected_locations.length,
     text_search_selected_locations_count: data.text_search_selected_locations.length,
   };
 
@@ -87,6 +89,9 @@ export async function updateSolarEclipse2024Data(userUUID: string, update: Solar
   }
   if (update.delta_advanced_weather_selected_locations_count) {
     dbUpdate.advanced_weather_selected_locations_count = data.advanced_weather_selected_locations_count + update.delta_advanced_weather_selected_locations_count;
+  }
+  if (update.delta_cloud_cover_selected_locations_count) {
+    dbUpdate.cloud_cover_selected_locations_count = data.cloud_cover_selected_locations_count + update.delta_cloud_cover_selected_locations_count;
   }
   if (update.delta_info_time_ms) {
     dbUpdate.info_time_ms = data.info_time_ms + update.delta_info_time_ms;
