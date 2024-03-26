@@ -81,7 +81,6 @@ export async function updateSolarEclipse2024Data(userUUID: string, update: Solar
   if (update.cloud_cover_selected_locations) {
     const selected = data.cloud_cover_selected_locations.concat(update.cloud_cover_selected_locations);
     dbUpdate.cloud_cover_selected_locations = selected;
-    dbUpdate.cloud_cover_selected_locations_count = selected.length;
   }
   if (update.text_search_selected_locations) {
     const selected = data.text_search_selected_locations.concat(update.text_search_selected_locations);
