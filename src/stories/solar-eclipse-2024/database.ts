@@ -16,7 +16,7 @@ export const SolarEclipse2024Entry = S.struct({
   user_selected_locations: LatLonArray,
   cloud_cover_selected_locations: LatLonArray,
   text_search_selected_locations: LatLonArray,
-  advanced_weather_selected_locations_count: S.number,
+  advanced_weather_selected_locations_count: S.optional(S.number, { exact: true }),
   cloud_cover_selected_locations_count: S.optional(S.number, { exact: true }),
   info_time_ms: S.optional(S.number.pipe(S.int()), { exact: true }),
   app_time_ms: S.optional(S.number.pipe(S.int()), { exact: true }),
@@ -48,6 +48,7 @@ export async function submitSolarEclipse2024Data(data: SolarEclipse2024EntryT): 
 
   const dataWithCounts = {
     ...data,
+    advanced_weather_selected_locations_count: data.advanced_weather_selected_locations_count ?? 0,
     cloud_cover_selected_locations_count: data.cloud_cover_selected_locations_count ?? data.cloud_cover_selected_locations.length,
     user_selected_locations_count: data.user_selected_locations.length,
     text_search_selected_locations_count: data.text_search_selected_locations.length,
