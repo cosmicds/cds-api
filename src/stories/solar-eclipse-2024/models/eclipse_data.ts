@@ -16,6 +16,7 @@ export class SolarEclipse2024Data extends Model<InferAttributes<SolarEclipse2024
   declare weather_info_time_ms: CreationOptional<number>;
   declare user_guide_time_ms: CreationOptional<number>;
   declare eclipse_timer_time_ms: CreationOptional<number>;
+  declare forecast_info_time_ms: CreationOptional<number>;
   declare timestamp: CreationOptional<Date>;
 }
 
@@ -86,6 +87,11 @@ export function initializeSolarEclipse2024DataModel(sequelize: Sequelize) {
       defaultValue: 0
     },
     eclipse_timer_time_ms: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0
+    },
+    forecast_info_time_ms: {
       type: DataTypes.INTEGER,
       allowNull: false,
       defaultValue: 0

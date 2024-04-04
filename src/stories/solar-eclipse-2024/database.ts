@@ -10,34 +10,39 @@ type SolarEclipse2024UpdateAttributes = UpdateAttributes<SolarEclipse2024Data>;
 initializeModels(cosmicdsDB);
 
 const LatLonArray = S.mutable(S.array(S.mutable(S.tuple(S.number, S.number))));
+const OptionalInt = S.optional(S.number.pipe(S.int()), { exact: true });
+const OptionalLatLonArray = S.optional(LatLonArray, { exact: true });
+
 
 export const SolarEclipse2024Entry = S.struct({
   user_uuid: S.string,
   user_selected_locations: LatLonArray,
   cloud_cover_selected_locations: LatLonArray,
   text_search_selected_locations: LatLonArray,
-  advanced_weather_selected_locations_count: S.optional(S.number, { exact: true }),
-  cloud_cover_selected_locations_count: S.optional(S.number, { exact: true }),
-  info_time_ms: S.optional(S.number.pipe(S.int()), { exact: true }),
-  app_time_ms: S.optional(S.number.pipe(S.int()), { exact: true }),
-  advanced_weather_time_ms: S.optional(S.number.pipe(S.int()), { exact: true }),
-  weather_info_time_ms: S.optional(S.number.pipe(S.int()), { exact: true }),
-  user_guide_time_ms: S.optional(S.number.pipe(S.int()), { exact: true }),
-  eclipse_timer_time_ms: S.optional(S.number.pipe(S.int()), { exact: true }),
+  advanced_weather_selected_locations_count: OptionalInt,
+  cloud_cover_selected_locations_count: OptionalInt,
+  info_time_ms: OptionalInt,
+  app_time_ms: OptionalInt,
+  advanced_weather_time_ms: OptionalInt,
+  weather_info_time_ms: OptionalInt,
+  user_guide_time_ms: OptionalInt,
+  eclipse_timer_time_ms: OptionalInt,
+  forecast_info_time_ms: OptionalInt,
 });
 
 export const SolarEclipse2024Update = S.struct({
-  user_selected_locations: S.optional(LatLonArray, { exact: true }),
-  cloud_cover_selected_locations: S.optional(LatLonArray, { exact: true }),
-  text_search_selected_locations: S.optional(LatLonArray, { exact: true }),
-  delta_advanced_weather_selected_locations_count: S.optional(S.number, { exact: true }),
-  delta_cloud_cover_selected_locations_count: S.optional(S.number, { exact: true }),
-  delta_info_time_ms: S.optional(S.number.pipe(S.int()), { exact: true }),
-  delta_app_time_ms: S.optional(S.number.pipe(S.int()), { exact: true }),
-  delta_advanced_weather_time_ms: S.optional(S.number.pipe(S.int()), { exact: true }),
-  delta_weather_info_time_ms: S.optional(S.number.pipe(S.int()), { exact: true }),
-  delta_user_guide_time_ms: S.optional(S.number.pipe(S.int()), { exact: true }),
-  delta_eclipse_timer_time_ms: S.optional(S.number.pipe(S.int()), { exact: true }),
+  user_selected_locations: OptionalLatLonArray,
+  cloud_cover_selected_locations: OptionalLatLonArray,
+  text_search_selected_locations: OptionalLatLonArray,
+  delta_advanced_weather_selected_locations_count: OptionalInt,
+  delta_cloud_cover_selected_locations_count: OptionalInt,
+  delta_info_time_ms: OptionalInt,
+  delta_app_time_ms: OptionalInt,
+  delta_advanced_weather_time_ms: OptionalInt,
+  delta_weather_info_time_ms: OptionalInt,
+  delta_user_guide_time_ms: OptionalInt,
+  delta_eclipse_timer_time_ms: OptionalInt,
+  delta_forecast_info_time_ms: OptionalInt,
 });
 
 export type SolarEclipse2024EntryT = S.Schema.To<typeof SolarEclipse2024Entry>;
@@ -110,6 +115,9 @@ export async function updateSolarEclipse2024Data(userUUID: string, update: Solar
   }
   if (update.delta_eclipse_timer_time_ms) {
     dbUpdate.eclipse_timer_time_ms = data.eclipse_timer_time_ms + update.delta_eclipse_timer_time_ms;
+  }
+  if (update.delta_forecast_info_time_ms) {
+    dbUpdate.forecast_info_time_ms = data.forecast_info_time_ms + update.delta_forecast_info_time_ms;
   }
   const result = await data.update(dbUpdate);
   return result !== null;
