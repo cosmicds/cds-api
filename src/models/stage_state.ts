@@ -10,7 +10,7 @@ export class StageState extends Model<InferAttributes<StageState>, InferCreation
   declare last_modified: CreationOptional<Date>;
 }
 
-export function initializeStoryStateModel(sequelize: Sequelize) {
+export function initializeStageStateModel(sequelize: Sequelize) {
     StageState.init({
       student_id: {
         type: DataTypes.INTEGER.UNSIGNED,
