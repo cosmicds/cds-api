@@ -11,6 +11,7 @@ import {
   Student,
   DummyClass,
   DashboardClassGroup,
+  StageState,
 } from "./models";
 
 import {
@@ -347,26 +348,23 @@ export async function getStoryState(studentID: number, storyName: string): Promi
     console.log(error);
     return null;
   });
-  return result?.story_state || null;
+  return result?.story_state ?? null;
 }
 
 export async function updateStoryState(studentID: number, storyName: string, newState: JSON): Promise<JSON | null> {
+  const query = {
+    student_id: studentID,
+    story_name: storyName,
+  };
   let result = await StoryState.findOne({
-    where: {
-      student_id: studentID,
-      story_name: storyName
-    }
+    where: query
   })
   .catch(error => {
     console.log(error);
     return null;
   });
 
-  const storyData = {
-    student_id: studentID,
-    story_name: storyName,
-    story_state: newState
-  };
+  const storyData = { ...query, story_state: newState };
   if (result !== null) {
     result?.update(storyData);
   } else {
@@ -375,7 +373,48 @@ export async function updateStoryState(studentID: number, storyName: string, new
       return null;
     });
   }
-  return result?.story_state || null;
+  return result?.story_state ?? null;
+}
+
+export async function getStageState(studentID: number, storyName: string, stageName: string): Promise<JSON | null> {
+  const result = await StageState.findOne({
+    where: {
+      student_id: studentID,
+      story_name: storyName,
+      stage_name: stageName,
+    }
+  })
+  .catch(error => {
+    console.log(error);
+    return null;
+  });
+  return result?.state ?? null;
+}
+
+export async function updateStageState(studentID: number, storyName: string, stageName: string, newState: JSON): Promise<JSON | null> {
+  const query = {
+    student_id: studentID,
+    story_name: storyName,
+    stage_name: stageName,
+  };
+  let result = await StageState.findOne({
+    where: query
+  })
+  .catch(error => {
+    console.log(error);
+    return null;
+  });
+
+  const data = { ...query, state: newState };
+  if (result !== null) {
+    result?.update(data);
+  } else {
+    result = await StageState.create(data).catch(error => {
+      console.log(error);
+      return null;
+    });
+  }
+  return result?.state ?? null;
 }
 
 export async function getClassesForEducator(educatorID: number): Promise<Class[]> {

@@ -29,6 +29,8 @@ import {
   currentVersionForQuestion,
   getQuestionsForStory,
   getDashboardGroupClasses,
+  getStageState,
+  updateStageState,
 } from "./database";
 
 import { getAPIKey, hasPermission } from "./authorization";
@@ -423,7 +425,7 @@ app.get("/story-state/:studentID/:storyName", async (req, res) => {
   res.status(status).json({
     student_id: studentID,
     story_name: storyName,
-    state: state
+    state
   });
 });
 
@@ -437,7 +439,38 @@ app.put("/story-state/:studentID/:storyName", async (req, res) => {
   res.status(status).json({
     student_id: studentID,
     story_name: storyName,
-    state: state
+    state
+  });
+});
+
+app.get("/stage-state/:studentID/:storyName/:stageName", async (req, res) => {
+  const params = req.params;
+  const studentID = Number(params.studentID);
+  const storyName = params.storyName;
+  const stageName = params.stageName;
+  const state = await getStageState(studentID, storyName, stageName);
+  const status = state !== null ? 200 : 404;
+  res.status(status).json({
+    student_id: studentID,
+    story_name: storyName,
+    stage_name: stageName,
+    state
+  });
+});
+
+app.put("/stage-state/:studentID/:storyName/:stageName", async (req, res) => {
+  const params = req.params;
+  const studentID = Number(params.studentID);
+  const storyName = params.storyName;
+  const stageName = params.stageName;
+  const newState = req.body;
+  const state = await updateStageState(studentID, storyName, stageName, newState);
+  const status = state !== null ? 200 : 404;
+  res.status(status).json({
+    student_id: studentID,
+    story_name: storyName,
+    stage_name: stageName,
+    state
   });
 });
 
