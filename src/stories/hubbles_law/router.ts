@@ -20,7 +20,7 @@ import {
   removeHubbleMeasurement,
   setGalaxySpectrumStatus,
   getUncheckedSpectraGalaxies,
-  getStageThreeMeasurements,
+  getClassMeasurements,
   getAllHubbleMeasurements,
   getAllHubbleStudentData,
   getAllHubbleClassData,
@@ -254,7 +254,7 @@ router.get("/sample-galaxy", async (_req, res) => {
   res.json(galaxy);
 });
 
-router.get("/stage-3-data/:studentID/:classID", async (req, res) => {
+router.get(["/class-measurements/:studentID/:classID", "/stage-3-data/:studentID/:classID"], async (req, res) => {
   const lastCheckedStr = req.query.last_checked as string;
   let lastChecked: number | null = parseInt(lastCheckedStr);
   if (isNaN(lastChecked)) {
@@ -283,7 +283,7 @@ router.get("/stage-3-data/:studentID/:classID", async (req, res) => {
     return;
   }
 
-  const measurements = await getStageThreeMeasurements(studentID, classID, lastChecked);
+  const measurements = await getClassMeasurements(studentID, classID, lastChecked);
   res.status(200).json({
     studentID,
     classID,
@@ -291,7 +291,7 @@ router.get("/stage-3-data/:studentID/:classID", async (req, res) => {
   });
 });
 
-router.get("/stage-3-data/:studentID", async (req, res) => {
+router.get(["/class-measurements/:studentID", "stage-3-measurements/:studentID"], async (req, res) => {
   const params = req.params;
   const studentID = parseInt(params.studentID);
   const isValidStudent = (await findStudentById(studentID)) !== null;
@@ -302,7 +302,7 @@ router.get("/stage-3-data/:studentID", async (req, res) => {
     return;
   }
 
-  const measurements = await getStageThreeMeasurements(studentID, null);
+  const measurements = await getClassMeasurements(studentID, null);
   res.status(200).json({
     studentID,
     measurements,
