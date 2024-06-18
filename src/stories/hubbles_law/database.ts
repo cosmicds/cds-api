@@ -338,7 +338,7 @@ async function getHubbleMeasurementsForAsyncStudent(studentID: number, classID: 
   return getHubbleMeasurementsForStudentClasses(studentID, classIDs);
 }
 
-export async function getStageThreeMeasurements(studentID: number, classID: number | null, lastChecked: number | null = null): Promise<HubbleMeasurement[]> {
+export async function getClassMeasurements(studentID: number, classID: number | null, lastChecked: number | null = null): Promise<HubbleMeasurement[]> {
   const cls = classID !== null ? await findClassById(classID) : null;
   const asyncClass = cls?.asynchronous ?? true;
   let data: HubbleMeasurement[] | null;
