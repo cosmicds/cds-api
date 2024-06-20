@@ -285,9 +285,9 @@ router.get(["/class-measurements/:studentID/:classID", "/stage-3-data/:studentID
 
   const measurements = await getClassMeasurements(studentID, classID, lastChecked);
   res.status(200).json({
-    studentID,
-    classID,
-    measurements
+    student_id: studentID,
+    class_id: classID,
+    measurements,
   });
 });
 
@@ -304,9 +304,9 @@ router.get(["/class-measurements/:studentID", "stage-3-measurements/:studentID"]
 
   const measurements = await getClassMeasurements(studentID, null);
   res.status(200).json({
-    studentID,
+    student_id: studentID,
+    class_id: null,
     measurements,
-    classID: null
   });
 });
 
