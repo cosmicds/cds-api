@@ -188,7 +188,10 @@ router.delete("/sample-measurement/:studentID/:measurementNumber", async (req, r
 router.get("/measurements/:studentID", async (req, res) => {
   const params = req.params;
   const studentID = parseInt(params.studentID);
-  const measurements = await getStudentHubbleMeasurements(studentID);
+  const student = await findStudentById(studentID);
+  const measurements = student !== null ?
+    await getStudentHubbleMeasurements(studentID) :
+    null;
   const status = measurements === null ? 404 : 200;
   res.status(status).json({
     student_id: studentID,
