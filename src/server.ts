@@ -490,8 +490,11 @@ app.delete("/stage-state/:studentID/:storyName/:stageName", async (req, res) => 
     });
   } else {
     res.status(400);
-    res.statusMessage = "No such (student, story, stage) combination found";
-    res.end();
+    const message = "No such (student, story, stage) combination found";
+    res.statusMessage = message;
+    res.json({
+      message,
+    });
   }
 });
 
