@@ -31,6 +31,7 @@ import {
   getDashboardGroupClasses,
   getStageState,
   updateStageState,
+  deleteStageState,
 } from "./database";
 
 import { getAPIKey, hasPermission } from "./authorization";
@@ -42,7 +43,7 @@ import {
   VerificationResult,
 } from "./request_results";
 
-import { CosmicDSSession } from "./models";
+import { CosmicDSSession, StageState } from "./models";
 
 import { ParsedQs } from "qs";
 import express, { Request, Response as ExpressResponse, NextFunction } from "express";
@@ -472,6 +473,26 @@ app.put("/stage-state/:studentID/:storyName/:stageName", async (req, res) => {
     stage_name: stageName,
     state
   });
+});
+
+app.delete("/stage-state/:studentID/:storyName/:stageName", async (req, res) => {
+  const params = req.params;
+  const studentID = Number(params.studentID);
+  const storyName = params.storyName;
+  const stageName = params.stageName;
+  const state = await getStageState(studentID, storyName, stageName);
+  if (state != null) {
+    res.status(200);
+    const count = await deleteStageState(studentID, storyName, stageName);
+    const success = count > 0;
+    res.json({
+      success,
+    });
+  } else {
+    res.status(400);
+    res.statusMessage = "No such (student, story, stage) combination found";
+    res.end();
+  }
 });
 
 app.get("/educator-classes/:educatorID", async (req, res) => {

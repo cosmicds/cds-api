@@ -417,6 +417,16 @@ export async function updateStageState(studentID: number, storyName: string, sta
   return result?.state ?? null;
 }
 
+export async function deleteStageState(studentID: number, storyName: string, stageName: string): Promise<number> {
+  return StageState.destroy({
+    where: {
+      student_id: studentID,
+      story_name: storyName,
+      stage_name: stageName,
+    }
+  });
+}
+
 export async function getClassesForEducator(educatorID: number): Promise<Class[]> {
   return Class.findAll({
     where: {
