@@ -263,6 +263,7 @@ router.get(["/class-measurements/:studentID/:classID", "/stage-3-data/:studentID
   if (isNaN(lastChecked)) {
     lastChecked = null;
   }
+  const completeOnly = (req.query.complete_only as string)?.toLowerCase() === "true";
   const params = req.params;
   let studentID = parseInt(params.studentID);
   let classID = parseInt(params.classID);
@@ -286,7 +287,7 @@ router.get(["/class-measurements/:studentID/:classID", "/stage-3-data/:studentID
     return;
   }
 
-  const measurements = await getClassMeasurements(studentID, classID, lastChecked);
+  const measurements = await getClassMeasurements(studentID, classID, lastChecked, completeOnly);
   res.status(200).json({
     student_id: studentID,
     class_id: classID,
