@@ -1,4 +1,4 @@
-import { Attributes, FindOptions, Op, QueryTypes, Sequelize, WhereOptions, col, fn, literal } from "sequelize";
+import { Attributes, FindOptions, Op, QueryTypes, Sequelize, WhereAttributeHash, WhereOptions, col, fn, literal } from "sequelize";
 import { AsyncMergedHubbleStudentClasses, Galaxy, HubbleMeasurement, SampleHubbleMeasurement, initializeModels, SyncMergedHubbleClasses } from "./models";
 import { classSize, cosmicdsDB, findClassById, findStudentById } from "../../database";
 import { RemoveHubbleMeasurementResult, SubmitHubbleMeasurementResult } from "./request_results";
@@ -175,16 +175,15 @@ export async function getSampleHubbleMeasurement(studentID: number, measurementN
   });
 }
 
+const EXCLUDE_MEASUREMENTS_WITH_NULL_CONDITION: WhereAttributeHash<HubbleMeasurement | SampleHubbleMeasurement> = {
+  obs_wave_value: { [Op.not]: null },
+  velocity_value: { [Op.not]: null },
+  ang_size_value: { [Op.not]: null },
+  est_dist_value: { [Op.not]: null }
+};
+
 export async function getAllSampleHubbleMeasurements(excludeWithNull = true): Promise<SampleHubbleMeasurement[]> {
-  const query = excludeWithNull ? 
-  {
-    where: {
-      obs_wave_value: { [Op.not]: null },
-      velocity_value: { [Op.not]: null },
-      ang_size_value: { [Op.not]: null },
-      est_dist_value: { [Op.not]: null }
-    },
-  } : {};
+  const query = excludeWithNull ? { where: EXCLUDE_MEASUREMENTS_WITH_NULL_CONDITION } : {};
   return SampleHubbleMeasurement.findAll(query).catch(_error => []);
 }
 
@@ -212,7 +211,7 @@ export async function getStudentHubbleMeasurements(studentID: number): Promise<H
   });
 }
 
-async function getHubbleMeasurementsForStudentClasses(studentID: number, classIDs: number[]): Promise<HubbleMeasurement[]> {
+async function getHubbleMeasurementsForStudentClasses(studentID: number, classIDs: number[], excludeWithNull: boolean = false): Promise<HubbleMeasurement[]> {
 
   const studentWhereConditions: WhereOptions = [];
   const classDataStudentIDs = await getClassDataIDsForStudent(studentID);
@@ -225,7 +224,13 @@ async function getHubbleMeasurementsForStudentClasses(studentID: number, classID
     });
   }
 
+  const measurementWhereConditions: WhereOptions<HubbleMeasurement> = [];
+  if (excludeWithNull) {
+    measurementWhereConditions.push(EXCLUDE_MEASUREMENTS_WITH_NULL_CONDITION);
+  }
+
   return HubbleMeasurement.findAll({
+    where: measurementWhereConditions,
     include: [{
       model: Student,
       attributes: ["id"],
@@ -328,24 +333,28 @@ export async function getClassDataIDsForStudent(studentID: number): Promise<numb
   return state?.getDataValue("class_data_students") ?? [];
 }
 
-async function getHubbleMeasurementsForSyncStudent(studentID: number, classID: number): Promise<HubbleMeasurement[] | null> {
+async function getHubbleMeasurementsForSyncStudent(studentID: number, classID: number, excludeWithNull: boolean = false): Promise<HubbleMeasurement[] | null> {
   const classIDs = await getClassIDsForSyncClass(classID);
-  return getHubbleMeasurementsForStudentClasses(studentID, classIDs);
+  return getHubbleMeasurementsForStudentClasses(studentID, classIDs, excludeWithNull);
 }
 
-async function getHubbleMeasurementsForAsyncStudent(studentID: number, classID: number | null): Promise<HubbleMeasurement[] | null> {
+async function getHubbleMeasurementsForAsyncStudent(studentID: number, classID: number | null, excludeWithNull: boolean = false): Promise<HubbleMeasurement[] | null> {
   const classIDs = await getClassIDsForAsyncStudent(studentID, classID);
-  return getHubbleMeasurementsForStudentClasses(studentID, classIDs);
+  return getHubbleMeasurementsForStudentClasses(studentID, classIDs, excludeWithNull);
 }
 
-export async function getClassMeasurements(studentID: number, classID: number | null, lastChecked: number | null = null): Promise<HubbleMeasurement[]> {
+export async function getClassMeasurements(studentID: number,
+                                           classID: number | null,
+                                           lastChecked: number | null = null,
+                                           excludeWithNull: boolean = false,
+): Promise<HubbleMeasurement[]> {
   const cls = classID !== null ? await findClassById(classID) : null;
   const asyncClass = cls?.asynchronous ?? true;
   let data: HubbleMeasurement[] | null;
   if (classID === null || asyncClass) {
-    data = await getHubbleMeasurementsForAsyncStudent(studentID, classID);
+    data = await getHubbleMeasurementsForAsyncStudent(studentID, classID, excludeWithNull);
   } else {
-    data = await getHubbleMeasurementsForSyncStudent(studentID, classID);
+    data = await getHubbleMeasurementsForSyncStudent(studentID, classID, excludeWithNull);
   }
   if (data != null && lastChecked != null) {
     const lastModified = Math.max(...data.map(meas => meas.last_modified.getTime()));
