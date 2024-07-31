@@ -32,6 +32,7 @@ import {
   getStageState,
   updateStageState,
   deleteStageState,
+  findClassById,
 } from "./database";
 
 import { getAPIKey, hasPermission } from "./authorization";
@@ -415,6 +416,23 @@ app.get("/students", async (_req, res) => {
 app.get("/educators", async (_req, res) => {
   const queryResponse = await getAllEducators();
   res.json(queryResponse);
+});
+
+app.get("/classes/size/:classID", async (req, res) => {
+  const classID = Number(req.params.classID);
+  const cls = await findClassById(classID);
+  if (cls === null) {
+    res.status(404).json({
+      message: `Class ${classID} not found`,
+    });
+    return;
+  }
+
+  const size = classSize(classID);
+  res.json({
+    class_id: classID,
+    size
+  });
 });
 
 app.get("/story-state/:studentID/:storyName", async (req, res) => {
