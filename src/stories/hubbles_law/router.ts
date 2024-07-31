@@ -32,7 +32,8 @@ import {
   getGalaxyById,
   removeSampleHubbleMeasurement,
   getAllNthSampleHubbleMeasurements,
-  tryToMergeClass
+  tryToMergeClass,
+  getClassMeasurementCount
 } from "./database";
 
 import { 
@@ -255,6 +256,33 @@ router.get("/sample-measurements/:measurementNumber", async (req, res) => {
 router.get("/sample-galaxy", async (_req, res) => {
   const galaxy = await getSampleGalaxy();
   res.json(galaxy);
+});
+
+router.get("/class-measurements/size/:studentID/:classID", async (req, res) => {
+  const studentID = parseInt(req.params.studentID);
+  const isValidStudent = (await findStudentById(studentID)) !== null;
+  if (!isValidStudent) {
+    res.status(404).json({
+      message: "Invalid student ID",
+    });
+    return;
+  }
+
+  const classID = parseInt(req.params.classID);
+  const isValidClass = (await findClassById(classID)) !== null;
+  if (!isValidClass) {
+    res.status(404).json({
+      message: "Invalid class ID",
+    });
+    return;
+  }
+
+  const completeOnly = (req.query.complete_only as string)?.toLowerCase() === "true";
+  const count = await getClassMeasurementCount(studentID, classID, completeOnly);
+  res.status(200).json({
+    student_id: studentID,
+    measurement_count: count,
+  });
 });
 
 router.get(["/class-measurements/:studentID/:classID", "/stage-3-data/:studentID/:classID"], async (req, res) => {

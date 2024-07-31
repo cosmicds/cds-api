@@ -365,6 +365,26 @@ export async function getClassMeasurements(studentID: number,
   return data ?? [];
 }
 
+// The advantage of this over the function above is that it saves bandwidth,
+// since we aren't sending the data itself.
+// This is intended to be used with cases where we need to frequently check the class size,
+// e.g. the beginning of stage 4 in the Hubble story
+export async function getClassMeasurementCount(studentID: number,
+                                               classID: number | null,
+                                               excludeWithNull: boolean = false,
+): Promise<number> {
+    const cls = classID !== null ? await findClassById(classID) : null;
+    const asyncClass = cls?.asynchronous ?? true;
+    let data: HubbleMeasurement[] | null;
+    console.log(classID, asyncClass);
+    if (classID === null || asyncClass) {
+      data = await getHubbleMeasurementsForAsyncStudent(studentID, classID, excludeWithNull);
+    } else {
+      data = await getHubbleMeasurementsForSyncStudent(studentID, classID, excludeWithNull);
+    }
+    return data?.length ?? 0;
+}
+
 async function getHubbleStudentDataForAsyncStudent(studentID: number, classID: number | null): Promise<HubbleStudentData[] | null> {
   const classIDs = await getClassIDsForAsyncStudent(studentID, classID);
   return getHubbleStudentDataForClasses(classIDs);
