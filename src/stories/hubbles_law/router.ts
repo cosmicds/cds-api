@@ -259,6 +259,9 @@ router.get("/sample-galaxy", async (_req, res) => {
 });
 
 router.get("/class-measurements/size/:studentID/:classID", async (req, res) => {
+  res.header("Cache-Control", "no-cache, no-store, must-revalidate");  // HTTP 1.1
+  res.header("Pragma", "no-cache");  // HTTP 1.0
+  res.header("Expires", "0");  // Proxies
   const studentID = parseInt(req.params.studentID);
   const isValidStudent = (await findStudentById(studentID)) !== null;
   if (!isValidStudent) {
