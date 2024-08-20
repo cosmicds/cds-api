@@ -367,22 +367,50 @@ export async function getClassMeasurements(studentID: number,
 
 // The advantage of this over the function above is that it saves bandwidth,
 // since we aren't sending the data itself.
-// This is intended to be used with cases where we need to frequently check the class size,
-// e.g. the beginning of stage 4 in the Hubble story
+// This is intended to be used with cases where we need to frequently check the number of measurements
 export async function getClassMeasurementCount(studentID: number,
                                                classID: number | null,
                                                excludeWithNull: boolean = false,
 ): Promise<number> {
-    const cls = classID !== null ? await findClassById(classID) : null;
-    const asyncClass = cls?.asynchronous ?? true;
-    let data: HubbleMeasurement[] | null;
-    console.log(classID, asyncClass);
-    if (classID === null || asyncClass) {
-      data = await getHubbleMeasurementsForAsyncStudent(studentID, classID, excludeWithNull);
+  const cls = classID !== null ? await findClassById(classID) : null;
+  const asyncClass = cls?.asynchronous ?? true;
+  let data: HubbleMeasurement[] | null;
+  if (classID === null || asyncClass) {
+    data = await getHubbleMeasurementsForAsyncStudent(studentID, classID, excludeWithNull);
+  } else {
+    data = await getHubbleMeasurementsForSyncStudent(studentID, classID, excludeWithNull);
+  }
+  return data?.length ?? 0;
+}
+
+// Similar to the function above, this is intended for cases where we need to frequently check
+// how many students have completed their measurements, such as the beginning of Stage 4 in the Hubble story
+export async function getStudentsWithCompleteMeasurementsCount(studentID: number,
+                                                               classID: number | null,
+): Promise<number> {
+  const cls = classID !== null ? await findClassById(classID) : null;
+  const asyncClass = cls?.asynchronous ?? true;
+  let data: HubbleMeasurement[] | null;
+  if (classID === null || asyncClass) {
+    data = await getHubbleMeasurementsForAsyncStudent(studentID, classID, true);
+  } else {
+    data = await getHubbleMeasurementsForSyncStudent(studentID, classID, true);
+  }
+  const counts: Record<number, number> = {};
+  data?.forEach(measurement => {
+    if (measurement.student_id in counts) {
+      counts[measurement.student_id] += 1;
     } else {
-      data = await getHubbleMeasurementsForSyncStudent(studentID, classID, excludeWithNull);
+      counts[measurement.student_id] = 1;
     }
-    return data?.length ?? 0;
+  });
+  let num = 0;
+  for (const id in counts) {
+    if (counts[id] >= 5) {
+      num += 1;
+    }
+  }
+  return num;
 }
 
 async function getHubbleStudentDataForAsyncStudent(studentID: number, classID: number | null): Promise<HubbleStudentData[] | null> {

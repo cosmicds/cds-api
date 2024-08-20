@@ -33,7 +33,8 @@ import {
   removeSampleHubbleMeasurement,
   getAllNthSampleHubbleMeasurements,
   tryToMergeClass,
-  getClassMeasurementCount
+  getClassMeasurementCount,
+  getStudentsWithCompleteMeasurementsCount
 } from "./database";
 
 import { 
@@ -284,7 +285,38 @@ router.get("/class-measurements/size/:studentID/:classID", async (req, res) => {
   const count = await getClassMeasurementCount(studentID, classID, completeOnly);
   res.status(200).json({
     student_id: studentID,
+    class_id: classID,
     measurement_count: count,
+  });
+});
+
+router.get("/class-measurements/students-completed/:studentID/:classID", async (req, res) => {
+  res.header("Cache-Control", "no-cache, no-store, must-revalidate");  // HTTP 1.1
+  res.header("Pragma", "no-cache");  // HTTP 1.0
+  res.header("Expires", "0");  // Proxies
+  const studentID = parseInt(req.params.studentID);
+  const isValidStudent = (await findStudentById(studentID)) !== null;
+  if (!isValidStudent) {
+    res.status(404).json({
+      message: "Invalid student ID",
+    });
+    return;
+  }
+
+  const classID = parseInt(req.params.classID);
+  const isValidClass = (await findClassById(classID)) !== null;
+  if (!isValidClass) {
+    res.status(404).json({
+      message: "Invalid class ID",
+    });
+    return;
+  }
+
+  const count = await getStudentsWithCompleteMeasurementsCount(studentID, classID);
+  res.status(200).json({
+    student_id: studentID,
+    class_id: classID,
+    students_completed_measurements: count,
   });
 });
 
