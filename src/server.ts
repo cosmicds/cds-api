@@ -33,6 +33,9 @@ import {
   updateStageState,
   deleteStageState,
   findClassById,
+  getStages,
+  getStory,
+  getStageStates,
 } from "./database";
 
 import { getAPIKey, hasPermission } from "./authorization";
@@ -460,6 +463,47 @@ app.put("/story-state/:studentID/:storyName", async (req, res) => {
     story_name: storyName,
     state
   });
+});
+
+app.get("/stages/:storyName", async (req, res) => {
+  const storyName = req.params.storyName;
+  const story = await getStory(storyName);
+
+  if (story === null) {
+    res.status(404).json({
+      error: `No story found with name ${storyName}`
+    });
+    return;
+  }
+
+  const stages = await getStages(req.params.storyName);
+  res.json({
+    stages,
+  });
+});
+
+app.get("/stage-states/:studentID/:storyName", async (req, res) => {
+  const storyName = req.params.storyName;
+  const story = await getStory(storyName);
+
+  if (story === null) {
+    res.status(404).json({
+      error: `No story found with name ${storyName}`
+    });
+    return;
+  }
+
+  const studentID = Number(req.params.studentID);
+  const student = await findStudentById(studentID);
+  if (student === null) {
+    res.status(404).json({
+      error: `No student found with ID ${studentID}`
+    });
+    return;
+  }
+  
+  const stageStates = await getStageStates(studentID, storyName);
+  res.json(stageStates);
 });
 
 app.get("/stage-state/:studentID/:storyName/:stageName", async (req, res) => {
