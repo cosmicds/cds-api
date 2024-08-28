@@ -347,7 +347,7 @@ export async function getStages(storyName: string): Promise<Stage[]> {
     where: {
       story_name: storyName,
     },
-    order: [['stage_index', 'ASC']],
+    order: [["stage_index", "ASC"]],
   });
 }
 
