@@ -47,7 +47,7 @@ import {
   VerificationResult,
 } from "./request_results";
 
-import { CosmicDSSession, StageState } from "./models";
+import { CosmicDSSession } from "./models";
 
 import { ParsedQs } from "qs";
 import express, { Request, Response as ExpressResponse, NextFunction } from "express";

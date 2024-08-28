@@ -1,6 +1,6 @@
 CREATE TABLE Stages (
-    story_name varchar(50) NOT NULL UNIQUE,
-    stage_name varchar(50) NOT NULL UNIQUE,
+    story_name varchar(50) NOT NULL,
+    stage_name varchar(50) NOT NULL,
     stage_index int(11) UNSIGNED DEFAULT NULL,
 
     PRIMARY KEY(story_name, stage_name),
