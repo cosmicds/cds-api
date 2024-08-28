@@ -36,6 +36,7 @@ import { initializeModels } from "./models";
 import { StudentOption, StudentOptions } from "./models/student_options";
 import { Question } from "./models/question";
 import { logger } from "./logger";
+import { Stage } from "./models/stage";
 
 type SequelizeError = { parent: { code: string } };
 
@@ -337,6 +338,19 @@ export async function getAllEducators(): Promise<Educator[]> {
   return Educator.findAll();
 }
 
+export async function getStory(storyName: string): Promise<Story | null> {
+  return Story.findOne({ where: { name: storyName } });
+}
+
+export async function getStages(storyName: string): Promise<Stage[]> {
+  return Stage.findAll({
+    where: {
+      story_name: storyName,
+    },
+    order: [["stage_index", "ASC"]],
+  });
+}
+
 export async function getStoryState(studentID: number, storyName: string): Promise<JSON | null> {
   const result = await StoryState.findOne({
     where: {
@@ -425,6 +439,19 @@ export async function deleteStageState(studentID: number, storyName: string, sta
       stage_name: stageName,
     }
   });
+}
+
+export async function getStageStates(studentID: number, storyName: string): Promise<Record<string, JSON>> {
+  const stages = await getStages(storyName);
+  const stageNames = stages.map(stage => stage.stage_name);
+  const stageStates: Record<string, JSON> = {};
+  for (const name of stageNames) {
+    const state = await getStageState(studentID, storyName, name);
+    if (state !== null) {
+      stageStates[name] = state;
+    }
+  }
+  return stageStates;
 }
 
 export async function getClassesForEducator(educatorID: number): Promise<Class[]> {
