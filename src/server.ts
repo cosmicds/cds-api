@@ -439,7 +439,10 @@ app.get("/users", async (_req, res) => {
   res.json({ students, educators });
 });
 
-app.get("/students/:identifier", async (req, res) => {
+app.get([
+  "/students/:identifier",
+  "/student/:identifier", // Backwards compatibility
+], async (req, res) => {
   const params = req.params;
   const id = Number(params.identifier);
 
