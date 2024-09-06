@@ -29,13 +29,14 @@ import {
   currentVersionForQuestion,
   getQuestionsForStory,
   getDashboardGroupClasses,
-  getStageState,
+  getStudentStageState,
   updateStageState,
   deleteStageState,
   findClassById,
   getStages,
   getStory,
   getStageStates,
+  StageStateQuery,
 } from "./database";
 
 import { getAPIKey, hasPermission } from "./authorization";
@@ -482,7 +483,13 @@ app.get("/stages/:storyName", async (req, res) => {
   });
 });
 
-app.get("/stage-states/:studentID/:storyName", async (req, res) => {
+// Use query parameters `student_id`, `class_id`, and `stage_name` to filter output
+// `stage_name` is optional. If not specified, return value will be an object of the form
+// { stage1: [<states>], stage2: [<states>], ... }
+// If specified, this returns an object of the form [<states>]
+// At least one of `student_id` and `class_id` must be specified.
+// If both are specified, only `student_id` is used
+app.get("/stage-states/:storyName", async (req, res) => {
   const storyName = req.params.storyName;
   const story = await getStory(storyName);
 
@@ -493,17 +500,41 @@ app.get("/stage-states/:studentID/:storyName", async (req, res) => {
     return;
   }
 
-  const studentID = Number(req.params.studentID);
-  const student = await findStudentById(studentID);
-  if (student === null) {
-    res.status(404).json({
-      error: `No student found with ID ${studentID}`
+  let query: StageStateQuery;
+  const studentID = Number(req.query.student_id);
+  const classID = Number(req.query.class_id);
+  if (!isNaN(studentID)) {
+    const student = await findStudentById(studentID);
+    if (student === null) {
+      res.status(404).json({
+        error: `No student found with ID ${studentID}`
+      });
+      return;
+    }
+    query = { storyName, studentID };
+  } else if (!isNaN(classID)) {
+    const cls = await findClassById(classID);
+    if (cls === null) {
+      res.status(404).json({
+        error: `No class found with ID ${classID}`
+      });
+      return;
+    }
+    query = { storyName, classID };
+  } else {
+    res.status(400).json({
+      error: "Must specify either a student or a class ID"
     });
     return;
   }
   
-  const stageStates = await getStageStates(studentID, storyName);
-  res.json(stageStates);
+  const stageName = req.query.stage_name as string;
+  if (stageName != undefined) {
+    query.stageName = stageName;
+  }
+  const stageStates = await getStageStates(query);
+  const results = (stageName != undefined) ? stageStates[stageName] : stageStates;
+  res.json(results);
 });
 
 app.get("/stage-state/:studentID/:storyName/:stageName", async (req, res) => {
@@ -511,7 +542,7 @@ app.get("/stage-state/:studentID/:storyName/:stageName", async (req, res) => {
   const studentID = Number(params.studentID);
   const storyName = params.storyName;
   const stageName = params.stageName;
-  const state = await getStageState(studentID, storyName, stageName);
+  const state = await getStudentStageState(studentID, storyName, stageName);
   const status = state !== null ? 200 : 404;
   res.status(status).json({
     student_id: studentID,
@@ -542,7 +573,7 @@ app.delete("/stage-state/:studentID/:storyName/:stageName", async (req, res) => 
   const studentID = Number(params.studentID);
   const storyName = params.storyName;
   const stageName = params.stageName;
-  const state = await getStageState(studentID, storyName, stageName);
+  const state = await getStudentStageState(studentID, storyName, stageName);
   if (state != null) {
     res.status(200);
     const count = await deleteStageState(studentID, storyName, stageName);
