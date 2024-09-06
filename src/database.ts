@@ -1,4 +1,4 @@
-import { Model, Op, QueryTypes, Sequelize } from "sequelize";
+import { Model, Op, QueryTypes, Sequelize, WhereOptions } from "sequelize";
 import dotenv from "dotenv";
 
 import {
@@ -19,6 +19,7 @@ import {
   createVerificationCode,
   encryptPassword,
   isNumberArray,
+  Either,
 } from "./utils";
 
 
@@ -328,8 +329,6 @@ export async function checkEducatorLogin(email: string, password: string): Promi
   return checkLogin(email, password, findEducatorByEmail);
 }
 
-
-
 export async function getAllStudents(): Promise<Student[]> {
   return Student.findAll();
 }
@@ -390,7 +389,7 @@ export async function updateStoryState(studentID: number, storyName: string, new
   return result?.story_state ?? null;
 }
 
-export async function getStageState(studentID: number, storyName: string, stageName: string): Promise<JSON | null> {
+export async function getStudentStageState(studentID: number, storyName: string, stageName: string): Promise<JSON | null> {
   const result = await StageState.findOne({
     where: {
       student_id: studentID,
@@ -403,6 +402,45 @@ export async function getStageState(studentID: number, storyName: string, stageN
     return null;
   });
   return result?.state ?? null;
+}
+
+export type StageStateQuery = { storyName: string, stageName?: string } & Either<{studentID: number}, {classID: number}>;
+
+export async function getStageStates(query: StageStateQuery): Promise<Record<string, JSON[]>> {
+  const where: WhereOptions = { story_name: query.storyName };
+  if (query.stageName != undefined) {
+    where.stage_name = query.stageName;
+  }
+  
+  if (query.classID != undefined) {
+    const students = await StudentsClasses.findAll({
+      where: { class_id: query.classID }
+    });
+    const studentIDs = students.map(sc => sc.student_id);
+    where.student_id = {
+      [Op.in]: studentIDs
+    };
+  } else {
+    where.student_id = query.studentID;
+  }
+
+  const results = await StageState.findAll({ where })
+    .catch(error => {
+      console.log(error);
+      return null;
+    });
+
+  const stageStates: Record<string, JSON[]> = {};
+  if (results !== null) {
+    results.forEach(result => {
+      const states = stageStates[result.stage_name] ?? [];
+      states.push(result.state);
+      stageStates[result.stage_name] = states;
+    });
+  }
+
+  return stageStates;
+
 }
 
 export async function updateStageState(studentID: number, storyName: string, stageName: string, newState: JSON): Promise<JSON | null> {
@@ -439,19 +477,6 @@ export async function deleteStageState(studentID: number, storyName: string, sta
       stage_name: stageName,
     }
   });
-}
-
-export async function getStageStates(studentID: number, storyName: string): Promise<Record<string, JSON>> {
-  const stages = await getStages(storyName);
-  const stageNames = stages.map(stage => stage.stage_name);
-  const stageStates: Record<string, JSON> = {};
-  for (const name of stageNames) {
-    const state = await getStageState(studentID, storyName, name);
-    if (state !== null) {
-      stageStates[name] = state;
-    }
-  }
-  return stageStates;
 }
 
 export async function getClassesForEducator(educatorID: number): Promise<Class[]> {
