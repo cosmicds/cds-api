@@ -483,6 +483,12 @@ app.get("/stages/:storyName", async (req, res) => {
   });
 });
 
+// Use query parameters `student_id`, `class_id`, and `stage_name` to filter output
+// `stage_name` is optional. If not specified, return value will be an object of the form
+// { stage1: [<states>], stage2: [<states>], ... }
+// If specified, this returns an object of the form [<states>]
+// At least one of `student_id` and `class_id` must be specified.
+// If both are specified, only `student_id` is used
 app.get("/stage-states/:storyName", async (req, res) => {
   const storyName = req.params.storyName;
   const story = await getStory(storyName);
