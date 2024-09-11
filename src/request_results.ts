@@ -22,6 +22,10 @@ export namespace CreateClassResult {
         return 200;
     }
   }
+
+  export function success(result: CreateClassResult): boolean {
+    return result === CreateClassResult.Ok;
+  }
 }
 
 export enum LoginResult {

@@ -20,6 +20,4 @@ CREATE TABLE Students (
     dummy tinyint(1) NOT NULL DEFAULT 0,
 
     PRIMARY KEY(id),
-    INDEX(username),
-    INDEX(email)
 ) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci PACK_KEYS=0;

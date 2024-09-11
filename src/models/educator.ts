@@ -6,6 +6,7 @@ export class Educator extends Model<InferAttributes<Educator>, InferCreationAttr
   declare verified: number;
   declare verification_code: string;
   declare email: string;
+  declare username: string;
   declare first_name: string;
   declare last_name: string;
   declare password: string;
@@ -41,6 +42,11 @@ export function initializeEducatorModel(sequelize: Sequelize) {
       unique: true
     },
     email: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true
+    },
+    username: {
       type: DataTypes.STRING,
       allowNull: false,
       unique: true

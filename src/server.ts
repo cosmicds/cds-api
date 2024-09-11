@@ -37,6 +37,10 @@ import {
   getStory,
   getStageStates,
   StageStateQuery,
+  CreateClassResponse,
+  UserType,
+  findEducatorByUsername,
+  findEducatorById,
 } from "./database";
 
 import { getAPIKey, hasPermission } from "./authorization";
@@ -48,7 +52,7 @@ import {
   VerificationResult,
 } from "./request_results";
 
-import { CosmicDSSession } from "./models";
+import { CosmicDSSession, StudentsClasses } from "./models";
 
 import { ParsedQs } from "qs";
 import express, { Request, Response as ExpressResponse, NextFunction } from "express";
@@ -78,12 +82,7 @@ type VerificationRequest = Request<{verificationCode: string}, any, any, ParsedQ
 
 type CDSSession = session.Session & Partial<session.SessionData> & CosmicDSSession;
 
-export enum UserType {
-  None = 0, // Not logged in
-  Student,
-  Educator,
-  Admin
-}
+
 
 const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(",") : [];
 
@@ -221,7 +220,7 @@ function _sendLoginCookie(userId: number, res: ExpressResponse): void {
 }
 
 // set port, listen for requests
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 8081;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}.`);
 });
@@ -235,13 +234,14 @@ app.post("/educator-sign-up", async (req, res) => {
     typeof data.password === "string" &&
     ((typeof data.institution === "string") || (data.institution == null)) &&
     typeof data.email === "string" &&
+    typeof data.username === "string" &&
     ((typeof data.age === "number") || (data.age == null)) &&
     ((typeof data.gender === "string") || data.gender == null)
   );
 
   let result: SignUpResult;
   if (valid) {
-    result = await signUpEducator(data.firstName, data.lastName, data.password, data.institution, data.email, data.age, data.gender);
+    result = await signUpEducator(data);
   } else {
     result = SignUpResult.BadRequest;
     res.status(400);
@@ -263,12 +263,12 @@ app.post("/student-sign-up", async (req, res) => {
     typeof data.email === "string" &&
     ((typeof data.age === "number") || (data.age == null)) &&
     ((typeof data.gender === "string") || (data.gender == null)) &&
-    ((typeof data.classroomCode === "string") || (data.classroomCode == null))
+    ((typeof data.classroom_code === "string") || (data.classroom_code == null))
   );
 
   let result: SignUpResult;
   if (valid) {
-    result = await signUpStudent(data.username, data.password, data.institution, data.email, data.age, data.gender, data.classroomCode);
+    result = await signUpStudent(data);
   } else {
     result = SignUpResult.BadRequest;
     res.status(400);
@@ -280,38 +280,58 @@ app.post("/student-sign-up", async (req, res) => {
   });
 });
 
-async function handleLogin(request: GenericRequest, checker: (email: string, pw: string) => Promise<LoginResponse>): Promise<LoginResponse> {
+async function handleLogin(request: GenericRequest, identifierField: string, checker: (identifier: string, pw: string) => Promise<LoginResponse>): Promise<LoginResponse> {
   const data = request.body;
-  const valid = typeof data.email === "string" && typeof data.password === "string";
+  const valid = typeof data[identifierField] === "string" && typeof data.password === "string";
   let res: LoginResponse;
   if (valid) {
-    res = await checker(data.email, data.password);
+    res = await checker(data[identifierField], data.password);
   } else {
-    res = { result: LoginResult.BadRequest, success: false };
+    res = { result: LoginResult.BadRequest, success: false, type: "none" };
   }
   return res;
 }
 
+// app.put("/login", async (req, res) => {
+//   const sess = req.session as CDSSession;
+//   let result = LoginResult.BadSession;
+//   res.status(401);
+//   if (sess.user_id && sess.user_type) {
+//     result = LoginResult.Ok;
+//     res.status(200);
+//   }
+//   res.json({
+//     result: result,
+//     id: sess.user_id,
+//     success: LoginResult.success(result)
+//   });
+// });
+
 app.put("/login", async (req, res) => {
-  const sess = req.session as CDSSession;
-  let result = LoginResult.BadSession;
-  res.status(401);
-  if (sess.user_id && sess.user_type) {
-    result = LoginResult.Ok;
-    res.status(200);
+  let response = await handleLogin(req, "username", checkStudentLogin);
+  let type = UserType.Student;
+  if (!(response.success && response.user)) {
+    response = await handleLogin(req, "username", checkEducatorLogin);
+    type = UserType.Educator;
   }
-  res.json({
-    result: result,
-    id: sess.user_id,
-    success: LoginResult.success(result)
-  });
+
+  if (response.success && response.user) {
+    const sess = req.session as CDSSession;
+    if (sess) {
+      sess.user_id = response.user.id;
+      sess.user_type = type;
+    }
+  }
+
+  const status = response.success ? 200 : 401;
+  res.status(status).json(response);
 });
 
 app.put("/student-login", async (req, res) => {
-  const loginResponse = await handleLogin(req, checkStudentLogin);
-  if (loginResponse.success && loginResponse.id) {
+  const loginResponse = await handleLogin(req, "username", checkStudentLogin);
+  if (loginResponse.success && loginResponse.user) {
     const sess = req.session as CDSSession;
-    sess.user_id = loginResponse.id;
+    sess.user_id = loginResponse.user.id;
     sess.user_type = UserType.Student;
   }
   const status = loginResponse.success ? 200 : 401;
@@ -319,10 +339,10 @@ app.put("/student-login", async (req, res) => {
 });
 
 app.put("/educator-login", async (req, res) => {
-  const loginResponse = await handleLogin(req, checkEducatorLogin);
-  if (loginResponse.success && loginResponse.id) {
+  const loginResponse = await handleLogin(req, "email", checkEducatorLogin);
+  if (loginResponse.success && loginResponse.user) {
     const sess = req.session as CDSSession;
-    sess.user_id = loginResponse.id;
+    sess.user_id = loginResponse.user.id;
     sess.user_type = UserType.Educator;
   }
   const status = loginResponse.success ? 200 : 401;
@@ -412,6 +432,8 @@ app.get("/validate-classroom-code/:code", async (req, res) => {
 });
 
 
+/* Users (students and educators) */
+
 app.get("/students", async (_req, res) => {
   const queryResponse = await getAllStudents();
   res.json(queryResponse);
@@ -422,6 +444,213 @@ app.get("/educators", async (_req, res) => {
   res.json(queryResponse);
 });
 
+app.get("/users", async (_req, res) => {
+  const students = await getAllStudents();
+  const educators = await getAllEducators();
+  res.json({ students, educators });
+});
+
+app.get([
+  "/students/:identifier",
+  "/student/:identifier", // Backwards compatibility
+], async (req, res) => {
+  const params = req.params;
+  const id = Number(params.identifier);
+
+  let student;
+  if (isNaN(id)) {
+    student = await findStudentByUsername(params.identifier);
+  } else {
+    student = await findStudentById(id);
+  }
+  if (student == null) {
+    res.statusCode = 404;
+  }
+  res.json({
+    student,
+  });
+});
+
+app.get("/students/:identifier/classes", async (req, res) => {
+  const id = Number(req.params.identifier);
+
+  let student;
+  if (isNaN(id)) {
+    student = await findStudentByUsername(req.params.identifier);
+  } else {
+    student = await findStudentById(id);
+  }
+
+  if (student === null) {
+    res.statusCode = 404;
+    res.json({
+      student_id: null,
+      classes: []
+    });
+    return;
+  }
+
+  const classes = await getClassesForStudent(student.id);
+  res.json({
+    student_id: student.id,
+    classes: classes
+  });
+
+});
+
+app.get("/educators/:identifier", async (req, res) => {
+  const params = req.params;
+  const id = Number(params.identifier);
+
+  let educator;
+  if (isNaN(id)) {
+    educator = await findEducatorByUsername(params.identifier);
+  } else {
+    educator = await findEducatorById(id);
+  }
+  if (educator == null) {
+    res.statusCode = 404;
+  }
+  res.json({
+    educator,
+  });
+});
+
+app.post("/classes/join", async (req, res) => {
+  const username = req.body.username as string;
+  const classCode = req.body.class_code as string;
+  const student = await findStudentByUsername(username);
+  const cls = await findClassByCode(classCode);
+  const isStudent = student !== null;
+  const isClass = cls !== null;
+
+  if (!(isStudent && isClass)) {
+    let message = "The following were invalid:";
+    const invalid: string[] = [];
+    if (!isStudent) {
+      invalid.push("username");
+    }
+    if (!isClass) {
+      invalid.push("class_code");
+    }
+    message += invalid.join(", ");
+    res.statusCode = 404;
+    res.json({
+      success: false,
+      message: message
+    });
+    return;
+  }
+
+  const [join, created] = await StudentsClasses.upsert({
+    class_id: cls.id,
+    student_id: student.id
+  });
+  const success = join !== null;
+  res.statusCode = success ? 200 : 404;
+  let message: string;
+  if (!success) {
+    message = "Error adding student to class";
+  } else if (!created) {
+    message = "Student was already enrolled in class";
+  } else {
+    message = "Student added to class successfully";
+  }
+
+  res.json({ success, message });
+});
+
+app.post("/educators/create", async (req, res) => {
+  const data = req.body;
+  const valid = (
+    typeof data.first_name === "string" &&
+    typeof data.last_name === "string" &&
+    typeof data.password === "string" &&
+    ((typeof data.institution === "string") || (data.institution == null)) &&
+    typeof data.email === "string" &&
+    ((typeof data.age === "number") || (data.age == null)) &&
+    ((typeof data.gender === "string") || data.gender == null)
+  );
+
+  let result: SignUpResult;
+  if (valid) {
+    result = await signUpEducator(data);
+  } else {
+    result = SignUpResult.BadRequest;
+    res.status(400);
+  }
+  res.json({
+    educator_info: data,
+    status: result,
+    success: SignUpResult.success(result)
+  });
+});
+
+app.post("/students/create", async (req, res) => {
+  const data = req.body;
+  const valid = (
+    typeof data.username === "string" &&
+    typeof data.password === "string" &&
+    ((typeof data.institution === "string") || (data.institution == null)) &&
+    ((typeof data.email === "string") || (data.email == null)) &&
+    ((typeof data.age === "number") || (data.age == null)) &&
+    ((typeof data.gender === "string") || (data.gender == null)) &&
+    ((typeof data.classroom_code === "string") || (data.classroom_code == null))
+  );
+
+  let result: SignUpResult;
+  if (valid) {
+    result = await signUpStudent(data);
+  } else {
+    result = SignUpResult.BadRequest;
+    res.status(400);
+  }
+  res.json({
+    student_info: data,
+    status: result,
+    success: SignUpResult.success(result)
+  });
+});
+
+/* Classes */
+app.post("/classes/create", async (req, res) => {
+  const data = req.body;
+  const valid = (
+    typeof data.username === "string" &&
+    typeof data.educator_id === "string"
+  );
+  let response: CreateClassResponse;
+  if (valid) {
+    response = await createClass(data.educator_id, data.username);
+  } else {
+    response = {
+      result: CreateClassResult.BadRequest,
+    };
+    res.status(400);
+  }
+  res.json({
+    class_info: response.class,
+    status: response.result,
+    success: CreateClassResult.success(response.result)
+  });
+});
+
+app.delete("/classes/:code", async (req, res) => {
+  const cls = await findClassByCode(req.params.code);
+  const success = cls !== null;
+  if (!success) {
+    res.status(400);
+  }
+  cls?.destroy();
+  const message = success ?
+    "Class deleted" :
+    "No class with the given code exists";
+  res.json({
+    success,
+    message
+  });
+});
+    
 app.get("/classes/size/:classID", async (req, res) => {
   const classID = Number(req.params.classID);
   const cls = await findClassById(classID);
@@ -431,7 +660,6 @@ app.get("/classes/size/:classID", async (req, res) => {
     });
     return;
   }
-
   const size = classSize(classID);
   res.json({
     class_id: classID,
@@ -633,23 +861,7 @@ app.get("/logout", (req, res) => {
   });
 });
 
-app.get("/student/:identifier", async (req, res) => {
-  const params = req.params;
-  const id = Number(params.identifier);
 
-  let student;
-  if (isNaN(id)) {
-    student = await findStudentByUsername(params.identifier);
-  } else {
-    student = await findStudentById(id);
-  }
-  if (student == null) {
-    res.statusCode = 404;
-  }
-  res.json({
-    student: student
-  });
-});
 
 // Question information
 app.get("/question/:tag", async (req, res) => {
