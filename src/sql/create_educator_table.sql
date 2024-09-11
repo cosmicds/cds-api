@@ -16,6 +16,7 @@ CREATE TABLE Educators (
     visits int(11) NOT NULL DEFAULT 0,
     last_visit datetime NOT NULL,
     last_visit_ip varchar(50) COLLATE utf8_unicode_ci,
+    username varchar(64) COLLATE utf8_unicode_ci NOT NULL UNIQUE,
 
     PRIMARY KEY(id),
     INDEX(last_name)
