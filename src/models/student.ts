@@ -8,9 +8,9 @@ export class Student extends Model<InferAttributes<Student>, InferCreationAttrib
   declare email: CreationOptional<string | null>;
   declare username: string;
   declare password: string;
-  declare institution: string | null;
-  declare age: number | null;
-  declare gender: string | null;
+  declare institution: CreationOptional<string | null>;
+  declare age: CreationOptional<number | null>;
+  declare gender: CreationOptional<string | null>;
   declare ip: CreationOptional<string | null>;
   declare lat: CreationOptional<string | null>;
   declare lon: CreationOptional<string | null>;
@@ -57,13 +57,16 @@ export function initializeStudentModel(sequelize: Sequelize) {
       allowNull: false,
     },
     institution: {
-      type: DataTypes.STRING
+      type: DataTypes.STRING,
+      defaultValue: null,
     },
     age: {
       type: DataTypes.TINYINT,
+      defaultValue: null,
     },
     gender: {
-      type: DataTypes.STRING
+      type: DataTypes.STRING,
+      defaultValue: null,
     },
     ip: {
       type: DataTypes.STRING

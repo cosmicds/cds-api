@@ -45,6 +45,7 @@ export type LoginResponse = {
   type: "none" | "student" | "educator" | "admin",
   result: LoginResult;
   user?: User;
+  id?: number;
   success: boolean;
 };
 
@@ -115,7 +116,7 @@ async function findEducatorByEmail(email: string): Promise<Educator | null> {
   });
 }
 
-async function findStudentByEmail(email: string): Promise<Student | null> {
+async function _findStudentByEmail(email: string): Promise<Student | null> {
   return Student.findOne({
     where: { email: { [Op.like] : email } }
   });
@@ -344,7 +345,7 @@ async function checkLogin<T extends Model & User>(identifier: string, password: 
   const response: LoginResponse = {
     result: result,
     success: LoginResult.success(result),
-    type
+    type,
     id: user?.id ?? 0,
   };
   if (user) {
