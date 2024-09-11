@@ -1,4 +1,4 @@
-import { Op, QueryTypes, Sequelize, WhereOptions, col, fn, literal } from "sequelize";
+import { Attributes, FindOptions, Op, QueryTypes, Sequelize, WhereAttributeHash, WhereOptions, col, fn, literal } from "sequelize";
 import { AsyncMergedHubbleStudentClasses, Galaxy, HubbleMeasurement, SampleHubbleMeasurement, initializeModels, SyncMergedHubbleClasses } from "./models";
 import { classSize, cosmicdsDB, findClassById, findStudentById } from "../../database";
 import { RemoveHubbleMeasurementResult, SubmitHubbleMeasurementResult } from "./request_results";
@@ -12,7 +12,7 @@ import { logger } from "../../logger";
 initializeModels(cosmicdsDB);
 setUpHubbleAssociations();
 
-const galaxyAttributes = ["ra", "decl", "z", "type", "name", "element"];
+const galaxyAttributes = ["id", "ra", "decl", "z", "type", "name", "element"];
 
 export async function submitHubbleMeasurement(data: {
   student_id: number,
@@ -175,16 +175,15 @@ export async function getSampleHubbleMeasurement(studentID: number, measurementN
   });
 }
 
+const EXCLUDE_MEASUREMENTS_WITH_NULL_CONDITION: WhereAttributeHash<HubbleMeasurement | SampleHubbleMeasurement> = {
+  obs_wave_value: { [Op.not]: null },
+  velocity_value: { [Op.not]: null },
+  ang_size_value: { [Op.not]: null },
+  est_dist_value: { [Op.not]: null }
+};
+
 export async function getAllSampleHubbleMeasurements(excludeWithNull = true): Promise<SampleHubbleMeasurement[]> {
-  const query = excludeWithNull ? 
-  {
-    where: {
-      obs_wave_value: { [Op.not]: null },
-      velocity_value: { [Op.not]: null },
-      ang_size_value: { [Op.not]: null },
-      est_dist_value: { [Op.not]: null }
-    },
-  } : {};
+  const query = excludeWithNull ? { where: EXCLUDE_MEASUREMENTS_WITH_NULL_CONDITION } : {};
   return SampleHubbleMeasurement.findAll(query).catch(_error => []);
 }
 
@@ -212,7 +211,7 @@ export async function getStudentHubbleMeasurements(studentID: number): Promise<H
   });
 }
 
-async function getHubbleMeasurementsForStudentClasses(studentID: number, classIDs: number[]): Promise<HubbleMeasurement[]> {
+async function getHubbleMeasurementsForStudentClasses(studentID: number, classIDs: number[], excludeWithNull: boolean = false): Promise<HubbleMeasurement[]> {
 
   const studentWhereConditions: WhereOptions = [];
   const classDataStudentIDs = await getClassDataIDsForStudent(studentID);
@@ -225,7 +224,13 @@ async function getHubbleMeasurementsForStudentClasses(studentID: number, classID
     });
   }
 
+  const measurementWhereConditions: WhereOptions<HubbleMeasurement> = [];
+  if (excludeWithNull) {
+    measurementWhereConditions.push(EXCLUDE_MEASUREMENTS_WITH_NULL_CONDITION);
+  }
+
   return HubbleMeasurement.findAll({
+    where: measurementWhereConditions,
     include: [{
       model: Student,
       attributes: ["id"],
@@ -328,24 +333,28 @@ export async function getClassDataIDsForStudent(studentID: number): Promise<numb
   return state?.getDataValue("class_data_students") ?? [];
 }
 
-async function getHubbleMeasurementsForSyncStudent(studentID: number, classID: number): Promise<HubbleMeasurement[] | null> {
+async function getHubbleMeasurementsForSyncStudent(studentID: number, classID: number, excludeWithNull: boolean = false): Promise<HubbleMeasurement[] | null> {
   const classIDs = await getClassIDsForSyncClass(classID);
-  return getHubbleMeasurementsForStudentClasses(studentID, classIDs);
+  return getHubbleMeasurementsForStudentClasses(studentID, classIDs, excludeWithNull);
 }
 
-async function getHubbleMeasurementsForAsyncStudent(studentID: number, classID: number | null): Promise<HubbleMeasurement[] | null> {
+async function getHubbleMeasurementsForAsyncStudent(studentID: number, classID: number | null, excludeWithNull: boolean = false): Promise<HubbleMeasurement[] | null> {
   const classIDs = await getClassIDsForAsyncStudent(studentID, classID);
-  return getHubbleMeasurementsForStudentClasses(studentID, classIDs);
+  return getHubbleMeasurementsForStudentClasses(studentID, classIDs, excludeWithNull);
 }
 
-export async function getStageThreeMeasurements(studentID: number, classID: number | null, lastChecked: number | null = null): Promise<HubbleMeasurement[]> {
+export async function getClassMeasurements(studentID: number,
+                                           classID: number | null,
+                                           lastChecked: number | null = null,
+                                           excludeWithNull: boolean = false,
+): Promise<HubbleMeasurement[]> {
   const cls = classID !== null ? await findClassById(classID) : null;
   const asyncClass = cls?.asynchronous ?? true;
   let data: HubbleMeasurement[] | null;
   if (classID === null || asyncClass) {
-    data = await getHubbleMeasurementsForAsyncStudent(studentID, classID);
+    data = await getHubbleMeasurementsForAsyncStudent(studentID, classID, excludeWithNull);
   } else {
-    data = await getHubbleMeasurementsForSyncStudent(studentID, classID);
+    data = await getHubbleMeasurementsForSyncStudent(studentID, classID, excludeWithNull);
   }
   if (data != null && lastChecked != null) {
     const lastModified = Math.max(...data.map(meas => meas.last_modified.getTime()));
@@ -354,6 +363,54 @@ export async function getStageThreeMeasurements(studentID: number, classID: numb
     }
   }
   return data ?? [];
+}
+
+// The advantage of this over the function above is that it saves bandwidth,
+// since we aren't sending the data itself.
+// This is intended to be used with cases where we need to frequently check the number of measurements
+export async function getClassMeasurementCount(studentID: number,
+                                               classID: number | null,
+                                               excludeWithNull: boolean = false,
+): Promise<number> {
+  const cls = classID !== null ? await findClassById(classID) : null;
+  const asyncClass = cls?.asynchronous ?? true;
+  let data: HubbleMeasurement[] | null;
+  if (classID === null || asyncClass) {
+    data = await getHubbleMeasurementsForAsyncStudent(studentID, classID, excludeWithNull);
+  } else {
+    data = await getHubbleMeasurementsForSyncStudent(studentID, classID, excludeWithNull);
+  }
+  return data?.length ?? 0;
+}
+
+// Similar to the function above, this is intended for cases where we need to frequently check
+// how many students have completed their measurements, such as the beginning of Stage 4 in the Hubble story
+export async function getStudentsWithCompleteMeasurementsCount(studentID: number,
+                                                               classID: number | null,
+): Promise<number> {
+  const cls = classID !== null ? await findClassById(classID) : null;
+  const asyncClass = cls?.asynchronous ?? true;
+  let data: HubbleMeasurement[] | null;
+  if (classID === null || asyncClass) {
+    data = await getHubbleMeasurementsForAsyncStudent(studentID, classID, true);
+  } else {
+    data = await getHubbleMeasurementsForSyncStudent(studentID, classID, true);
+  }
+  const counts: Record<number, number> = {};
+  data?.forEach(measurement => {
+    if (measurement.student_id in counts) {
+      counts[measurement.student_id] += 1;
+    } else {
+      counts[measurement.student_id] = 1;
+    }
+  });
+  let num = 0;
+  for (const id in counts) {
+    if (counts[id] >= 5) {
+      num += 1;
+    }
+  }
+  return num;
 }
 
 async function getHubbleStudentDataForAsyncStudent(studentID: number, classID: number | null): Promise<HubbleStudentData[] | null> {
@@ -386,6 +443,7 @@ export async function getAllHubbleMeasurements(before: Date | null = null): Prom
     whereConditions.push({ last_modified: { [Op.lt]: before } });
   }
   return HubbleMeasurement.findAll({
+    raw: true,
     attributes: {
       // The "student" here comes from the alias below
       // We do this so that we get access to the included field as just "class_id"
@@ -397,11 +455,11 @@ export async function getAllHubbleMeasurements(before: Date | null = null): Prom
     include: [{
       model: Galaxy,
       as: "galaxy",
-      attributes: ["id", "type"]
+      attributes: []
     }, {
       model: Student,
       as: "student",
-      attributes: ["seed", "dummy"],
+      attributes: [],
       where: {
         [Op.or]: [
           { seed: 1 }, { dummy: 0 }
@@ -505,25 +563,37 @@ export async function removeSampleHubbleMeasurement(studentID: number, measureme
   return count > 0 ? RemoveHubbleMeasurementResult.MeasurementDeleted : RemoveHubbleMeasurementResult.NoSuchMeasurement;
 }
 
-export async function getGalaxiesForTypes(types: string[]): Promise<Galaxy[]> {
-  return Galaxy.findAll({
+export async function getGalaxiesForTypes(types: string[], flags=false): Promise<Galaxy[]> {
+  const query: FindOptions<Attributes<Galaxy>> = {
     where: {
       is_bad: 0,
       spec_is_bad: 0,
       is_sample: 0,
       type: { [Op.in]: types }
     }
-  });
+  };
+
+  if (!flags) {
+    query.attributes = galaxyAttributes;
+  }
+
+  return Galaxy.findAll(query);
 }
 
-export async function getAllGalaxies(): Promise<Galaxy[]> {
-  return Galaxy.findAll({
+export async function getAllGalaxies(flags=false): Promise<Galaxy[]> {
+  const query: FindOptions<Attributes<Galaxy>> = {
     where: {
       is_bad: 0,
       spec_is_bad: 0,
       is_sample: 0
     }
-  });
+  };
+
+  if (!flags) {
+    query.attributes = galaxyAttributes;
+  }
+
+  return Galaxy.findAll(query);
 }
 
 export async function getGalaxyByName(name: string): Promise<Galaxy | null> {

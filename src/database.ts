@@ -1,4 +1,4 @@
-import { Model, Op, QueryTypes, Sequelize } from "sequelize";
+import { Model, Op, QueryTypes, Sequelize, WhereOptions } from "sequelize";
 import dotenv from "dotenv";
 
 import {
@@ -11,6 +11,7 @@ import {
   Student,
   DummyClass,
   DashboardClassGroup,
+  StageState,
 } from "./models";
 
 import {
@@ -18,6 +19,7 @@ import {
   createVerificationCode,
   encryptPassword,
   isNumberArray,
+  Either,
 } from "./utils";
 
 
@@ -35,6 +37,7 @@ import { initializeModels } from "./models";
 import { StudentOption, StudentOptions } from "./models/student_options";
 import { Question } from "./models/question";
 import { logger } from "./logger";
+import { Stage } from "./models/stage";
 
 type SequelizeError = { parent: { code: string } };
 
@@ -47,7 +50,7 @@ export type LoginResponse = {
 
 export type CreateClassResponse = {
   result: CreateClassResult;
-  class?: object;
+  class?: object | undefined;
 }
 
 export enum UserType {
@@ -342,6 +345,7 @@ async function checkLogin<T extends Model & User>(identifier: string, password: 
     result: result,
     success: LoginResult.success(result),
     type
+    id: user?.id ?? 0,
   };
   if (user) {
     response.user = user;
@@ -365,6 +369,19 @@ export async function getAllEducators(): Promise<Educator[]> {
   return Educator.findAll();
 }
 
+export async function getStory(storyName: string): Promise<Story | null> {
+  return Story.findOne({ where: { name: storyName } });
+}
+
+export async function getStages(storyName: string): Promise<Stage[]> {
+  return Stage.findAll({
+    where: {
+      story_name: storyName,
+    },
+    order: [["stage_index", "ASC"]],
+  });
+}
+
 export async function getStoryState(studentID: number, storyName: string): Promise<JSON | null> {
   const result = await StoryState.findOne({
     where: {
@@ -376,26 +393,23 @@ export async function getStoryState(studentID: number, storyName: string): Promi
     console.log(error);
     return null;
   });
-  return result?.story_state || null;
+  return result?.story_state ?? null;
 }
 
 export async function updateStoryState(studentID: number, storyName: string, newState: JSON): Promise<JSON | null> {
+  const query = {
+    student_id: studentID,
+    story_name: storyName,
+  };
   let result = await StoryState.findOne({
-    where: {
-      student_id: studentID,
-      story_name: storyName
-    }
+    where: query
   })
   .catch(error => {
     console.log(error);
     return null;
   });
 
-  const storyData = {
-    student_id: studentID,
-    story_name: storyName,
-    story_state: newState
-  };
+  const storyData = { ...query, story_state: newState };
   if (result !== null) {
     result?.update(storyData);
   } else {
@@ -404,7 +418,97 @@ export async function updateStoryState(studentID: number, storyName: string, new
       return null;
     });
   }
-  return result?.story_state || null;
+  return result?.story_state ?? null;
+}
+
+export async function getStudentStageState(studentID: number, storyName: string, stageName: string): Promise<JSON | null> {
+  const result = await StageState.findOne({
+    where: {
+      student_id: studentID,
+      story_name: storyName,
+      stage_name: stageName,
+    }
+  })
+  .catch(error => {
+    console.log(error);
+    return null;
+  });
+  return result?.state ?? null;
+}
+
+export type StageStateQuery = { storyName: string, stageName?: string } & Either<{studentID: number}, {classID: number}>;
+
+export async function getStageStates(query: StageStateQuery): Promise<Record<string, JSON[]>> {
+  const where: WhereOptions = { story_name: query.storyName };
+  if (query.stageName != undefined) {
+    where.stage_name = query.stageName;
+  }
+  
+  if (query.classID != undefined) {
+    const students = await StudentsClasses.findAll({
+      where: { class_id: query.classID }
+    });
+    const studentIDs = students.map(sc => sc.student_id);
+    where.student_id = {
+      [Op.in]: studentIDs
+    };
+  } else {
+    where.student_id = query.studentID;
+  }
+
+  const results = await StageState.findAll({ where })
+    .catch(error => {
+      console.log(error);
+      return null;
+    });
+
+  const stageStates: Record<string, JSON[]> = {};
+  if (results !== null) {
+    results.forEach(result => {
+      const states = stageStates[result.stage_name] ?? [];
+      states.push(result.state);
+      stageStates[result.stage_name] = states;
+    });
+  }
+
+  return stageStates;
+
+}
+
+export async function updateStageState(studentID: number, storyName: string, stageName: string, newState: JSON): Promise<JSON | null> {
+  const query = {
+    student_id: studentID,
+    story_name: storyName,
+    stage_name: stageName,
+  };
+  let result = await StageState.findOne({
+    where: query
+  })
+  .catch(error => {
+    console.log(error);
+    return null;
+  });
+
+  const data = { ...query, state: newState };
+  if (result !== null) {
+    result?.update(data);
+  } else {
+    result = await StageState.create(data).catch(error => {
+      console.log(error);
+      return null;
+    });
+  }
+  return result?.state ?? null;
+}
+
+export async function deleteStageState(studentID: number, storyName: string, stageName: string): Promise<number> {
+  return StageState.destroy({
+    where: {
+      student_id: studentID,
+      story_name: storyName,
+      stage_name: stageName,
+    }
+  });
 }
 
 export async function getClassesForEducator(educatorID: number): Promise<Class[]> {

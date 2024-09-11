@@ -20,7 +20,7 @@ import {
   removeHubbleMeasurement,
   setGalaxySpectrumStatus,
   getUncheckedSpectraGalaxies,
-  getStageThreeMeasurements,
+  getClassMeasurements,
   getAllHubbleMeasurements,
   getAllHubbleStudentData,
   getAllHubbleClassData,
@@ -32,7 +32,9 @@ import {
   getGalaxyById,
   removeSampleHubbleMeasurement,
   getAllNthSampleHubbleMeasurements,
-  tryToMergeClass
+  tryToMergeClass,
+  getClassMeasurementCount,
+  getStudentsWithCompleteMeasurementsCount
 } from "./database";
 
 import { 
@@ -188,7 +190,10 @@ router.delete("/sample-measurement/:studentID/:measurementNumber", async (req, r
 router.get("/measurements/:studentID", async (req, res) => {
   const params = req.params;
   const studentID = parseInt(params.studentID);
-  const measurements = await getStudentHubbleMeasurements(studentID);
+  const student = await findStudentById(studentID);
+  const measurements = student !== null ?
+    await getStudentHubbleMeasurements(studentID) :
+    null;
   const status = measurements === null ? 404 : 200;
   res.status(status).json({
     student_id: studentID,
@@ -254,12 +259,74 @@ router.get("/sample-galaxy", async (_req, res) => {
   res.json(galaxy);
 });
 
-router.get("/stage-3-data/:studentID/:classID", async (req, res) => {
+router.get("/class-measurements/size/:studentID/:classID", async (req, res) => {
+  res.header("Cache-Control", "no-cache, no-store, must-revalidate");  // HTTP 1.1
+  res.header("Pragma", "no-cache");  // HTTP 1.0
+  res.header("Expires", "0");  // Proxies
+  const studentID = parseInt(req.params.studentID);
+  const isValidStudent = (await findStudentById(studentID)) !== null;
+  if (!isValidStudent) {
+    res.status(404).json({
+      message: "Invalid student ID",
+    });
+    return;
+  }
+
+  const classID = parseInt(req.params.classID);
+  const isValidClass = (await findClassById(classID)) !== null;
+  if (!isValidClass) {
+    res.status(404).json({
+      message: "Invalid class ID",
+    });
+    return;
+  }
+
+  const completeOnly = (req.query.complete_only as string)?.toLowerCase() === "true";
+  const count = await getClassMeasurementCount(studentID, classID, completeOnly);
+  res.status(200).json({
+    student_id: studentID,
+    class_id: classID,
+    measurement_count: count,
+  });
+});
+
+router.get("/class-measurements/students-completed/:studentID/:classID", async (req, res) => {
+  res.header("Cache-Control", "no-cache, no-store, must-revalidate");  // HTTP 1.1
+  res.header("Pragma", "no-cache");  // HTTP 1.0
+  res.header("Expires", "0");  // Proxies
+  const studentID = parseInt(req.params.studentID);
+  const isValidStudent = (await findStudentById(studentID)) !== null;
+  if (!isValidStudent) {
+    res.status(404).json({
+      message: "Invalid student ID",
+    });
+    return;
+  }
+
+  const classID = parseInt(req.params.classID);
+  const isValidClass = (await findClassById(classID)) !== null;
+  if (!isValidClass) {
+    res.status(404).json({
+      message: "Invalid class ID",
+    });
+    return;
+  }
+
+  const count = await getStudentsWithCompleteMeasurementsCount(studentID, classID);
+  res.status(200).json({
+    student_id: studentID,
+    class_id: classID,
+    students_completed_measurements: count,
+  });
+});
+
+router.get(["/class-measurements/:studentID/:classID", "/stage-3-data/:studentID/:classID"], async (req, res) => {
   const lastCheckedStr = req.query.last_checked as string;
   let lastChecked: number | null = parseInt(lastCheckedStr);
   if (isNaN(lastChecked)) {
     lastChecked = null;
   }
+  const completeOnly = (req.query.complete_only as string)?.toLowerCase() === "true";
   const params = req.params;
   let studentID = parseInt(params.studentID);
   let classID = parseInt(params.classID);
@@ -283,15 +350,15 @@ router.get("/stage-3-data/:studentID/:classID", async (req, res) => {
     return;
   }
 
-  const measurements = await getStageThreeMeasurements(studentID, classID, lastChecked);
+  const measurements = await getClassMeasurements(studentID, classID, lastChecked, completeOnly);
   res.status(200).json({
-    studentID,
-    classID,
-    measurements
+    student_id: studentID,
+    class_id: classID,
+    measurements,
   });
 });
 
-router.get("/stage-3-data/:studentID", async (req, res) => {
+router.get(["/class-measurements/:studentID", "stage-3-measurements/:studentID"], async (req, res) => {
   const params = req.params;
   const studentID = parseInt(params.studentID);
   const isValidStudent = (await findStudentById(studentID)) !== null;
@@ -302,11 +369,11 @@ router.get("/stage-3-data/:studentID", async (req, res) => {
     return;
   }
 
-  const measurements = await getStageThreeMeasurements(studentID, null);
+  const measurements = await getClassMeasurements(studentID, null);
   res.status(200).json({
-    studentID,
+    student_id: studentID,
+    class_id: null,
     measurements,
-    classID: null
   });
 });
 
@@ -352,9 +419,10 @@ router.put("/sync-merged-class/:classID", async(req, res) => {
 
 router.get("/galaxies", async (req, res) => {
   const types = req.query?.types ?? undefined;
+  const flags = (/true/i).test((req.query?.flags as string) ?? undefined);
   let galaxies: Galaxy[];
   if (types === undefined) {
-    galaxies = await getAllGalaxies();
+    galaxies = await getAllGalaxies(flags);
   } else {
     let galaxyTypes: string[];
     if (Array.isArray(types)) {
@@ -362,7 +430,7 @@ router.get("/galaxies", async (req, res) => {
     } else {
       galaxyTypes = (types as string).split(",");
     }
-    galaxies = await getGalaxiesForTypes(galaxyTypes);
+    galaxies = await getGalaxiesForTypes(galaxyTypes, flags);
   }
   res.json(galaxies);
 });

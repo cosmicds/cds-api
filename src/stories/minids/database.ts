@@ -31,7 +31,7 @@ export function isValidEclipseMiniData(data: any): data is EclipseMiniData {
 
 export async function submitEclipseMiniResponse(data: EclipseMiniData): Promise<EclipseMiniResponse | null> {
 
-  logger.verbose(`Attempting to submit measurement for user ${data.user_uuid}`);
+  logger.verbose(`Attempting to submit annular eclipse 2023 measurement for user ${data.user_uuid}`);
 
   const dataWithCounts = {
     ...data,
