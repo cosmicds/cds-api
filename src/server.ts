@@ -39,6 +39,8 @@ import {
   StageStateQuery,
   CreateClassResponse,
   UserType,
+  findEducatorByUsername,
+  findEducatorById,
 } from "./database";
 
 import { getAPIKey, hasPermission } from "./authorization";
@@ -232,6 +234,7 @@ app.post("/educator-sign-up", async (req, res) => {
     typeof data.password === "string" &&
     ((typeof data.institution === "string") || (data.institution == null)) &&
     typeof data.email === "string" &&
+    typeof data.username === "string" &&
     ((typeof data.age === "number") || (data.age == null)) &&
     ((typeof data.gender === "string") || data.gender == null)
   );
@@ -464,7 +467,7 @@ app.get([
     res.statusCode = 404;
   }
   res.json({
-    student: student
+    student,
   });
 });
 
@@ -493,6 +496,24 @@ app.get("/students/:identifier/classes", async (req, res) => {
     classes: classes
   });
 
+});
+
+app.get("/educators/:identifier", async (req, res) => {
+  const params = req.params;
+  const id = Number(params.identifier);
+
+  let educator;
+  if (isNaN(id)) {
+    educator = await findEducatorByUsername(params.identifier);
+  } else {
+    educator = await findEducatorById(id);
+  }
+  if (educator == null) {
+    res.statusCode = 404;
+  }
+  res.json({
+    educator,
+  });
 });
 
 app.post("/classes/join", async (req, res) => {

@@ -124,19 +124,25 @@ async function _findStudentByEmail(email: string): Promise<Student | null> {
 
 export async function findStudentByUsername(username: string): Promise<Student | null> {
   return Student.findOne({
-    where: { username: username }
+    where: { username }
   });
 }
 
 export async function findStudentById(id: number): Promise<Student | null> {
   return Student.findOne({
-    where: { id : id }
+    where: { id }
   });
 }
 
 export async function findEducatorById(id: number): Promise<Educator | null> {
   return Educator.findOne({
-    where: { id: id }
+    where: { id }
+  });
+}
+
+export async function findEducatorByUsername(username: string): Promise<Educator | null> {
+  return Educator.findOne({
+    where: { username },
   });
 }
 
@@ -197,6 +203,7 @@ export interface SignUpEducatorOptions {
   last_name: string;
   password: string;
   email: string;
+  username: string;
   institution?: string;
   age?: number;
   gender?: string;
