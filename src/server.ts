@@ -232,8 +232,8 @@ app.post([
 ], async (req, res) => {
   const data = req.body;
   const valid = (
-    typeof data.firstName === "string" &&
-    typeof data.lastName === "string" &&
+    typeof data.first_name === "string" &&
+    typeof data.last_name === "string" &&
     typeof data.password === "string" &&
     ((typeof data.institution === "string") || (data.institution == null)) &&
     typeof data.email === "string" &&
