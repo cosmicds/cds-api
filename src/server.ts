@@ -45,7 +45,6 @@ import {
   findEducatorById,
   CreateClassSchema,
   QuestionInfoSchema,
-  QuestionInfo,
 } from "./database";
 
 import { getAPIKey, hasPermission } from "./authorization";
