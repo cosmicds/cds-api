@@ -1,4 +1,4 @@
-import { Model, Op, QueryTypes, Sequelize, WhereOptions } from "sequelize";
+import { BaseError, Model, Op, QueryTypes, Sequelize, UniqueConstraintError, WhereOptions } from "sequelize";
 import dotenv from "dotenv";
 
 import {
@@ -38,8 +38,6 @@ import { StudentOption, StudentOptions } from "./models/student_options";
 import { Question } from "./models/question";
 import { logger } from "./logger";
 import { Stage } from "./models/stage";
-
-type SequelizeError = { parent: { code: string } };
 
 export type LoginResponse = {
   type: "none" | "student" | "educator" | "admin",
@@ -90,23 +88,19 @@ setUpAssociations();
 
 // For now, this just distinguishes between duplicate account creation and other errors
 // We can flesh this out layer
-function signupResultFromError(error: SequelizeError): SignUpResult {
-  const code = error.parent.code;
-  switch (code) {
-    case "ER_DUP_ENTRY":
-      return SignUpResult.EmailExists;
-    default:
-      return SignUpResult.Error;
+function signupResultFromError(error: BaseError): SignUpResult {
+  if (error instanceof UniqueConstraintError) {
+    return SignUpResult.EmailExists;
+  } else {
+    return SignUpResult.Error;
   }
 }
 
-function createClassResultFromError(error: SequelizeError): CreateClassResult {
-  const code = error.parent.code;
-  switch (code) {
-    case "ER_DUP_ENTRY":
-      return CreateClassResult.AlreadyExists;
-    default:
-      return CreateClassResult.Error;
+function createClassResultFromError(error: BaseError): CreateClassResult {
+  if (error instanceof UniqueConstraintError) {
+    return CreateClassResult.AlreadyExists;
+  } else {
+    return CreateClassResult.Error;
   }
 }
 
