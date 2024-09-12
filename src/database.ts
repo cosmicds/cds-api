@@ -257,7 +257,7 @@ export async function signUpStudent(options: SignUpStudentOptions): Promise<Sign
   
   let result = SignUpResult.Ok;
   const student = await Student.create({
-    username: username,
+    username: options.username,
     verified: 0,
     verification_code: verificationCode,
     password: encryptedPassword,
