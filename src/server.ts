@@ -226,7 +226,10 @@ app.listen(PORT, () => {
 });
 
 // Educator sign-up
-app.post("/educator-sign-up", async (req, res) => {
+app.post([
+  "/educators/create",
+  "/educator-sign-up", // Old
+], async (req, res) => {
   const data = req.body;
   const valid = (
     typeof data.firstName === "string" &&
@@ -254,13 +257,16 @@ app.post("/educator-sign-up", async (req, res) => {
 });
 
 // Student sign-up
-app.post("/student-sign-up", async (req, res) => {
+app.post([
+  "/students/create",
+  "/student-sign-up", // Old
+], async (req, res) => {
   const data = req.body;
   const valid = (
     typeof data.username === "string" &&
     typeof data.password === "string" &&
     ((typeof data.institution === "string") || (data.institution == null)) &&
-    typeof data.email === "string" &&
+    ((typeof data.email === "string") || (data.email == null)) &&
     ((typeof data.age === "number") || (data.age == null)) &&
     ((typeof data.gender === "string") || (data.gender == null)) &&
     ((typeof data.classroom_code === "string") || (data.classroom_code == null))
@@ -558,58 +564,6 @@ app.post("/classes/join", async (req, res) => {
   }
 
   res.json({ success, message });
-});
-
-app.post("/educators/create", async (req, res) => {
-  const data = req.body;
-  const valid = (
-    typeof data.first_name === "string" &&
-    typeof data.last_name === "string" &&
-    typeof data.password === "string" &&
-    ((typeof data.institution === "string") || (data.institution == null)) &&
-    typeof data.email === "string" &&
-    ((typeof data.age === "number") || (data.age == null)) &&
-    ((typeof data.gender === "string") || data.gender == null)
-  );
-
-  let result: SignUpResult;
-  if (valid) {
-    result = await signUpEducator(data);
-  } else {
-    result = SignUpResult.BadRequest;
-    res.status(400);
-  }
-  res.json({
-    educator_info: data,
-    status: result,
-    success: SignUpResult.success(result)
-  });
-});
-
-app.post("/students/create", async (req, res) => {
-  const data = req.body;
-  const valid = (
-    typeof data.username === "string" &&
-    typeof data.password === "string" &&
-    ((typeof data.institution === "string") || (data.institution == null)) &&
-    ((typeof data.email === "string") || (data.email == null)) &&
-    ((typeof data.age === "number") || (data.age == null)) &&
-    ((typeof data.gender === "string") || (data.gender == null)) &&
-    ((typeof data.classroom_code === "string") || (data.classroom_code == null))
-  );
-
-  let result: SignUpResult;
-  if (valid) {
-    result = await signUpStudent(data);
-  } else {
-    result = SignUpResult.BadRequest;
-    res.status(400);
-  }
-  res.json({
-    student_info: data,
-    status: result,
-    success: SignUpResult.success(result)
-  });
 });
 
 /* Classes */
