@@ -10,9 +10,9 @@ export class Educator extends Model<InferAttributes<Educator>, InferCreationAttr
   declare first_name: string;
   declare last_name: string;
   declare password: string;
-  declare institution: string | null;
-  declare age: number | null;
-  declare gender: string | null;
+  declare institution: CreationOptional<string | null>;
+  declare age: CreationOptional<number | null>;
+  declare gender: CreationOptional<string | null>;
   declare ip: CreationOptional<string | null>;
   declare lat: CreationOptional<string | null>;
   declare lon: CreationOptional<string | null>;
