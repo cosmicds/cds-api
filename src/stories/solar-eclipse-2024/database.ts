@@ -1,13 +1,10 @@
 import * as S from "@effect/schema/Schema";
-import { cosmicdsDB } from "../../database";
 import { logger } from "../../logger";
 
 import { UpdateAttributes } from "../../utils";
-import { initializeModels, SolarEclipse2024Data } from "./models";
+import { SolarEclipse2024Data } from "./models";
 
 type SolarEclipse2024UpdateAttributes = UpdateAttributes<SolarEclipse2024Data>;
-
-initializeModels(cosmicdsDB);
 
 const LatLonArray = S.mutable(S.array(S.mutable(S.tuple(S.number, S.number))));
 const OptionalInt = S.optional(S.number.pipe(S.int()), { exact: true });

@@ -1,6 +1,7 @@
 import * as S from "@effect/schema/Schema";
 import * as Either from "effect/Either";
-import { Router } from "express";
+import { Express, Router } from "express";
+import { Sequelize } from "sequelize";
 import {
   getSolarEclipse2024Data,
   submitSolarEclipse2024Data,
@@ -8,8 +9,13 @@ import {
   updateSolarEclipse2024Data,
   SolarEclipse2024Update,
 } from "./database";
+import { initializeModels } from "./models";
 
-const router = Router();
+export const router = Router();
+
+export function setup(_app: Express, db: Sequelize) {
+  initializeModels(db);
+}
 
 router.put("/data", async (req, res) => {
   const data = req.body;
@@ -65,5 +71,3 @@ router.patch("/data/:uuid", async (req, res) => {
   res.json({ response });
 
 });
-
-export default router;

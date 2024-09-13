@@ -42,10 +42,18 @@ import {
   SubmitHubbleMeasurementResult
 } from "./request_results";
 
-import { Router } from "express";
+import { Express, Router } from "express";
+import { Sequelize } from "sequelize";
 import { findClassById, findStudentById } from "../../database";
+import { SyncMergedHubbleClasses, initializeModels } from "./models";
+import { setUpHubbleAssociations } from "./associations";
 
-const router = Router();
+export const router = Router();
+
+export function setup(_app: Express, db: Sequelize) {
+  initializeModels(db);
+  setUpHubbleAssociations();
+}
 
 router.put("/submit-measurement", async (req, res) => {
   const data = req.body;
@@ -403,7 +411,14 @@ router.put("/sync-merged-class/:classID", async(req, res) => {
     });
     return;
   }
-  const data = await tryToMergeClass(classID);
+  const database = SyncMergedHubbleClasses.sequelize;
+  if (database === undefined) {
+    res.status(500).json({
+      error: "Error connecting to database",
+    });
+    return;
+  }
+  const data = await tryToMergeClass(database, classID);
   if (data.mergeData === null) {
     res.statusCode = 404;
     res.json({
@@ -537,5 +552,3 @@ router.get("/data-generation-galaxies", async (_req, res) => {
   const galaxies = await getGalaxiesForDataGeneration().catch(console.log);
   res.json(galaxies);
 });
-
-export default router;
