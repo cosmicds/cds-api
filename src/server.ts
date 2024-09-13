@@ -111,12 +111,6 @@ export function createApp(db: Sequelize): Express {
   const app = express();
   setupApp(app, db);
 
-  // set port, listen for requests
-  const PORT = process.env.PORT || 8081;
-  app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}.`);
-  });
-
   app.all("*", (req, _res, next) => {
     console.log(req.session.id);
     next();
