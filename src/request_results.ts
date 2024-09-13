@@ -63,7 +63,15 @@ export enum SignUpResult {
 
 export namespace SignUpResult {
   export function statusCode(result: SignUpResult): number {
-    return result === SignUpResult.BadRequest ? 400 : 200;
+    switch (result) {
+      case SignUpResult.Ok:
+        return 200;
+      case SignUpResult.EmailExists:
+        return 409;
+      case SignUpResult.BadRequest:
+      case SignUpResult.Error:
+        return 400;
+    }
   }
 
   export function success(result: SignUpResult): boolean {

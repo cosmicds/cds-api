@@ -244,9 +244,9 @@ app.post([
     result = await signUpEducator(maybe.right);
   } else {
     result = SignUpResult.BadRequest;
-    res.status(400);
   }
-  res.json({
+  const statusCode = SignUpResult.statusCode(result);
+  res.status(statusCode).json({
     educator_info: data,
     status: result,
     success: SignUpResult.success(result)
@@ -266,9 +266,9 @@ app.post([
     result = await signUpStudent(maybe.right);
   } else {
     result = SignUpResult.BadRequest;
-    res.status(400);
   }
-  res.json({
+  const statusCode = SignUpResult.statusCode(result);
+  res.status(statusCode).json({
     student_info: data,
     status: result,
     success: SignUpResult.success(result)
