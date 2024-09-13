@@ -62,29 +62,32 @@ export enum UserType {
   Admin
 }
 
+export function createDB() {
 // Grab any environment variables
-// Currently, just the DB password
-dotenv.config();
+  dotenv.config();
 
-const dbName = "cosmicds_db";
-const username = "cdsadmin";
-const password = process.env.DB_PASSWORD;
-//const username = "jon";
-//const password = "Testp@ss123";
-export const cosmicdsDB = new Sequelize(dbName, username, password, {
-    host: "cosmicds-db.cupwuw3jvfpc.us-east-1.rds.amazonaws.com",
-    dialect: "mysql",
-    define: {
-      timestamps: false
-    }
-});
+  const dbName = process.env.DB_NAME as string;
+  const username = process.env.DB_USERNAME as string;
+  const password = process.env.DB_PASSWORD;
+  const database = new Sequelize(dbName, username, password, {
+      host: process.env.DB_HOSTNAME as string,
+      dialect: "mysql",
+      define: {
+        timestamps: false
+      }
+  });
 
-// Initialize our models with our database connection
-initializeModels(cosmicdsDB);
-// (async () => {
-//   await CosmicDSSession.sync({}).catch(console.log);
-//   console.log("Done sync!");
-// })();
+  // Initialize our models with our database connection
+  initializeModels(database);
+
+  // Create any associations that we need
+  setUpAssociations();
+
+  // Create any associations that we need
+  setUpAssociations();
+  return database; 
+}
+
 
 // Create any associations that we need
 setUpAssociations();
