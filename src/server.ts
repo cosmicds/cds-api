@@ -46,8 +46,6 @@ import {
   QuestionInfoSchema,
 } from "./database";
 
-import { getAPIKey, hasPermission } from "./authorization";
-
 import {
   CreateClassResult,
   LoginResult,
@@ -58,14 +56,9 @@ import {
 import { CosmicDSSession, StudentsClasses } from "./models";
 
 import { ParsedQs } from "qs";
-import express, { Express, Request, Response as ExpressResponse, NextFunction } from "express";
+import express, { Express, Request, Response as ExpressResponse } from "express";
 import { Response } from "express-serve-static-core";
-import bodyParser from "body-parser";
-import cookieParser from "cookie-parser";
 import session from "express-session";
-import sequelizeStore from "connect-session-sequelize";
-import { v4 } from "uuid";
-import cors from "cors";
 import jwt from "jsonwebtoken";
 
 import { isStudentOption } from "./models/student_options";
@@ -74,6 +67,7 @@ import * as S from "@effect/schema/Schema";
 import * as Either from "effect/Either";
 
 import { setupApp } from "./app";
+import { getAPIKey } from "./authorization";
 import { Sequelize } from "sequelize";
 
 // TODO: Clean up these type definitions
@@ -121,6 +115,23 @@ export function createApp(db: Sequelize): Express {
   const PORT = process.env.PORT || 8081;
   app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}.`);
+  });
+
+  app.all("*", (req, _res, next) => {
+    console.log(req.session.id);
+    next();
+  });
+
+  // simple route
+  app.get("/", async (req, res) => {
+    const key = req.get("Authorization");
+    const apiKey = key ? await getAPIKey(key) : null;
+    const apiKeyExists = apiKey !== null;
+    let message = "Welcome to the CosmicDS server!";
+    if (!apiKeyExists) {
+      message += " You'll need to include a valid API key with your requests in order to access other endpoints.";
+    }
+    res.json({ message: message });
   });
   
   // Educator sign-up

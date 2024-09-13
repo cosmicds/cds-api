@@ -1,16 +1,12 @@
 import { Attributes, FindOptions, Op, QueryTypes, Sequelize, WhereAttributeHash, WhereOptions, col, fn, literal } from "sequelize";
-import { AsyncMergedHubbleStudentClasses, Galaxy, HubbleMeasurement, SampleHubbleMeasurement, initializeModels, SyncMergedHubbleClasses } from "./models";
-import { classSize, cosmicdsDB, findClassById, findStudentById } from "../../database";
+import { AsyncMergedHubbleStudentClasses, Galaxy, HubbleMeasurement, SampleHubbleMeasurement, SyncMergedHubbleClasses } from "./models";
+import { classSize, findClassById, findStudentById } from "../../database";
 import { RemoveHubbleMeasurementResult, SubmitHubbleMeasurementResult } from "./request_results";
-import { setUpHubbleAssociations } from "./associations";
 import { Class, StoryState, Student, StudentsClasses } from "../../models";
 import { HubbleStudentData } from "./models/hubble_student_data";
 import { HubbleClassData } from "./models/hubble_class_data";
 import { IgnoreStudent } from "../../models/ignore_student";
 import { logger } from "../../logger";
-
-initializeModels(cosmicdsDB);
-setUpHubbleAssociations();
 
 const galaxyAttributes = ["id", "ra", "decl", "z", "type", "name", "element"];
 
@@ -436,7 +432,6 @@ export async function _getStageThreeStudentData(studentID: number, classID: numb
 }
 
 const MINIMAL_MEASUREMENT_FIELDS = ["student_id", "galaxy_id", "velocity_value", "est_dist_value", "class_id"];
-const MINIMAL_EXCLUDE_MEASUREMENT_FIELDS = Object.keys(HubbleMeasurement.getAttributes()).filter(key => !MINIMAL_MEASUREMENT_FIELDS.includes(key));
 
 export async function getAllHubbleMeasurements(before: Date | null = null, minimal=false): Promise<HubbleMeasurement[]> {
   const whereConditions: WhereOptions = [
@@ -445,13 +440,15 @@ export async function getAllHubbleMeasurements(before: Date | null = null, minim
   if (before !== null) {
     whereConditions.push({ last_modified: { [Op.lt]: before } });
   }
+  const exclude = minimal ? Object.keys(HubbleMeasurement.getAttributes()).filter(key => !MINIMAL_MEASUREMENT_FIELDS.includes(key)) : [];
+
   return HubbleMeasurement.findAll({
     raw: true,
     attributes: {
       // The "student" here comes from the alias below
       // We do this so that we get access to the included field as just "class_id"
       include: [[Sequelize.col("student.Classes.id"), "class_id"]],
-      exclude: minimal ? MINIMAL_EXCLUDE_MEASUREMENT_FIELDS : [],
+      exclude,
     },
     where: {
       [Op.and]: whereConditions
@@ -487,7 +484,6 @@ export async function getAllHubbleMeasurements(before: Date | null = null, minim
 }
 
 const MINIMAL_STUDENT_DATA_FIELDS = ["student_id", "age_value"];
-const MINIMAL_EXCLUDE_STUDENT_DATA_FIELDS = Object.keys(HubbleStudentData.getAttributes()).filter(key => !MINIMAL_STUDENT_DATA_FIELDS.includes(key));
 export async function getAllHubbleStudentData(before: Date | null = null, minimal=false): Promise<HubbleStudentData[]> {
   const whereConditions: WhereOptions = [
     { "$student.IgnoreStudents.student_id$": null }
@@ -495,13 +491,15 @@ export async function getAllHubbleStudentData(before: Date | null = null, minima
   if (before !== null) {
     whereConditions.push({ last_data_update: { [Op.lt]: before } });
   }
+  const exclude = minimal ? Object.keys(HubbleStudentData.getAttributes()).filter(key => !MINIMAL_STUDENT_DATA_FIELDS.includes(key)) : [];
+
   const data = await HubbleStudentData.findAll({
     raw: true, // We want a flattened object
     attributes: {
       // The "student" here comes from the alias below
       // We do this so that we get access to the included field as just "class_id"
       include: [[Sequelize.col("student.Classes.id"), "class_id"]],
-      exclude: minimal ? MINIMAL_EXCLUDE_STUDENT_DATA_FIELDS : [],
+      exclude,
     },
     where: {
       [Op.and]: whereConditions
@@ -748,13 +746,13 @@ export async function getMergeDataForClass(classID: number): Promise<SyncMergedH
   return SyncMergedHubbleClasses.findOne({ where: { class_id: classID } });
 }
 
-export async function eligibleClassesForMerge(classID: number, sizeThreshold=20): Promise<Class[]> {
+export async function eligibleClassesForMerge(database: Sequelize, classID: number, sizeThreshold=20): Promise<Class[]> {
   const size = await classSize(classID);
 
   // Running into the limits of the ORM a bit here
   // Maybe there's a clever way to write this?
   // But straight SQL gets the job done
-  return cosmicdsDB.query(
+  return database.query(
     `SELECT * FROM (SELECT
     id,
     test,
@@ -780,7 +778,7 @@ export interface MergeAttemptData {
   mergeData: SyncMergedHubbleClasses | null;
   message: string;
 }
-export async function tryToMergeClass(classID: number): Promise<MergeAttemptData> {
+export async function tryToMergeClass(db: Sequelize, classID: number): Promise<MergeAttemptData> {
   const cls = await findClassById(classID);
   if (cls === null) {
     return { mergeData: null, message: "Invalid class ID!" };
@@ -791,11 +789,9 @@ export async function tryToMergeClass(classID: number): Promise<MergeAttemptData
     return { mergeData, message: "Class already merged" };
   }
 
-  const eligibleClasses = await eligibleClassesForMerge(classID);
+  const eligibleClasses = await eligibleClassesForMerge(db, classID);
   if (eligibleClasses.length > 0) {
     const index = Math.floor(Math.random() * eligibleClasses.length);
-    console.log(eligibleClasses);
-    console.log(index);
     const classToMerge = eligibleClasses[index];
     mergeData = await SyncMergedHubbleClasses.create({ class_id: classID, merged_class_id: classToMerge.id });
     if (mergeData === null) {

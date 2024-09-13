@@ -62,7 +62,7 @@ export enum UserType {
   Admin
 }
 
-export function createDB() {
+export function getDatabaseConnection() {
 // Grab any environment variables
   dotenv.config();
 
@@ -83,14 +83,8 @@ export function createDB() {
   // Create any associations that we need
   setUpAssociations();
 
-  // Create any associations that we need
-  setUpAssociations();
   return database; 
 }
-
-
-// Create any associations that we need
-setUpAssociations();
 
 // For now, this just distinguishes between duplicate account creation and other errors
 // We can flesh this out layer

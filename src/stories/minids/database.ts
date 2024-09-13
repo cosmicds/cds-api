@@ -1,4 +1,3 @@
-import { cosmicdsDB } from "../../database";
 import { logger } from "../../logger";
 import {
   isArrayThatSatisfies,
@@ -6,9 +5,7 @@ import {
   isStringArray
 } from "../../utils";
 
-import { initializeModels, EclipseMiniResponse } from "./models";
-
-initializeModels(cosmicdsDB);
+import { EclipseMiniResponse } from "./models";
 
 export interface EclipseMiniData {
   user_uuid: string;

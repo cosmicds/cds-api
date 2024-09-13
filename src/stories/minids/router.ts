@@ -1,12 +1,18 @@
-import { Router } from "express";
+import { Express, Router } from "express";
 import {
   getEclipseMiniResponse,
   getAllEclipseMiniResponses,
   isValidEclipseMiniData,
   submitEclipseMiniResponse
 } from "./database";
+import { Sequelize } from "sequelize";
+import { initializeModels } from "./models";
 
-const router = Router();
+export const router = Router();
+
+export function setup(_app: Express, db: Sequelize) {
+  initializeModels(db);
+}
 
 router.put("/annular-eclipse-2023/response", async (req, res) => {
   const data = req.body; 
@@ -39,5 +45,3 @@ router.get("/annular-eclipse-2023/response/:userUUID", async (req, res) => {
   const response = await getEclipseMiniResponse(uuid);
   res.json({ response });
 });
-
-export default router;
