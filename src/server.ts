@@ -4,7 +4,9 @@ import {
   checkStudentLogin,
   createClass,
   signUpEducator,
+  SignUpStudentSchema,
   signUpStudent,
+  SignUpEducatorSchema,
   verifyEducator,
   verifyStudent,
   getAllEducators,
@@ -41,6 +43,8 @@ import {
   UserType,
   findEducatorByUsername,
   findEducatorById,
+  CreateClassSchema,
+  QuestionInfoSchema,
 } from "./database";
 
 import { getAPIKey, hasPermission } from "./authorization";
@@ -66,7 +70,9 @@ import cors from "cors";
 import jwt from "jsonwebtoken";
 
 import { isStudentOption } from "./models/student_options";
-import { isNumberArray, isStringArray } from "./utils";
+
+import * as S from "@effect/schema/Schema";
+import * as Either from "effect/Either";
 
 export const app = express();
 
@@ -231,25 +237,16 @@ app.post([
   "/educator-sign-up", // Old
 ], async (req, res) => {
   const data = req.body;
-  const valid = (
-    typeof data.first_name === "string" &&
-    typeof data.last_name === "string" &&
-    typeof data.password === "string" &&
-    ((typeof data.institution === "string") || (data.institution == null)) &&
-    typeof data.email === "string" &&
-    typeof data.username === "string" &&
-    ((typeof data.age === "number") || (data.age == null)) &&
-    ((typeof data.gender === "string") || data.gender == null)
-  );
+  const maybe = S.decodeUnknownEither(SignUpEducatorSchema)(data);
 
   let result: SignUpResult;
-  if (valid) {
-    result = await signUpEducator(data);
+  if (Either.isRight(maybe)) {
+    result = await signUpEducator(maybe.right);
   } else {
     result = SignUpResult.BadRequest;
-    res.status(400);
   }
-  res.json({
+  const statusCode = SignUpResult.statusCode(result);
+  res.status(statusCode).json({
     educator_info: data,
     status: result,
     success: SignUpResult.success(result)
@@ -262,24 +259,16 @@ app.post([
   "/student-sign-up", // Old
 ], async (req, res) => {
   const data = req.body;
-  const valid = (
-    typeof data.username === "string" &&
-    typeof data.password === "string" &&
-    ((typeof data.institution === "string") || (data.institution == null)) &&
-    ((typeof data.email === "string") || (data.email == null)) &&
-    ((typeof data.age === "number") || (data.age == null)) &&
-    ((typeof data.gender === "string") || (data.gender == null)) &&
-    ((typeof data.classroom_code === "string") || (data.classroom_code == null))
-  );
+  const maybe = S.decodeUnknownEither(SignUpStudentSchema)(data);
 
   let result: SignUpResult;
-  if (valid) {
-    result = await signUpStudent(data);
+  if (Either.isRight(maybe)) {
+    result = await signUpStudent(maybe.right);
   } else {
     result = SignUpResult.BadRequest;
-    res.status(400);
   }
-  res.json({
+  const statusCode = SignUpResult.statusCode(result);
+  res.status(statusCode).json({
     student_info: data,
     status: result,
     success: SignUpResult.success(result)
@@ -288,10 +277,14 @@ app.post([
 
 async function handleLogin(request: GenericRequest, identifierField: string, checker: (identifier: string, pw: string) => Promise<LoginResponse>): Promise<LoginResponse> {
   const data = request.body;
-  const valid = typeof data[identifierField] === "string" && typeof data.password === "string";
+  const schema = S.struct({
+    [identifierField]: S.string,
+    password: S.string,
+  });
+  const maybe = S.decodeUnknownEither(schema)(data);
   let res: LoginResponse;
-  if (valid) {
-    res = await checker(data[identifierField], data.password);
+  if (Either.isRight(maybe)) {
+    res = await checker(maybe.right[identifierField], maybe.right.password);
   } else {
     res = { result: LoginResult.BadRequest, success: false, type: "none" };
   }
@@ -353,29 +346,6 @@ app.put("/educator-login", async (req, res) => {
   }
   const status = loginResponse.success ? 200 : 401;
   res.status(status).json(loginResponse);
-});
-
-app.post("/create-class", async (req, res) => {
-  const data = req.body;
-  const valid = (
-    typeof data.educatorID === "number" &&
-    typeof data.name === "string"
-  );
-
-  let result: CreateClassResult;
-  let cls: object | undefined = undefined;
-  if (valid) {
-    const createClassResponse = await createClass(data.educatorID, data.name);
-    result = createClassResponse.result;
-    cls = createClassResponse.class;
-  } else {
-    result = CreateClassResult.BadRequest;
-    res.status(400);
-  }
-  res.json({
-    class: cls,
-    status: result
-  });
 });
 
 async function verify(request: VerificationRequest, verifier: (code: string) => Promise<VerificationResult>): Promise<{ code: string; status: VerificationResult }> {
@@ -567,15 +537,15 @@ app.post("/classes/join", async (req, res) => {
 });
 
 /* Classes */
-app.post("/classes/create", async (req, res) => {
+app.post([
+  "/classes/create",
+  "/create-class",
+], async (req, res) => {
   const data = req.body;
-  const valid = (
-    typeof data.username === "string" &&
-    typeof data.educator_id === "string"
-  );
+  const maybe = S.decodeUnknownEither(CreateClassSchema)(data);
   let response: CreateClassResponse;
-  if (valid) {
-    response = await createClass(data.educator_id, data.username);
+  if (Either.isRight(maybe)) {
+    response = await createClass(maybe.right);
   } else {
     response = {
       result: CreateClassResult.BadRequest,
@@ -855,22 +825,10 @@ app.get("/question/:tag", async (req, res) => {
 
 app.post("/question/:tag", async (req, res) => {
 
-  const tag = req.params.tag;
-  const text = req.body.text;
-  const shorthand = req.body.shorthand;
-  const story_name = req.body.story_name;
-  const answers_text = req.body.answers_text;
-  const correct_answers = req.body.correct_answers;
-  const neutral_answers = req.body.neutral_answers;
+  const data = { ...req.body, tag: req.params.tag };
+  const maybe = S.decodeUnknownEither(QuestionInfoSchema)(data);
 
-  const valid = typeof tag === "string" &&
-                typeof text === "string" &&
-                typeof shorthand === "string" &&
-                typeof story_name === "string" &&
-                (answers_text === undefined || isStringArray(answers_text)) &&
-                (correct_answers === undefined || isNumberArray(correct_answers)) &&
-                (neutral_answers === undefined || isNumberArray(neutral_answers));
-  if (!valid) {
+  if (Either.isLeft(maybe)) {
     res.statusCode = 400;
     res.json({
       error: "One of your fields is missing or of the incorrect type"
@@ -878,9 +836,10 @@ app.post("/question/:tag", async (req, res) => {
     return;
   }
 
-  const currentQuestion = await findQuestion(tag);
+  const currentQuestion = await findQuestion(req.params.tag);
   const version = currentQuestion !== null ? currentQuestion.version + 1 : 1;
-  const addedQuestion = await addQuestion({tag, text, shorthand, story_name, answers_text, correct_answers, neutral_answers, version});
+  const questionInfo = { ...maybe.right, version };
+  const addedQuestion = await addQuestion(questionInfo);
   if (addedQuestion === null) {
     res.statusCode = 500;
     res.json({

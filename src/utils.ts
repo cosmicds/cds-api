@@ -3,6 +3,7 @@ import { enc, SHA256 } from "crypto-js";
 import { v5 } from "uuid";
 
 import { Model } from "sequelize";
+import { CreateClassOptions } from "./database";
 
 // This type describes objects that we're allowed to pass to a model's `update` method
 export type UpdateAttributes<M extends Model> = Parameters<M["update"]>[0];
@@ -14,6 +15,10 @@ export type Only<T, U> = {
 };
 
 export type Either<T, U> = Only<T,U> | Only<U,T>;
+
+export type Mutable<T> = {
+  -readonly [P in keyof T]: T[P];
+}
 
 export function createVerificationCode(): string {
   return nanoid(21);
@@ -29,8 +34,8 @@ function createV5(name: string): string {
   return v5(name, cdsNamespace);
 }
 
-export function createClassCode(educatorID: number, className: string) {
-  const nameString = `${educatorID}_${className}`;
+export function createClassCode(options: CreateClassOptions) {
+  const nameString = `${options.educator_id}_${options.name}`;
   return createV5(nameString);
 }
 

@@ -1,6 +1,8 @@
 import { BaseError, Model, Op, QueryTypes, Sequelize, UniqueConstraintError, WhereOptions } from "sequelize";
 import dotenv from "dotenv";
 
+import * as S from "@effect/schema/Schema";
+
 import {
   Class,
   Educator,
@@ -20,6 +22,7 @@ import {
   encryptPassword,
   isNumberArray,
   Either,
+  Mutable,
 } from "./utils";
 
 
@@ -192,16 +195,18 @@ async function educatorVerificationCodeExists(code: string): Promise<boolean> {
   return result.length > 0;
 }
 
-export interface SignUpEducatorOptions {
-  first_name: string;
-  last_name: string;
-  password: string;
-  email: string;
-  username: string;
-  institution?: string;
-  age?: number;
-  gender?: string;
-}
+export const SignUpEducatorSchema = S.struct({
+  first_name: S.string,
+  last_name: S.string,
+  password: S.string,
+  email: S.string,
+  username: S.string,
+  institution: S.optional(S.string),
+  age: S.optional(S.number),
+  gender: S.optional(S.string),
+});
+
+export type SignUpEducatorOptions = S.Schema.To<typeof SignUpEducatorSchema>;
 
 export async function signUpEducator(options: SignUpEducatorOptions): Promise<SignUpResult> {
                          
@@ -227,16 +232,17 @@ export async function signUpEducator(options: SignUpEducatorOptions): Promise<Si
     return result;
 }
 
-export interface SignUpStudentOptions {
-  username: string;
-  password: string;
-  email?: string;
-  age?: number;
-  gender?: string;
-  institution?: string;
-  classroom_code?: string;
-}
+export const SignUpStudentSchema = S.struct({
+  username: S.string,
+  password: S.string,
+  email: S.optional(S.string),
+  age: S.optional(S.number),
+  gender: S.optional(S.string),
+  institution: S.optional(S.string),
+  classroom_code: S.optional(S.string),
+});
 
+export type SignUpStudentOptions = S.Schema.To<typeof SignUpStudentSchema>;
 
 export async function signUpStudent(options: SignUpStudentOptions): Promise<SignUpResult> {
   
@@ -279,15 +285,18 @@ export async function signUpStudent(options: SignUpStudentOptions): Promise<Sign
   return result;
 }
 
-export async function createClass(educatorID: number, name: string): Promise<CreateClassResponse> {
+export const CreateClassSchema = S.struct({
+  educator_id: S.number,
+  name: S.string,
+});
+
+export type CreateClassOptions = S.Schema.To<typeof CreateClassSchema>;
+
+export async function createClass(options: CreateClassOptions): Promise<CreateClassResponse> {
   
   let result = CreateClassResult.Ok;
-  const code = createClassCode(educatorID, name);
-  const creationInfo = {
-    educator_id: educatorID,
-    name: name,
-    code: code,
-  };
+  const code = createClassCode(options);
+  const creationInfo = { ...options, code };
   const cls = await Class.create(creationInfo)
   .catch(error => {
     result = createClassResultFromError(error);
@@ -751,24 +760,30 @@ export async function findQuestion(tag: string, version?: number): Promise<Quest
   }
 }
 
-interface QuestionInfo {
-  tag: string;
-  text: string;
-  shorthand: string;
-  story_name: string;
-  answers_text?: string[];
-  correct_answers?: number[];
-  neutral_answers?: number[];
-  version?: number;
-}
+export const QuestionInfoSchema = S.struct({
+  tag: S.string,
+  text: S.string,
+  shorthand: S.string,
+  story_name: S.string,
+  answers_text: S.optional(S.mutable(S.array(S.string))),
+  correct_answers: S.optional(S.mutable(S.array(S.number))),
+  neutral_answers: S.optional(S.mutable(S.array(S.number))),
+  version: S.optional(S.number),
+});
+
+export type QuestionInfo = S.Schema.To<typeof QuestionInfoSchema>;
+
 export async function addQuestion(info: QuestionInfo): Promise<Question | null> {
-  if (!info.version) {
-    const currentVersion = await currentVersionForQuestion(info.tag);
-    info.version = currentVersion || 1;
+
+  const infoToUse: Mutable<QuestionInfo> = { ...info };
+
+  if (!infoToUse.version) {
+    const currentVersion = await currentVersionForQuestion(infoToUse.tag);
+    infoToUse.version = currentVersion || 1;
   }
-  return Question.create(info).catch((error) => {
+  return Question.create(infoToUse).catch((error) => {
     logger.error(error);
-    logger.error(`Question info: ${JSON.stringify(info)}`);
+    logger.error(`Question info: ${JSON.stringify(infoToUse)}`);
     return null;
   });
 }
