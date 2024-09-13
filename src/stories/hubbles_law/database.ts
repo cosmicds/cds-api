@@ -435,7 +435,10 @@ export async function _getStageThreeStudentData(studentID: number, classID: numb
   return data ?? [];
 }
 
-export async function getAllHubbleMeasurements(before: Date | null = null): Promise<HubbleMeasurement[]> {
+const MINIMAL_MEASUREMENT_FIELDS = ["student_id", "galaxy_id", "velocity_value", "est_dist_value", "class_id"];
+const MINIMAL_EXCLUDE_MEASUREMENT_FIELDS = Object.keys(HubbleMeasurement.getAttributes()).filter(key => !MINIMAL_MEASUREMENT_FIELDS.includes(key));
+
+export async function getAllHubbleMeasurements(before: Date | null = null, minimal=false): Promise<HubbleMeasurement[]> {
   const whereConditions: WhereOptions = [
      { "$student.IgnoreStudents.student_id$": null }
   ];
@@ -447,7 +450,8 @@ export async function getAllHubbleMeasurements(before: Date | null = null): Prom
     attributes: {
       // The "student" here comes from the alias below
       // We do this so that we get access to the included field as just "class_id"
-      include: [[Sequelize.col("student.Classes.id"), "class_id"]]
+      include: [[Sequelize.col("student.Classes.id"), "class_id"]],
+      exclude: minimal ? MINIMAL_EXCLUDE_MEASUREMENT_FIELDS : [],
     },
     where: {
       [Op.and]: whereConditions
@@ -482,7 +486,9 @@ export async function getAllHubbleMeasurements(before: Date | null = null): Prom
   });
 }
 
-export async function getAllHubbleStudentData(before: Date | null = null): Promise<HubbleStudentData[]> {
+const MINIMAL_STUDENT_DATA_FIELDS = ["student_id", "age_value"];
+const MINIMAL_EXCLUDE_STUDENT_DATA_FIELDS = Object.keys(HubbleStudentData.getAttributes()).filter(key => !MINIMAL_STUDENT_DATA_FIELDS.includes(key));
+export async function getAllHubbleStudentData(before: Date | null = null, minimal=false): Promise<HubbleStudentData[]> {
   const whereConditions: WhereOptions = [
     { "$student.IgnoreStudents.student_id$": null }
   ];
@@ -494,7 +500,8 @@ export async function getAllHubbleStudentData(before: Date | null = null): Promi
     attributes: {
       // The "student" here comes from the alias below
       // We do this so that we get access to the included field as just "class_id"
-      include: [[Sequelize.col("student.Classes.id"), "class_id"]]
+      include: [[Sequelize.col("student.Classes.id"), "class_id"]],
+      exclude: minimal ? MINIMAL_EXCLUDE_STUDENT_DATA_FIELDS : [],
     },
     where: {
       [Op.and]: whereConditions
@@ -502,7 +509,7 @@ export async function getAllHubbleStudentData(before: Date | null = null): Promi
     include: [{
       model: Student,
       as: "student",
-      attributes: ["seed", "dummy"],
+      attributes: minimal ? [] : ["seed", "dummy"],
       include: [{
         model: IgnoreStudent,
         required: false,
@@ -527,9 +534,9 @@ export async function getAllHubbleStudentData(before: Date | null = null): Promi
   return data;
 }
 
-export async function getAllHubbleClassData(before: Date | null = null): Promise<HubbleClassData[]> {
+export async function getAllHubbleClassData(before: Date | null = null, minimal=false): Promise<HubbleClassData[]> {
   const whereConditions = before !== null ? [{ last_data_update: { [Op.lt]: before } }] : [];
-  return HubbleClassData.findAll({
+  const query: FindOptions<HubbleClassData> = {
     include: [{
       model: StudentsClasses,
       as: "class_data",
@@ -540,7 +547,11 @@ export async function getAllHubbleClassData(before: Date | null = null): Promise
     },
     group: ["HubbleClassData.class_id"],
     having: Sequelize.where(Sequelize.fn("count", Sequelize.col("HubbleClassData.class_id")), { [Op.gte]: 13 })
-  });
+  };
+  if (minimal) {
+    query.attributes = ["class_id", "age_value"];
+  }
+  return HubbleClassData.findAll(query);
 }
 
 export async function removeHubbleMeasurement(studentID: number, galaxyID: number): Promise<RemoveHubbleMeasurementResult> {

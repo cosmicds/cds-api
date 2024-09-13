@@ -378,13 +378,14 @@ router.get(["/class-measurements/:studentID", "stage-3-measurements/:studentID"]
 });
 
 router.get("/all-data", async (req, res) => {
+  const minimal = (req.query?.minimal as string)?.toLowerCase() === "true";
   const beforeMs: number = parseInt(req.query.before as string);
   const before = isNaN(beforeMs) ? null : new Date(beforeMs);
   const [measurements, studentData, classData] =
     await Promise.all([
-      getAllHubbleMeasurements(before),
-      getAllHubbleStudentData(before),
-      getAllHubbleClassData(before)
+      getAllHubbleMeasurements(before, minimal),
+      getAllHubbleStudentData(before, minimal),
+      getAllHubbleClassData(before, minimal)
     ]);
   res.json({
     measurements,
