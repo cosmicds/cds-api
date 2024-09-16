@@ -611,6 +611,19 @@ export async function getRosterInfo(classID: number, useDisplayNames = true): Pr
   }, {});
 }
 
+export async function getClassRoster(classID: number): Promise<Student[]> {
+  return Student.findAll({
+    include: [{
+      model: StudentsClasses,
+      required: true,
+      attributes: [],
+      where: {
+        class_id: classID,
+      },
+    }]
+  });
+}
+
 /** These functions are for testing purposes only */
 export async function newDummyClassForStory(storyName: string): Promise<{cls: Class, dummy: DummyClass}> {
   const ct = await Class.count({

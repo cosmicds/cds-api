@@ -44,6 +44,7 @@ import {
   findEducatorById,
   CreateClassSchema,
   QuestionInfoSchema,
+  getClassRoster,
 } from "./database";
 
 import {
@@ -487,6 +488,19 @@ export function createApp(db: Sequelize): Express {
       size
     });
   });
+
+  app.get("/classes/roster/:classID", async (req, res) => {
+    const classID = Number(req.params.classID);
+    const cls = await findClassById(classID);
+    if (cls === null) {
+      res.status(404).json({
+        error: `No class found with ID ${classID}`,
+      });
+    }
+
+    const students = await getClassRoster(classID);
+    res.json(students);
+  });
   
   app.get("/story-state/:studentID/:storyName", async (req, res) => {
     const params = req.params;
@@ -719,7 +733,6 @@ export function createApp(db: Sequelize): Express {
     });
   });
   
-  
   app.post("/question/:tag", async (req, res) => {
   
     const data = { ...req.body, tag: req.params.tag };
@@ -749,7 +762,6 @@ export function createApp(db: Sequelize): Express {
       question: addedQuestion
     });
   });
-  
   
   app.get("/questions/:storyName", async (req, res) => {
     const storyName = req.params.storyName;
