@@ -102,6 +102,15 @@ export function setUpAssociations() {
     foreignKey: "class_id"
   });
 
+  Student.hasMany(StudentsClasses, {
+    foreignKey: "student_id",
+  });
+  StudentsClasses.belongsTo(Student, {
+    as: "student",
+    targetKey: "id",
+    foreignKey: "student_id",
+  });
+
   Class.hasMany(StudentsClasses, {
     foreignKey: "class_id"
   });
