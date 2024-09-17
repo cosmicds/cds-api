@@ -370,6 +370,67 @@ export function createApp(db: Sequelize): Express {
     });
   
   });
+
+  app.delete("/students/:identifier/classes/:classID", async (req, res) => {
+    const identifier = Number(req.params.identifier);
+
+    let student;
+    if (isNaN(identifier)) {
+      student = await findStudentByUsername(req.params.identifier);
+    } else {
+      student = await findStudentById(identifier);
+    }
+
+    if (student === null) {
+      res.statusCode = 404;
+      res.json({
+        message: `No student found for identifier ${identifier}`,
+        success: false,
+      });
+      return;
+    }
+
+    const classID = Number(req.params.classID);
+    const cls = findClassById(classID);
+    if (cls === null) {
+      res.statusCode = 404;
+      res.json({
+        message: `No class found with ID ${classID}`,
+        success: false,
+      });
+      return;
+    }
+
+    const join = await StudentsClasses.findOne({
+      where: {
+        student_id: student.id,
+        class_id: classID,
+      }
+    });
+
+    if (join === null) {
+      res.statusCode = 404;
+      res.json({
+        success: false,
+        message: `Student with identifier ${identifier} not found in class ${classID}`,
+      });
+      return;
+    }
+
+    join.destroy()
+    .then(() => {
+      res.statusCode = 204;
+      res.end();
+    })
+    .catch(error => {
+      console.log(error);
+      res.statusCode = 500;
+      res.json({
+        error: "Operation failed. There was an internal server error while removing the student from the class."
+      });
+    });
+
+  });
   
   app.get("/educators/:identifier", async (req, res) => {
     const params = req.params;
