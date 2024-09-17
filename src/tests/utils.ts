@@ -19,7 +19,11 @@ export function unauthorizedRequest(app: Express) {
 
 function createTestDatabase(): Sequelize {
   const db = new Sequelize({ dialect: "mysql" });
-  db.query("CREATE DATABASE IF NOT EXISTS test");
+  db.query("CREATE DATABASE IF NOT EXISTS test")
+  .catch(error => {
+    console.log(error);
+    throw new Error(`Error creating test database: ${error}`);
+  });
   return db;
 }
 

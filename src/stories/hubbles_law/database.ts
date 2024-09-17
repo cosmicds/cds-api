@@ -623,16 +623,31 @@ export async function getSampleGalaxy(): Promise<Galaxy | null> {
   });
 }
 
-export async function markGalaxyBad(galaxy: Galaxy): Promise<void> {
-  galaxy.update({ marked_bad: galaxy.marked_bad + 1 });
+export async function markGalaxyBad(galaxy: Galaxy): Promise<boolean> {
+  return galaxy.update({ marked_bad: galaxy.marked_bad + 1 })
+    .then(() => true)
+    .catch(error => {
+      console.log(error);
+      return false;
+    });
 }
 
-export async function markGalaxySpectrumBad(galaxy: Galaxy): Promise<void> {
-  galaxy.update({ spec_marked_bad: galaxy.spec_marked_bad + 1 });
+export async function markGalaxySpectrumBad(galaxy: Galaxy): Promise<boolean> {
+  return galaxy.update({ spec_marked_bad: galaxy.spec_marked_bad + 1 })
+    .then(() => true)
+    .catch(error => {
+      console.log(error);
+      return false;
+    });
 }
 
-export async function markGalaxyTileloadBad(galaxy: Galaxy): Promise<void> {
-  galaxy.update({ tileload_marked_bad: galaxy.tileload_marked_bad + 1 });
+export async function markGalaxyTileloadBad(galaxy: Galaxy): Promise<boolean> {
+  return galaxy.update({ tileload_marked_bad: galaxy.tileload_marked_bad + 1 })
+    .then(() => true)
+    .catch(error => {
+      console.log(error);
+      return false;
+    });
 }
 
 export async function getAsyncMergedClassIDForStudent(studentID: number): Promise<number | null> {

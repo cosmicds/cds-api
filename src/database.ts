@@ -151,10 +151,11 @@ export async function verifyStudent(verificationCode: string): Promise<Verificat
     if (student.verified === 1) {
       return VerificationResult.AlreadyVerified;
     }
-    student.update({ verified: 1 }, {
+    const update = await student.update({ verified: 1 }, {
       where: { id: student.id }
-    });
-    return VerificationResult.Ok;
+    })
+    .catch(_error => null);
+    return update !== null ? VerificationResult.Ok : VerificationResult.Error;
   }
   return VerificationResult.InvalidCode;
 }
@@ -170,10 +171,11 @@ export async function verifyEducator(verificationCode: string): Promise<Verifica
     if (educator.verified === 1) {
       return VerificationResult.AlreadyVerified;
     }
-    educator.update({ verified: 1 }, {
+    const update = await educator.update({ verified: 1 }, {
       where: { id: educator.id }
-    });
-    return VerificationResult.Ok;
+    })
+    .catch(_error => null);
+    return update !== null ? VerificationResult.Ok : VerificationResult.Error;
   }
   return VerificationResult.InvalidCode;
 }
@@ -272,7 +274,7 @@ export async function signUpStudent(options: SignUpStudentOptions): Promise<Sign
   if (student && options.classroom_code) {
     const cls = await findClassByCode(options.classroom_code);
     if (cls !== null) {
-      StudentsClasses.create({
+      const addToClass = await StudentsClasses.create({
         student_id: student.id,
         class_id: cls.id
       });
@@ -339,7 +341,10 @@ async function checkLogin<T extends Model & User>(identifier: string, password: 
       last_visit: Date.now()
     }, {
       where: { id: user.id }
-    });
+    })
+    // TODO: We don't want to fail the login if we have an error updating the visit count and time
+    // But should we do anything else?
+    .catch(_error => null);
   }
   
   let type: LoginResponse["type"] = "none";
@@ -419,7 +424,10 @@ export async function updateStoryState(studentID: number, storyName: string, new
 
   const storyData = { ...query, story_state: newState };
   if (result !== null) {
-    result?.update(storyData);
+    result?.update(storyData).catch(error => {
+      console.log(error);
+      return null;
+    });
   } else {
     result = await StoryState.create(storyData).catch(error => {
       console.log(error);
@@ -499,7 +507,11 @@ export async function updateStageState(studentID: number, storyName: string, sta
 
   const data = { ...query, state: newState };
   if (result !== null) {
-    result?.update(data);
+    result.update(data)
+    .catch(error => {
+      console.log(error);
+      // TODO: Anything to do here?
+    });
   } else {
     result = await StageState.create(data).catch(error => {
       console.log(error);
@@ -641,7 +653,11 @@ export async function newDummyClassForStory(storyName: string): Promise<{cls: Cl
   });
   let dc = await DummyClass.findOne({ where: { story_name: storyName }} );
   if (dc !== null) {
-    dc.update({ class_id: cls.id });
+    dc.update({ class_id: cls.id })
+      .catch(error => {
+        console.log(error);
+        // TODO: Anything to do here?
+      });
   } else {
     dc = await DummyClass.create({
       class_id: cls.id,
@@ -752,7 +768,11 @@ export async function setStudentOption(studentID: number, option: StudentOption,
     options = await createStudentOptions(studentID);
   }
   if (options !== null) {
-    options.update({ [option]: value });
+    options.update({ [option]: value })
+      .catch(error => {
+        console.log(error);
+        // TODO: Anything to do here?
+      });
   }
   return options;
 }
