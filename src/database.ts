@@ -328,7 +328,7 @@ export async function createClass(options: CreateClassOptions): Promise<CreateCl
         await ClassStories.create({
           story_name: "hubbles_law",
           class_id: cls.id
-        });
+        }, { transaction });
       }
 
       return creationInfo;
@@ -672,14 +672,18 @@ export async function newDummyClassForStory(storyName: string, transaction?: Tra
       name: {
         [Op.like]: `DummyClass_${storyName}_`
       }
-    }
+    },
+    transaction: trans,
   });
   const cls = await Class.create({
     educator_id: 0,
     name: `DummyClass_${storyName}_${ct+1}`,
     code: "xxxxxx"
   }, { transaction: trans });
-  let dc = await DummyClass.findOne({ where: { story_name: storyName }} );
+  let dc = await DummyClass.findOne({
+    where: { story_name: storyName },
+    transaction: trans,
+  });
   if (dc !== null) {
     dc.update({ class_id: cls.id })
       .catch(error => {
@@ -729,7 +733,10 @@ export async function newDummyStudent(seed = false,
       // If we have a story name, and are creating a seed student, we want to add this student to the current "dummy class" for that story
       if (seed && storyName !== null) {
         let cls: Class | null = null;
-        let dummyClass = await DummyClass.findOne({ where: { story_name: storyName } });
+        let dummyClass = await DummyClass.findOne({
+          where: { story_name: storyName },
+          transaction
+        });
         let clsSize: number;
         if (dummyClass === null) {
           const res = await newDummyClassForStory(storyName, transaction);
@@ -737,7 +744,10 @@ export async function newDummyStudent(seed = false,
           cls = res.cls;
           clsSize = 0;
         } else {
-          clsSize = await StudentsClasses.count({ where: { class_id: dummyClass.class_id } });
+          clsSize = await StudentsClasses.count({
+            where: { class_id: dummyClass.class_id },
+            transaction,
+          });
         }
         
         const ct = Math.floor(Math.random() * 11) + 20;
@@ -745,7 +755,10 @@ export async function newDummyStudent(seed = false,
           const res = await newDummyClassForStory(storyName);
           cls = res.cls;
         } else {
-          cls = await Class.findOne({ where: { id: dummyClass.class_id } });
+          cls = await Class.findOne({
+            where: { id: dummyClass.class_id },
+            transaction,
+          });
         }
         if (cls !== null) {
           await StudentsClasses.create({
