@@ -83,7 +83,8 @@ export enum VerificationResult {
   BadRequest = "bad_request",
   Ok = "ok",
   AlreadyVerified = "already_verified",
-  InvalidCode = "invalid_code"
+  InvalidCode = "invalid_code",
+  Error = "internal_server_error",
 }
 
 export namespace VerificationResult {

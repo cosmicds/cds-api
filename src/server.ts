@@ -273,6 +273,8 @@ export function createApp(db: Sequelize): Express {
         return 401;
       case VerificationResult.AlreadyVerified:
         return 409;
+      case VerificationResult.Error:
+        return 500;
     }
   }
   
@@ -519,18 +521,33 @@ export function createApp(db: Sequelize): Express {
   });
   
   app.delete("/classes/:code", async (req, res) => {
-    const cls = await findClassByCode(req.params.code);
-    const success = cls !== null;
-    if (!success) {
-      res.status(400);
+    const code = req.params.code;
+    const cls = await findClassByCode(code);
+    if (cls === null) {
+      res.status(404).json({
+        success: false,
+        error: `Could not find class with code ${code}`,
+      });
+      return;
     }
-    cls?.destroy();
-    const message = success ?
-      "Class deleted" :
-      "No class with the given code exists";
+    const success = await cls.destroy()
+      .then(() => true)
+      .catch(error => {
+        console.log(error);
+        return false;
+      });
+
+    if (!success) {
+      res.status(500).json({
+        success: false,
+        error: `Server error deleting class with code ${code}`,
+      });
+      return;
+    }
+
     res.json({
-      success,
-      message
+      success: true,
+      message: "Class deleted",
     });
   });
       

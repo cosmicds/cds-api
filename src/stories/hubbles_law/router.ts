@@ -451,7 +451,7 @@ router.get("/galaxies", async (req, res) => {
   res.json(galaxies);
 });
 
-async function markBad(req: GenericRequest, res: GenericResponse, marker: (galaxy: Galaxy) => Promise<void>, markedStatus: string) {
+async function markBad(req: GenericRequest, res: GenericResponse, marker: (galaxy: Galaxy) => Promise<boolean>) {
   const galaxyID = req.body.galaxy_id;
   const galaxyName = req.body.galaxy_name;
   if (!(galaxyID || galaxyName)) { 
@@ -475,10 +475,7 @@ async function markBad(req: GenericRequest, res: GenericResponse, marker: (galax
     return;
   }
 
-  marker(galaxy);
-  res.status(200).json({
-    status: markedStatus
-  });
+  return marker(galaxy);
 }
 
 /**
@@ -486,11 +483,29 @@ async function markBad(req: GenericRequest, res: GenericResponse, marker: (galax
  * This was previously idempotent, but no longer is
  */
 router.put("/mark-galaxy-bad", async (req, res) => {
-  markBad(req, res, markGalaxyBad, "galaxy_marked_bad");
+  const success = await markBad(req, res, markGalaxyBad);
+
+  if (success) {
+    res.status(204).end();
+  } else {
+    res.status(500).json({
+      error: "Error marking galaxy as bad",
+    });
+  }
+
 });
 
 router.post("/mark-spectrum-bad", async (req, res) => {
-  markBad(req, res, markGalaxySpectrumBad, "galaxy_spectrum_marked_bad");
+  const success = await markBad(req, res, markGalaxySpectrumBad);
+
+  if (success) {
+    res.status(204).end();
+  } else {
+    res.status(500).json({
+      error: "Error marking spectrum as bad",
+    });
+  }
+
 });
 
 router.get("/spectra/:type/:name", async (req, res) => {
@@ -506,7 +521,16 @@ router.get("/unchecked-galaxies", async (_req, res) => {
 });
 
 router.post("/mark-tileload-bad", async (req, res) => {
-  markBad(req, res, markGalaxyTileloadBad, "galaxy_tileload_marked_bad");
+  const success = await markBad(req, res, markGalaxyTileloadBad);
+
+  if (success) {
+    res.status(204).end();
+  } else {
+    res.status(500).json({
+      error: "Error marking spectrum as bad",
+    });
+  }
+
 });
 
 router.post("/set-spectrum-status", async (req, res) => {
@@ -533,7 +557,20 @@ router.post("/set-spectrum-status", async (req, res) => {
     return;
   }
 
-  setGalaxySpectrumStatus(galaxy, good);
+  const success = await setGalaxySpectrumStatus(galaxy, good)
+    .then(() => true)
+    .catch(error => {
+      console.log(error);
+      return false;
+    });
+
+  if (!success) {
+    res.status(500).json({
+      error: `Error setting galaxy spectrum status for ${name} to ${good ? "" : " not "}good`,
+    });
+    return;
+  }
+
   res.json({
     status: "status_updated",
     marked_good: good,

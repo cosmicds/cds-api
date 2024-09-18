@@ -1,4 +1,4 @@
-import { BaseError, Model, Op, QueryTypes, Sequelize, UniqueConstraintError, WhereOptions } from "sequelize";
+import { BaseError, Model, Op, QueryTypes, Sequelize, Transaction, UniqueConstraintError, WhereOptions } from "sequelize";
 import dotenv from "dotenv";
 
 import * as S from "@effect/schema/Schema";
@@ -151,10 +151,11 @@ export async function verifyStudent(verificationCode: string): Promise<Verificat
     if (student.verified === 1) {
       return VerificationResult.AlreadyVerified;
     }
-    student.update({ verified: 1 }, {
+    const update = await student.update({ verified: 1 }, {
       where: { id: student.id }
-    });
-    return VerificationResult.Ok;
+    })
+    .catch(_error => null);
+    return update !== null ? VerificationResult.Ok : VerificationResult.Error;
   }
   return VerificationResult.InvalidCode;
 }
@@ -170,10 +171,11 @@ export async function verifyEducator(verificationCode: string): Promise<Verifica
     if (educator.verified === 1) {
       return VerificationResult.AlreadyVerified;
     }
-    educator.update({ verified: 1 }, {
+    const update = await educator.update({ verified: 1 }, {
       where: { id: educator.id }
-    });
-    return VerificationResult.Ok;
+    })
+    .catch(_error => null);
+    return update !== null ? VerificationResult.Ok : VerificationResult.Error;
   }
   return VerificationResult.InvalidCode;
 }
@@ -253,33 +255,48 @@ export async function signUpStudent(options: SignUpStudentOptions): Promise<Sign
   } while (!validCode);
   
   let result = SignUpResult.Ok;
-  const student = await Student.create({
-    username: options.username,
-    verified: 0,
-    verification_code: verificationCode,
-    password: encryptedPassword,
-    institution: options.institution,
-    email: options.email,
-    age: options.age,
-    gender: options.gender,
-  })
-  .catch(error => {
-    result = signupResultFromError(error);
-  });
-
-  // If the student has a valid classroom code,
-  // add them to the class
-  if (student && options.classroom_code) {
-    const cls = await findClassByCode(options.classroom_code);
-    if (cls !== null) {
-      StudentsClasses.create({
-        student_id: student.id,
-        class_id: cls.id
-      });
-    }
+  const db = Student.sequelize;
+  if (db === undefined) {
+    return SignUpResult.Error;
   }
 
-  return result;
+  try {
+    const transactionResult = db.transaction(async transaction => {
+
+      const student = await Student.create({
+        username: options.username,
+        verified: 0,
+        verification_code: verificationCode,
+        password: encryptedPassword,
+        institution: options.institution,
+        email: options.email,
+        age: options.age,
+        gender: options.gender,
+      }, { transaction })
+      .catch(error => {
+        result = signupResultFromError(error);
+      });
+
+      // If the student has a valid classroom code,
+      // add them to the class
+      if (student && options.classroom_code) {
+        const cls = await findClassByCode(options.classroom_code);
+        if (cls !== null) {
+          await StudentsClasses.create({
+            student_id: student.id,
+            class_id: cls.id
+          }, { transaction });
+        }
+      }
+
+      return result;
+    });
+
+    return transactionResult;
+  } catch (error) {
+    console.log(error);
+    return SignUpResult.Error;
+  }
 }
 
 export const CreateClassSchema = S.struct({
@@ -294,23 +311,35 @@ export async function createClass(options: CreateClassOptions): Promise<CreateCl
   let result = CreateClassResult.Ok;
   const code = createClassCode(options);
   const creationInfo = { ...options, code };
-  const cls = await Class.create(creationInfo)
-  .catch(error => {
-    result = createClassResultFromError(error);
-  });
 
-  const info = result === CreateClassResult.Ok ? creationInfo : undefined;
-
-  // For the pilot, the Hubble Data Story will be the only option,
-  // so we'll automatically associate that with the class
-  if (cls) {
-    ClassStories.create({
-      story_name: "hubbles_law",
-      class_id: cls.id
-    });
+  const db = Class.sequelize;
+  if (db === undefined) {
+    return { result: CreateClassResult.Error };
   }
 
-  return { result: result, class: info };
+  try {
+    const transactionResult = await db.transaction(async transaction => {
+
+      const cls = await Class.create(creationInfo, { transaction });
+
+      // For the pilot, the Hubble Data Story will be the only option,
+      // so we'll automatically associate that with the class
+      if (cls) {
+        await ClassStories.create({
+          story_name: "hubbles_law",
+          class_id: cls.id
+        }, { transaction });
+      }
+
+      return creationInfo;
+    });
+
+    return { result: result, class: transactionResult };
+  } catch (error) {
+    result = (error instanceof BaseError) ? createClassResultFromError(error) : CreateClassResult.Error;
+    console.log(error);
+    return { result: CreateClassResult.Error };
+  }
 }
 
 export async function addStudentToClass(studentID: number, classID: number): Promise<StudentsClasses> {
@@ -339,7 +368,10 @@ async function checkLogin<T extends Model & User>(identifier: string, password: 
       last_visit: Date.now()
     }, {
       where: { id: user.id }
-    });
+    })
+    // TODO: We don't want to fail the login if we have an error updating the visit count and time
+    // But should we do anything else?
+    .catch(_error => null);
   }
   
   let type: LoginResponse["type"] = "none";
@@ -419,7 +451,10 @@ export async function updateStoryState(studentID: number, storyName: string, new
 
   const storyData = { ...query, story_state: newState };
   if (result !== null) {
-    result?.update(storyData);
+    result?.update(storyData).catch(error => {
+      console.log(error);
+      return null;
+    });
   } else {
     result = await StoryState.create(storyData).catch(error => {
       console.log(error);
@@ -499,7 +534,11 @@ export async function updateStageState(studentID: number, storyName: string, sta
 
   const data = { ...query, state: newState };
   if (result !== null) {
-    result?.update(data);
+    result.update(data)
+    .catch(error => {
+      console.log(error);
+      // TODO: Anything to do here?
+    });
   } else {
     result = await StageState.create(data).catch(error => {
       console.log(error);
@@ -625,85 +664,116 @@ export async function getClassRoster(classID: number): Promise<Student[]> {
 }
 
 /** These functions are for testing purposes only */
-export async function newDummyClassForStory(storyName: string): Promise<{cls: Class, dummy: DummyClass}> {
+export async function newDummyClassForStory(storyName: string, transaction?: Transaction): Promise<{cls: Class, dummy: DummyClass}> {
+  const trans = transaction ?? null;
   const ct = await Class.count({
     where: {
       educator_id: 0,
       name: {
         [Op.like]: `DummyClass_${storyName}_`
       }
-    }
+    },
+    transaction: trans,
   });
   const cls = await Class.create({
     educator_id: 0,
     name: `DummyClass_${storyName}_${ct+1}`,
     code: "xxxxxx"
+  }, { transaction: trans });
+  let dc = await DummyClass.findOne({
+    where: { story_name: storyName },
+    transaction: trans,
   });
-  let dc = await DummyClass.findOne({ where: { story_name: storyName }} );
   if (dc !== null) {
-    dc.update({ class_id: cls.id });
+    dc.update({ class_id: cls.id })
+      .catch(error => {
+        console.log(error);
+        // TODO: Anything to do here?
+      });
   } else {
     dc = await DummyClass.create({
       class_id: cls.id,
       story_name: storyName
-    });
+    }, { transaction: trans });
   }
   return { cls: cls, dummy: dc };
 }
 
 export async function newDummyStudent(seed = false,
                                       teamMember: string | null = null,
-                                      storyName: string | null = null): Promise<Student> {
+                                      storyName: string | null = null): Promise<Student | null> {
   const students = await Student.findAll();
   const ids: number[] = students.map(student => {
     if (!student) { return 0; }
     return typeof student.id === "number" ? student.id : 0;
   });
   const newID = Math.max(...ids) + 1;
-  const student = await Student.create({
-    username: `dummy_student_${newID}`,
-    verified: 1,
-    verification_code: `verification_${newID}`,
-    password: "dummypass",
-    institution: "Dummy",
-    email: `dummy_student_${newID}@dummy.school`,
-    age: null,
-    gender: null,
-    seed: seed ? 1 : 0,
-    team_member: teamMember,
-    dummy: true
-  });
 
-  // If we have a story name, and are creating a seed student, we want to add this student to the current "dummy class" for that story
-  if (seed && storyName !== null) {
-    let cls: Class | null = null;
-    let dummyClass = await DummyClass.findOne({ where: { story_name: storyName } });
-    let clsSize: number;
-    if (dummyClass === null) {
-      const res = await newDummyClassForStory(storyName);
-      dummyClass = res.dummy;
-      cls = res.cls;
-      clsSize = 0;
-    } else {
-      clsSize = await StudentsClasses.count({ where: { class_id: dummyClass.class_id } });
-    }
-    
-    const ct = Math.floor(Math.random() * 11) + 20;
-    if (clsSize > ct) {
-      const res = await newDummyClassForStory(storyName);
-      cls = res.cls;
-    } else {
-      cls = await Class.findOne({ where: { id: dummyClass.class_id } });
-    }
-    if (cls !== null) {
-      StudentsClasses.create({
-        class_id: cls.id,
-        student_id: student.id
-      });
-    }
+  const db = Student.sequelize;
+  if (db === undefined) {
+    return null;
   }
 
-  return student;
+  try {
+    const transactionResult = await db.transaction(async transaction => {
+      const student = await Student.create({
+        username: `dummy_student_${newID}`,
+        verified: 1,
+        verification_code: `verification_${newID}`,
+        password: "dummypass",
+        institution: "Dummy",
+        email: `dummy_student_${newID}@dummy.school`,
+        age: null,
+        gender: null,
+        seed: seed ? 1 : 0,
+        team_member: teamMember,
+        dummy: true
+      }, { transaction });
+
+      // If we have a story name, and are creating a seed student, we want to add this student to the current "dummy class" for that story
+      if (seed && storyName !== null) {
+        let cls: Class | null = null;
+        let dummyClass = await DummyClass.findOne({
+          where: { story_name: storyName },
+          transaction
+        });
+        let clsSize: number;
+        if (dummyClass === null) {
+          const res = await newDummyClassForStory(storyName, transaction);
+          dummyClass = res.dummy;
+          cls = res.cls;
+          clsSize = 0;
+        } else {
+          clsSize = await StudentsClasses.count({
+            where: { class_id: dummyClass.class_id },
+            transaction,
+          });
+        }
+        
+        const ct = Math.floor(Math.random() * 11) + 20;
+        if (clsSize > ct) {
+          const res = await newDummyClassForStory(storyName);
+          cls = res.cls;
+        } else {
+          cls = await Class.findOne({
+            where: { id: dummyClass.class_id },
+            transaction,
+          });
+        }
+        if (cls !== null) {
+          await StudentsClasses.create({
+            class_id: cls.id,
+            student_id: student.id
+          }, { transaction });
+        }
+      }
+      return student;
+    });
+    return transactionResult;
+  } catch (error) {
+    console.log(error);
+    return null;
+  }
 }
 
 export async function classForStudentStory(studentID: number, storyName: string): Promise<Class | null> {
@@ -752,7 +822,11 @@ export async function setStudentOption(studentID: number, option: StudentOption,
     options = await createStudentOptions(studentID);
   }
   if (options !== null) {
-    options.update({ [option]: value });
+    options.update({ [option]: value })
+      .catch(error => {
+        console.log(error);
+        // TODO: Anything to do here?
+      });
   }
   return options;
 }

@@ -17,6 +17,12 @@ promises.readdir(STORIES_DIR, { withFileTypes: true }).then(entries => {
       app.use(data.path, data.router);
     }
   });
+})
+
+// We should just fail if this step doesn't succeed
+.catch(error => {
+  console.error(error);
+  throw new Error("Error setting up sub-routers!");
 });
 
 // set port, listen for requests
