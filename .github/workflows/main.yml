@@ -23,4 +23,8 @@ jobs:
         run: npm run build
 
       - name: Test
+        env:
+          DB_HOSTNAME: ${{ secrets.DB_HOSTNAME }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
         run: npm run test
