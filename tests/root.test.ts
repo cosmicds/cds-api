@@ -17,8 +17,8 @@ beforeAll(async () => {
 }, 100_000);
 
 afterAll(async () => {
-  const conn = await createMySQLConnection();
-  await conn.query("DROP DATABASE test;");
+  // const conn = await createMySQLConnection();
+  // await conn.query("DROP DATABASE test;");
 });
 
 describe("Test root route", () => {
