@@ -28,8 +28,8 @@ export async function setupTestDatabase(): Promise<Sequelize> {
   const username = process.env.TEST_DB_USERNAME as string;
   const password = process.env.TEST_DB_PASSWORD as string;
   const host = process.env.TEST_DB_HOSTNAME as string;
-  const connection = await createMySQLConnection();
-  await connection.query("CREATE DATABASE IF NOT EXISTS test;");
+  // const connection = await createMySQLConnection();
+  // await connection.query("CREATE DATABASE IF NOT EXISTS test;");
   const db = getDatabaseConnection({
     dbName: "test",
     username,
@@ -50,8 +50,8 @@ export async function setupTestDatabase(): Promise<Sequelize> {
 }
 
 export async function teardownTestDatabase(): Promise<void> {
-  const connection = await createMySQLConnection();
-  await connection.query("DROP DATABASE test;");
+  // const connection = await createMySQLConnection();
+  // await connection.query("DROP DATABASE test;");
 }
 
 export async function addAPIKey(): Promise<APIKey | void> {
