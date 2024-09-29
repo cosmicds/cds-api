@@ -22,9 +22,12 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Start MySQL service
+        run: sudo systemctl start mysql.service
+
       - name: Test
         env:
-          DB_HOSTNAME: ${{ secrets.DB_HOSTNAME }}
-          DB_USERNAME: ${{ secrets.DB_USERNAME }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          TEST_DB_HOSTNAME: ${{ secrets.TEST_DB_HOSTNAME }}
+          TEST_DB_USERNAME: ${{ secrets.TEST_DB_USERNAME }}
+          TEST_DB_PASSWORD: ${{ secrets.TEST_DB_PASSWORD }}
         run: npm run test

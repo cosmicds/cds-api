@@ -17,16 +17,16 @@ export function authorize(request: Test): Test {
 
 export async function createMySQLConnection(): Promise<Connection> {
   return createConnection({
-    host: process.env.DB_HOSTNAME as string,
-    user: process.env.DB_USERNAME as string,
-    password: process.env.DB_PASSWORD as string,
+    host: process.env.TEST_DB_HOSTNAME as string,
+    user: process.env.TEST_DB_USERNAME as string,
+    password: process.env.TEST_DB_PASSWORD as string,
   });
 }
 
 export async function setupTestDatabase(): Promise<Sequelize> {
   config();
-  const username = process.env.DB_USERNAME as string;
-  const password = process.env.DB_PASSWORD as string;
+  const username = process.env.TEST_DB_USERNAME as string;
+  const password = process.env.TEST_DB_PASSWORD as string;
   const connection = await createMySQLConnection();
   await connection.query("CREATE DATABASE IF NOT EXISTS test;");
   const db = getDatabaseConnection({
