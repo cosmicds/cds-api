@@ -25,7 +25,7 @@ export async function createMySQLConnection(): Promise<Connection> {
 
 export async function setupTestDatabase(): Promise<Sequelize> {
   config();
-  const username = process.env.DB_TEST_HOSTNAME as string;
+  const username = process.env.DB_TEST_USERNAME as string;
   const password = process.env.DB_TEST_PASSWORD as string;
   const host = process.env.DB_TEST_HOSTNAME as string;
   // const connection = await createMySQLConnection();
