@@ -17,7 +17,7 @@ export function authorize(request: Test): Test {
 
 export async function createMySQLConnection(): Promise<Connection> {
   return createConnection({
-    host: process.env.TEST_DB_HOSTNAME as string,
+    socketPath: "/tmp/mysql.sock",
     user: process.env.TEST_DB_USERNAME as string,
     password: process.env.TEST_DB_PASSWORD as string,
   });
