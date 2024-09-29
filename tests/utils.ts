@@ -17,7 +17,7 @@ export function authorize(request: Test): Test {
 
 export async function createMySQLConnection(): Promise<Connection> {
   return createConnection({
-    socketPath: "/tmp/mysql.sock",
+    host: process.env.TEST_DB_HOSTNAME as string,
     user: process.env.TEST_DB_USERNAME as string,
     password: process.env.TEST_DB_PASSWORD as string,
   });
@@ -27,12 +27,14 @@ export async function setupTestDatabase(): Promise<Sequelize> {
   config();
   const username = process.env.TEST_DB_USERNAME as string;
   const password = process.env.TEST_DB_PASSWORD as string;
-  // const connection = await createMySQLConnection();
-  // await connection.query("CREATE DATABASE IF NOT EXISTS test;");
+  const host = process.env.TEST_DB_HOSTNAME as string;
+  const connection = await createMySQLConnection();
+  await connection.query("CREATE DATABASE IF NOT EXISTS test;");
   const db = getDatabaseConnection({
     dbName: "test",
     username,
     password,
+    host,
   });
   await db.query("USE test;");
   initializeModels(db);
@@ -45,6 +47,11 @@ export async function setupTestDatabase(): Promise<Sequelize> {
   await addTestData();
 
   return db;
+}
+
+export async function teardownTestDatabase(): Promise<void> {
+  const connection = await createMySQLConnection();
+  await connection.query("DROP DATABASE test;");
 }
 
 export async function addAPIKey(): Promise<APIKey | void> {
@@ -64,6 +71,6 @@ export function createTestApp(db: Sequelize): Express {
   return createApp(db);
 }
 
-export function runApp(app: Express, port=8080, callback?: () => void): Server {
+export function runApp(app: Express, port = 8080, callback?: () => void): Server {
   return app.listen(port, callback);
 }

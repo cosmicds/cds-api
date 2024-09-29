@@ -25,10 +25,10 @@ jobs:
       - name: Start MySQL service
         run: sudo systemctl start mysql.service
 
-      - name: Create database
-        run: |
-          echo "CREATE DATABASE IF NOT EXISTS test" > setup.sql
-          sudo mysql -h 127.0.0.1 -uroot -proot < setup.sql
+          # - name: Create database
+          #   run: |
+          #     echo "CREATE DATABASE IF NOT EXISTS test" > setup.sql
+          #     sudo mysql -h 127.0.0.1 -uroot -proot < setup.sql
 
       - name: Test
         env:
@@ -37,7 +37,7 @@ jobs:
           TEST_DB_PASSWORD: ${{ secrets.TEST_DB_PASSWORD }}
         run: npm run test
 
-      - name: Destroy test database
-        run: |
-          echo "DROP DATABASE test" > teardown.sql
-          sudo mysql -h 127.0.0.1 -uroot -proot < teardown.sql
+          # - name: Destroy test database
+          #   run: |
+          #     echo "DROP DATABASE test" > teardown.sql
+          #     sudo mysql -h 127.0.0.1 -uroot -proot < teardown.sql

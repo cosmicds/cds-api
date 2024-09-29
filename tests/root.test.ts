@@ -5,7 +5,7 @@ import type { Express } from "express";
 import type { Sequelize } from "sequelize";
 import request from "supertest";
 
-import { authorize, createMySQLConnection, createTestApp, setupTestDatabase } from "./utils";
+import { authorize, createTestApp, setupTestDatabase, teardownTestDatabase } from "./utils";
 import { setupApp } from "../src/app";
 
 let testDB: Sequelize;
@@ -17,8 +17,7 @@ beforeAll(async () => {
 }, 100_000);
 
 afterAll(async () => {
-  // const conn = await createMySQLConnection();
-  // await conn.query("DROP DATABASE test;");
+  await teardownTestDatabase();
 });
 
 describe("Test root route", () => {
