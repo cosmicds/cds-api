@@ -25,9 +25,9 @@ export async function createMySQLConnection(): Promise<Connection> {
 
 export async function setupTestDatabase(): Promise<Sequelize> {
   config();
-  const username = process.env.TEST_DB_USERNAME as string;
-  const password = process.env.TEST_DB_PASSWORD as string;
-  const host = process.env.TEST_DB_HOSTNAME as string;
+  const username = "root";
+  const password = "root";
+  const host = "127.0.0.1";
   // const connection = await createMySQLConnection();
   // await connection.query("CREATE DATABASE IF NOT EXISTS test;");
   const db = getDatabaseConnection({
