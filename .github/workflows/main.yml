@@ -30,11 +30,6 @@ jobs:
       - name: Start MySQL service
         run: sudo systemctl start mysql.service
 
-      - name: Create database
-        run: |
-          echo "CREATE DATABASE IF NOT EXISTS test" > setup.sql
-          sudo mysql -h 127.0.0.1 -uroot -proot < setup.sql
-
       - name: Test
         # This is just the default settings for GH Actions MySQL
         # Nothing secret here aside from the hashed API key
@@ -44,8 +39,3 @@ jobs:
           DB_TEST_PASSWORD: root
           HASHED_API_KEY: ${{ secrets.HASHED_API_KEY }}
         run: npm run test
-
-      - name: Destroy test database
-        run: |
-          echo "DROP DATABASE test" > teardown.sql
-          sudo mysql -h 127.0.0.1 -uroot -proot < teardown.sql

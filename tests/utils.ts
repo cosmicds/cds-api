@@ -15,7 +15,7 @@ export function authorize(request: Test): Test {
   return request.set({ Authorization: process.env.CDS_API_KEY });
 }
 
-export async function createMySQLConnection(): Promise<Connection> {
+export async function createTestMySQLConnection(): Promise<Connection> {
   return createConnection({
     host: process.env.DB_TEST_HOSTNAME as string,
     user: process.env.DB_TEST_USERNAME as string,
@@ -28,8 +28,8 @@ export async function setupTestDatabase(): Promise<Sequelize> {
   const username = process.env.DB_TEST_USERNAME as string;
   const password = process.env.DB_TEST_PASSWORD as string;
   const host = process.env.DB_TEST_HOSTNAME as string;
-  // const connection = await createMySQLConnection();
-  // await connection.query("CREATE DATABASE IF NOT EXISTS test;");
+  const connection = await createTestMySQLConnection();
+  await connection.query("CREATE DATABASE IF NOT EXISTS test;");
   const db = getDatabaseConnection({
     dbName: "test",
     username,
@@ -50,8 +50,8 @@ export async function setupTestDatabase(): Promise<Sequelize> {
 }
 
 export async function teardownTestDatabase(): Promise<void> {
-  // const connection = await createMySQLConnection();
-  // await connection.query("DROP DATABASE test;");
+  const connection = await createTestMySQLConnection();
+  await connection.query("DROP DATABASE test;");
 }
 
 export async function addAPIKey(): Promise<APIKey | void> {
