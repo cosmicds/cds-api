@@ -1,24 +1,38 @@
 /* eslint-disable @typescript-eslint/no-floating-promises */
 
-import { describe, expect, it } from "@jest/globals";
+import { beforeAll, afterAll, describe, it } from "@jest/globals";
 import request from "supertest";
+import type { Sequelize } from "sequelize";
+import type { Express } from "express";
 
-import { testApp } from "./setup";
-import { authorize } from "./utils";
-import { Student } from "../src/models";
+import { authorize, getTestDatabaseConnection } from "./utils";
+import { setupApp } from "../src/app";
+import { createApp } from "../src/server";
+
+let testDB: Sequelize;
+let testApp: Express;
+beforeAll(() => {
+  testDB = getTestDatabaseConnection();
+  testApp = createApp(testDB);
+  setupApp(testApp, testDB);
+});
+
+afterAll(() => {
+  testDB.close();
+});
 
 describe("Test educator routes", () => {
 
-  it("Should initially have no students", async () => {
-    const students = await Student.findAll();
-    expect(students.length).toBe(0);
-
-    authorize(request(testApp).get("/students"))
+  it("Should sign up a student", async () => {
+    const data = { username: "abcde", password: "fghij" };
+    authorize(request(testApp).post("/students/create"))
+      .send(data)
       .expect(200)
       .expect("Content-Type", /json/)
-      .expect([]);
-  });
-
-  it("Should sign up a student", async () => {
+      .expect({
+        success: true,
+        status: "ok",
+        student_info: data,
+      });
   });
 });

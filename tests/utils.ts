@@ -24,19 +24,23 @@ export async function createTestMySQLConnection(): Promise<Connection> {
   });
 }
 
-export async function setupTestDatabase(): Promise<Sequelize> {
-  config();
+export function getTestDatabaseConnection() {
   const username = process.env.DB_TEST_USERNAME as string;
   const password = process.env.DB_TEST_PASSWORD as string;
   const host = process.env.DB_TEST_HOSTNAME as string;
-  const connection = await createTestMySQLConnection();
-  await connection.query("CREATE DATABASE IF NOT EXISTS test;");
-  const db = getDatabaseConnection({
-    dbName: "test",
+  return getDatabaseConnection({
+    dbName: "test", 
     username,
     password,
-    host,
+    host
   });
+}
+
+export async function setupTestDatabase(): Promise<Sequelize> {
+  config();
+  const connection = await createTestMySQLConnection();
+  await connection.query("CREATE DATABASE IF NOT EXISTS test;");
+  const db = getTestDatabaseConnection();
   await db.query("USE test;");
   initializeModels(db);
   setUpAssociations();
