@@ -121,7 +121,7 @@ export function initializeStudentModel(sequelize: Sequelize) {
       },
       {
         unique: true,
-        fields: ["verificationCode"]
+        fields: ["verification_code"]
       }
     ]
   });
