@@ -62,18 +62,27 @@ export enum UserType {
   Admin
 }
 
-export function getDatabaseConnection() {
+export interface DBConnectionOptions {
+  dbName?: string;
+  username?: string;
+  password?: string;
+  host?: string;
+}
+
+export function getDatabaseConnection(options?: DBConnectionOptions) {
 // Grab any environment variables
   dotenv.config();
 
-  const dbName = process.env.DB_NAME as string;
-  const username = process.env.DB_USERNAME as string;
-  const password = process.env.DB_PASSWORD;
+  const dbName = options?.dbName ?? process.env.DB_NAME as string;
+  const username = options?.username ?? process.env.DB_USERNAME as string;
+  const password = options?.password ?? process.env.DB_PASSWORD as string;
+  const host = options?.host ?? process.env.DB_HOSTNAME as string;
   const database = new Sequelize(dbName, username, password, {
-      host: process.env.DB_HOSTNAME as string,
+      host,
       dialect: "mysql",
       define: {
-        timestamps: false
+        timestamps: false,
+        engine: "InnoDB",
       }
   });
 

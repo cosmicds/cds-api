@@ -13,6 +13,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.18.0'
+
       - name: Install modules
         run: npm install
 
@@ -21,3 +26,16 @@ jobs:
         
       - name: Build
         run: npm run build
+
+      - name: Start MySQL service
+        run: sudo systemctl start mysql.service
+
+      - name: Test
+        # This is just the default settings for GH Actions MySQL
+        # Nothing secret here aside from the hashed API key
+        env:
+          DB_TEST_HOSTNAME: 127.0.0.1
+          DB_TEST_USERNAME: root
+          DB_TEST_PASSWORD: root
+          HASHED_API_KEY: ${{ secrets.HASHED_API_KEY }}
+        run: npm run test
