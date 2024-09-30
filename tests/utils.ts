@@ -6,6 +6,7 @@ import type { Sequelize } from "sequelize";
 import { setUpAssociations } from "../src/associations";
 import { initializeModels } from "../src/models";
 import { createApp } from "../src/server";
+import { Student } from "../src/models";
 import { APIKey } from "../src/models/api_key";
 import { config } from "dotenv";
 import { getDatabaseConnection } from "../src/database";
@@ -44,6 +45,7 @@ export async function setupTestDatabase(): Promise<Sequelize> {
   // See https://github.com/sequelize/sequelize/issues/7953
   // and https://stackoverflow.com/a/45114507
   // db.sync({ force: true, match: /test/ }).finally(() => db.close());
+  await syncTables();
   await addTestData();
 
   return db;
@@ -54,9 +56,13 @@ export async function teardownTestDatabase(): Promise<void> {
   await connection.query("DROP DATABASE test;");
 }
 
+export async function syncTables(): Promise<void> {
+  await APIKey.sync({ force: true });
+  await Student.sync({ force: true });
+}
+
 export async function addAPIKey(): Promise<APIKey | void> {
   // Set up some basic data that we're going to want
-  await APIKey.sync({ force: true });
   return APIKey.create({
     hashed_key: process.env.HASHED_API_KEY as string,
     client: "Tests",
