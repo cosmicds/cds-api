@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import type { Server } from "http";
 import type { Test } from "supertest";
-import { Sequelize } from "sequelize";
+import type { Sequelize } from "sequelize";
 
 import { setUpAssociations } from "../src/associations";
 import { initializeModels } from "../src/models";
