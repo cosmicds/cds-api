@@ -4,7 +4,7 @@ import type { Test } from "supertest";
 import type { Sequelize } from "sequelize";
 
 import { setUpAssociations } from "../src/associations";
-import { initializeModels } from "../src/models";
+import { Educator, initializeModels } from "../src/models";
 import { createApp } from "../src/server";
 import { Student } from "../src/models";
 import { APIKey } from "../src/models/api_key";
@@ -24,16 +24,22 @@ export async function createTestMySQLConnection(): Promise<Connection> {
   });
 }
 
-export function getTestDatabaseConnection() {
+export async function getTestDatabaseConnection(): Promise<Sequelize> {
   const username = process.env.DB_TEST_USERNAME as string;
   const password = process.env.DB_TEST_PASSWORD as string;
   const host = process.env.DB_TEST_HOSTNAME as string;
-  return getDatabaseConnection({
+  const db = getDatabaseConnection({
     dbName: "test", 
     username,
     password,
     host
   });
+
+  await db.query("USE test;");
+  initializeModels(db);
+  setUpAssociations();
+
+  return db;
 }
 
 export async function setupTestDatabase(): Promise<Sequelize> {
@@ -41,15 +47,12 @@ export async function setupTestDatabase(): Promise<Sequelize> {
   const connection = await createTestMySQLConnection();
   await connection.query("CREATE DATABASE IF NOT EXISTS test;");
   const db = getTestDatabaseConnection();
-  await db.query("USE test;");
-  initializeModels(db);
-  setUpAssociations();
 
   // We need to close when the connection terminates!
   // See https://github.com/sequelize/sequelize/issues/7953
   // and https://stackoverflow.com/a/45114507
   // db.sync({ force: true, match: /test/ }).finally(() => db.close());
-  await syncTables();
+  await syncTables(true);
   await addTestData();
 
   return db;
@@ -60,9 +63,11 @@ export async function teardownTestDatabase(): Promise<void> {
   await connection.query("DROP DATABASE test;");
 }
 
-export async function syncTables(): Promise<void> {
-  await APIKey.sync({ force: true });
-  await Student.sync({ force: true });
+export async function syncTables(force=false): Promise<void> {
+  const options = { force };
+  await APIKey.sync(options);
+  await Student.sync(options);
+  await Educator.sync(options);
 }
 
 export async function addAPIKey(): Promise<APIKey | void> {

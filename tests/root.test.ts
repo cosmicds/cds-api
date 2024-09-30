@@ -11,8 +11,8 @@ import { createApp } from "../src/server";
 
 let testDB: Sequelize;
 let testApp: Express;
-beforeAll(() => {
-  testDB = getTestDatabaseConnection();
+beforeAll(async () => {
+  testDB = await getTestDatabaseConnection();
   testApp = createApp(testDB);
   setupApp(testApp, testDB);
 });
