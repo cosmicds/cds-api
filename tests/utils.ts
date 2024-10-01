@@ -11,6 +11,7 @@ import { APIKey } from "../src/models/api_key";
 import { config } from "dotenv";
 import { getDatabaseConnection } from "../src/database";
 import { createConnection, Connection } from "mysql2/promise";
+import { hashAPIKey } from "../src/authorization";
 
 export function authorize(request: Test): Test {
   return request.set({ Authorization: process.env.CDS_API_KEY });
@@ -72,10 +73,14 @@ export async function syncTables(force=false): Promise<void> {
 
 export async function addAPIKey(): Promise<APIKey | void> {
   // Set up some basic data that we're going to want
-  return APIKey.create({
-    hashed_key: process.env.HASHED_API_KEY as string,
+  const hashedKey = hashAPIKey(process.env.CDS_API_KEY as string);
+  await APIKey.create({
+    hashed_key: hashedKey,
     client: "Tests",
   });
+
+  const keys = await APIKey.findAll();
+  console.log(`There are ${keys.length} keys`);
 }
 
 export async function addTestData() {

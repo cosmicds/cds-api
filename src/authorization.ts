@@ -6,13 +6,20 @@ const HASHER = new SHA3(256);
 
 const validKeys = new Map<string, APIKey>();
 
+export function hashAPIKey(key: string): string {
+  HASHER.reset();
+  HASHER.update(key);
+  const hashed = HASHER.digest("hex");
+  HASHER.reset();
+  return hashed;
+}
+
 export async function getAPIKey(key: string): Promise<APIKey | null> {
   const cachedKey = validKeys.get(key);
   if (cachedKey !== undefined) {
     return cachedKey;
   }
-  HASHER.update(key);
-  const hashedKey = HASHER.digest("hex");
+  const hashedKey = hashAPIKey(key);
   const apiKey = await APIKey.findOne({ where: { hashed_key: hashedKey } });
   HASHER.reset();
   if (apiKey !== null) {
