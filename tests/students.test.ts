@@ -2,7 +2,7 @@
 
 import { beforeAll, afterAll, describe, it, expect } from "@jest/globals";
 import request from "supertest";
-import type { Sequelize } from "sequelize";
+import type { InferAttributes, Sequelize } from "sequelize";
 import type { Express } from "express";
 
 import { authorize, getTestDatabaseConnection } from "./utils";
@@ -45,5 +45,35 @@ describe("Test student routes", () => {
     const student = await Student.findOne({ where: { username: "abcde" } });
     expect(student).not.toBeNull();
 
+    student?.destroy();
+
+  });
+
+  it("Should return the correct student", async () => {
+    const student = await Student.create({
+      email: "e@mail.com",
+      username: "abcde",
+      password: "fghij",
+      verification_code: "verification",
+      verified: 0,
+    });
+
+    const json: Partial<InferAttributes<Student>> = student.toJSON();
+    // The Sequelize object will return the `CURRENT_TIMESTAMP` literals,
+    // not the actual date values
+    delete json.profile_created;
+    delete json.last_visit;
+    const res = await authorize(request(testApp).get(`/students/${student.id}`))
+      .expect(200)
+      .expect("Content-Type", /json/);
+
+    const resStudent = res.body.student;
+    expect(resStudent).toMatchObject(json);
+
+    // Check that the timestamp fields are present
+    expect(resStudent).toHaveProperty("profile_created");
+    expect(typeof resStudent.profile_created).toBe("string");
+    expect(resStudent).toHaveProperty("last_visit");
+    expect(typeof resStudent.last_visit).toBe("string");
   });
 });
