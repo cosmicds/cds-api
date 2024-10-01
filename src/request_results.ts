@@ -65,7 +65,7 @@ export namespace SignUpResult {
   export function statusCode(result: SignUpResult): number {
     switch (result) {
       case SignUpResult.Ok:
-        return 200;
+        return 201;
       case SignUpResult.EmailExists:
         return 409;
       case SignUpResult.BadRequest:

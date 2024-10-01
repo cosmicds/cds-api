@@ -253,7 +253,7 @@ export const SignUpStudentSchema = S.struct({
 export type SignUpStudentOptions = S.Schema.To<typeof SignUpStudentSchema>;
 
 export async function signUpStudent(options: SignUpStudentOptions): Promise<SignUpResult> {
-  
+
   const encryptedPassword = encryptPassword(options.password);
 
   let validCode;

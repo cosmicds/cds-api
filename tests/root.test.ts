@@ -1,23 +1,24 @@
 /* eslint-disable @typescript-eslint/no-floating-promises */
 
-import { afterAll, beforeAll, describe, it } from "@jest/globals";
+import { beforeAll, afterAll, describe, it } from "@jest/globals";
+import request from "supertest";
 import type { Express } from "express";
 import type { Sequelize } from "sequelize";
-import request from "supertest";
 
-import { authorize, createTestApp, setupTestDatabase, teardownTestDatabase } from "./utils";
+import { authorize, getTestDatabaseConnection } from "./utils";
 import { setupApp } from "../src/app";
+import { createApp } from "../src/server";
 
 let testDB: Sequelize;
 let testApp: Express;
 beforeAll(async () => {
-  testDB = await setupTestDatabase();
-  testApp = createTestApp(testDB);
+  testDB = await getTestDatabaseConnection();
+  testApp = createApp(testDB);
   setupApp(testApp, testDB);
-}, 100_000);
+});
 
-afterAll(async () => {
-  await teardownTestDatabase();
+afterAll(() => {
+  testDB.close();
 });
 
 describe("Test root route", () => {
