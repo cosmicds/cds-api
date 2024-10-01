@@ -75,5 +75,7 @@ describe("Test student routes", () => {
     expect(typeof resStudent.profile_created).toBe("string");
     expect(resStudent).toHaveProperty("last_visit");
     expect(typeof resStudent.last_visit).toBe("string");
+
+    student.destroy();
   });
 });
