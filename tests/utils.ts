@@ -74,13 +74,10 @@ export async function syncTables(force=false): Promise<void> {
 export async function addAPIKey(): Promise<APIKey | void> {
   // Set up some basic data that we're going to want
   const hashedKey = hashAPIKey(process.env.CDS_API_KEY as string);
-  await APIKey.create({
+  return APIKey.create({
     hashed_key: hashedKey,
     client: "Tests",
   });
-
-  const keys = await APIKey.findAll();
-  console.log(`There are ${keys.length} keys`);
 }
 
 export async function addTestData() {

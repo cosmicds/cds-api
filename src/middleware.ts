@@ -17,9 +17,6 @@ export async function apiKeyMiddleware(req: Request, res: ExpressResponse, next:
   const key = req.get("Authorization");
   const apiKey = key ? await getAPIKey(key) : null;
   const apiKeyExists = apiKey !== null;
-  console.log(`key is null: ${key === null}`);
-  console.log(`key is undefined: ${key === undefined}`);
-  console.log(`API key exists: ${apiKeyExists}`);
   if (validOrigin || (apiKeyExists && hasPermission(apiKey, req))) {
     next();
   } else {

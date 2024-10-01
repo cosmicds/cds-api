@@ -37,6 +37,5 @@ jobs:
           DB_TEST_HOSTNAME: 127.0.0.1
           DB_TEST_USERNAME: root
           DB_TEST_PASSWORD: root
-          CDS_API_KEY: ${{ secrets.CDS_API_KEY }}
-          HASHED_API_KEY: ${{ secrets.HASHED_API_KEY }}
+          CDS_API_KEY: TEST_API_KEY
         run: npm run test
