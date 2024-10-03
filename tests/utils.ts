@@ -4,9 +4,9 @@ import type { Test } from "supertest";
 import type { Sequelize } from "sequelize";
 
 import { setUpAssociations } from "../src/associations";
-import { Educator, initializeModels } from "../src/models";
+import { Educator, StudentsClasses, initializeModels } from "../src/models";
 import { createApp } from "../src/server";
-import { Student } from "../src/models";
+import { Class, Student } from "../src/models";
 import { APIKey } from "../src/models/api_key";
 import { config } from "dotenv";
 import { getDatabaseConnection } from "../src/database";
@@ -69,6 +69,8 @@ export async function syncTables(force=false): Promise<void> {
   await APIKey.sync(options);
   await Student.sync(options);
   await Educator.sync(options);
+  await Class.sync(options);
+  await StudentsClasses.sync(options);
 }
 
 export async function addAPIKey(): Promise<APIKey | void> {
