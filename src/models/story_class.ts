@@ -31,7 +31,7 @@ export function initializeClassStoryModel(sequelize: Sequelize) {
     active: {
       type: DataTypes.TINYINT,
       allowNull: false,
-      defaultValue: 0,
+      defaultValue: 1,
     }
   }, {
     sequelize,
