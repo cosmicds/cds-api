@@ -70,6 +70,7 @@ import * as Either from "effect/Either";
 import { setupApp } from "./app";
 import { getAPIKey } from "./authorization";
 import { Sequelize } from "sequelize";
+import { sendEmail } from "./email";
 
 // TODO: Clean up these type definitions
 
@@ -144,10 +145,24 @@ export function createApp(db: Sequelize): Express {
       result = SignUpResult.BadRequest;
     }
     const statusCode = SignUpResult.statusCode(result);
+    const success = SignUpResult.success(result);
+
+    if (success) {
+      sendEmail({
+        to: "cosmicds@cfa.harvard.edu",
+        subject: "Educator account created",
+        text: `
+          Educator account created at ${Date()}:
+          Name: ${data.first_name} ${data.last_name}
+          Email: ${data.email}
+        `,
+      })
+      .catch(error => console.log(error));
+    }
     res.status(statusCode).json({
       educator_info: data,
       status: result,
-      success: SignUpResult.success(result)
+      success,
     });
   });
 

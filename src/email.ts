@@ -1,27 +1,32 @@
-// import nodemailer from "nodemailer";
+import nodemailer, { SendMailOptions } from "nodemailer";
+import dotenv from "dotenv";
 
-// const transporter = nodemailer.createTransport({
-//   host: "smtp.gmail.com",
-//   port: 587,
-//   secure: false,
-//   auth: {
-//     user: "carifio24@gmail.com",
-//     pass: "C@rifio00"
-//   }
-// });
+dotenv.config();
 
-// export async function sendEmail(to: string, from: string, subject: string, body: string) {
-//   const options = {
-//     from: from,
-//     to: to,
-//     subject: subject,
-//     text: body
-//   };
-//   transporter.sendMail(options, (error, info) => {
-//     if (error) {
-//       console.log(error);
-//     } else {
-//       console.log("Email sent: " + info.response);
-//     }
-//   });
-// }
+const transporter = nodemailer.createTransport({
+  service: process.env.EMAIL_SERVICE,
+  auth: {
+    user: process.env.EMAIL_USERNAME,
+    pass: process.env.EMAIL_PASSWORD,
+  },
+});
+
+export interface SendEmailOptions {
+  to: string;
+  subject: string;
+  text: string;
+}
+
+export async function sendEmail(options: SendEmailOptions) {
+  const sendOptions: SendMailOptions = {
+    ...options,
+    from: process.env.EMAIL_FROM,
+  };
+  transporter.sendMail(sendOptions, (error, info) => {
+    if (error) {
+      console.log(error);
+    } else {
+      console.log("Email sent: " + info.response);
+    }
+  });
+}
