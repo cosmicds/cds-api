@@ -8,6 +8,7 @@ CREATE TABLE Classes (
     asynchronous tinyint(1) NOT NULL DEFAULT 0,
     test tinyint(1) NOT NULL DEFAULT 0,
     updated datetime DEFAULT NULL,
+    expected_size int(11) UNSIGNED NOT NULL,
  
     PRIMARY KEY(id),
     INDEX(educator_id),
