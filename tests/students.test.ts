@@ -27,11 +27,13 @@ async function setupStudentInClasses() {
     name: v4(),
     educator_id: educator.id,
     code: v4(),
+    expected_size: 1,
   });
   const class2 = await Class.create({
     name: v4(),
     educator_id: educator.id,
     code: v4(),
+    expected_size: 1,
   });
   const student = await Student.create({
     email: v4(),
