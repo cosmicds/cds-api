@@ -7,7 +7,7 @@ import type { Express } from "express";
 
 import { authorize, getTestDatabaseConnection } from "./utils";
 import { setupApp } from "../src/app";
-import { Class, Educator, Student, StudentsClasses } from "../src/models";
+import { Educator } from "../src/models";
 import { createApp } from "../src/server";
 import { v4 } from "uuid";
 
