@@ -12,6 +12,7 @@ export class Class extends Model<InferAttributes<Class>, InferCreationAttributes
   declare asynchronous: CreationOptional<boolean>;
   declare test: CreationOptional<boolean>;
   declare expected_size: CreationOptional<number>;
+  declare small_class: CreationOptional<boolean>;
 }
 
 export function initializeClassModel(sequelize: Sequelize) {
@@ -66,6 +67,9 @@ export function initializeClassModel(sequelize: Sequelize) {
     expected_size: {
       type: DataTypes.INTEGER.UNSIGNED,
       allowNull: false,
+    },
+    small_class: {
+      type: "tinyint(1) GENERATED ALWAYS AS (expected_size < 10) VIRTUAL",
     },
   }, {
     sequelize,
