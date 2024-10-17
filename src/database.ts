@@ -312,6 +312,7 @@ export const CreateClassSchema = S.struct({
   educator_id: S.number,
   name: S.string,
   expected_size: S.number.pipe(S.int()),
+  asynchronous: S.optional(S.boolean),
 });
 
 export type CreateClassOptions = S.Schema.To<typeof CreateClassSchema>;
