@@ -582,6 +582,22 @@ export function createApp(db: Sequelize): Express {
     });
   });
 
+  app.get("/classes/expected-size/:classID", async (req, res) => {
+    const classID = Number(req.params.classID);
+    const cls = await findClassById(classID);
+    if (cls === null) {
+      res.status(404).json({
+        message: `Class ${classID} not found`,
+      });
+      return;
+    }
+    const size = cls.expected_size;
+    res.json({
+      class_id: classID,
+      expected_size: size,
+    });
+  });
+
   app.get("/classes/roster/:classID", async (req, res) => {
     const classID = Number(req.params.classID);
     const cls = await findClassById(classID);
