@@ -69,7 +69,7 @@ export function initializeClassModel(sequelize: Sequelize) {
       allowNull: false,
     },
     small_class: {
-      type: "tinyint(1) GENERATED ALWAYS AS (expected_size < 10) VIRTUAL",
+      type: "tinyint(1) GENERATED ALWAYS AS (expected_size < 15) VIRTUAL",
     },
   }, {
     sequelize,
