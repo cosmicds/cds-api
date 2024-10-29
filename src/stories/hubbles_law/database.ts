@@ -337,6 +337,9 @@ async function getMergedIDsForClass(classID: number): Promise<number[]> {
   const mergeEntries = await HubbleClassMergeGroup.findAll({
     where: {
       group_id: mergeGroup.group_id,
+      merge_order: {
+        [Op.lte] : mergeGroup.merge_order,
+      }
     }
   });
   return mergeEntries.map(entry => entry.class_id);
