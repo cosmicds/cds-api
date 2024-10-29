@@ -12,12 +12,13 @@ export function initializeHubbleClassMergeGroupModel(sequelize: Sequelize) {
     group_id: {
       type: DataTypes.INTEGER.UNSIGNED,
       allowNull: false,
-      autoIncrement: true,
       primaryKey: true,
     },
     class_id: {
       type: DataTypes.INTEGER.UNSIGNED,
       allowNull: false,
+      unique: true,
+      primaryKey: true,
       references: {
         model: Class,
         key: "id",
@@ -30,6 +31,9 @@ export function initializeHubbleClassMergeGroupModel(sequelize: Sequelize) {
   }, {
     sequelize,
     indexes: [
+      {
+        fields: ["group_id"],
+      },
       {
         fields: ["class_id"],
       },
