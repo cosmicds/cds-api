@@ -7,6 +7,7 @@ import { HubbleStudentData } from "./models/hubble_student_data";
 import { HubbleClassData } from "./models/hubble_class_data";
 import { IgnoreStudent } from "../../models/ignore_student";
 import { logger } from "../../logger";
+import { HubbleClassMergeGroup } from "./models/hubble_class_merge_group";
 
 const galaxyAttributes = ["id", "ra", "decl", "z", "type", "name", "element"];
 
@@ -207,7 +208,9 @@ export async function getStudentHubbleMeasurements(studentID: number): Promise<H
   });
 }
 
-async function getHubbleMeasurementsForStudentClasses(studentID: number, classIDs: number[], excludeWithNull: boolean = false): Promise<HubbleMeasurement[]> {
+async function getHubbleMeasurementsForStudentClass(studentID: number, classID: number, excludeWithNull: boolean = false): Promise<HubbleMeasurement[]> {
+
+  const classIDs = await getMergedIDsForClass(classID);
 
   const studentWhereConditions: WhereOptions = [];
   const classDataStudentIDs = await getClassDataIDsForStudent(studentID);
@@ -317,6 +320,28 @@ async function getClassIDsForSyncClass(classID: number): Promise<number[]> {
   return classIDs;
 }
 
+async function getMergedIDsForClass(classID: number): Promise<number[]> {
+  // TODO: Currently this uses two queries:
+  // The first to get the merge group (if there is one)
+  // Then a second to get all of the classes in the merge group
+  // Maybe we can just write some SQL to make these one query?
+  const mergeGroup = await HubbleClassMergeGroup.findOne({
+    where: {
+      class_id: classID
+    }
+  });
+  if (mergeGroup === null) {
+    return [classID];
+  }
+
+  const mergeEntries = await HubbleClassMergeGroup.findAll({
+    where: {
+      group_id: mergeGroup.group_id,
+    }
+  });
+  return mergeEntries.map(entry => entry.class_id);
+}
+
 export async function getClassDataIDsForStudent(studentID: number): Promise<number[]> {
   const state = (await StoryState.findOne({
     where: { student_id: studentID },
@@ -329,69 +354,38 @@ export async function getClassDataIDsForStudent(studentID: number): Promise<numb
   return state?.getDataValue("class_data_students") ?? [];
 }
 
-async function getHubbleMeasurementsForSyncStudent(studentID: number, classID: number, excludeWithNull: boolean = false): Promise<HubbleMeasurement[] | null> {
-  const classIDs = await getClassIDsForSyncClass(classID);
-  return getHubbleMeasurementsForStudentClasses(studentID, classIDs, excludeWithNull);
-}
-
-async function getHubbleMeasurementsForAsyncStudent(studentID: number, classID: number | null, excludeWithNull: boolean = false): Promise<HubbleMeasurement[] | null> {
-  const classIDs = await getClassIDsForAsyncStudent(studentID, classID);
-  return getHubbleMeasurementsForStudentClasses(studentID, classIDs, excludeWithNull);
-}
-
 export async function getClassMeasurements(studentID: number,
-                                           classID: number | null,
+                                           classID: number,
                                            lastChecked: number | null = null,
                                            excludeWithNull: boolean = false,
 ): Promise<HubbleMeasurement[]> {
-  const cls = classID !== null ? await findClassById(classID) : null;
-  const asyncClass = cls?.asynchronous ?? true;
-  let data: HubbleMeasurement[] | null;
-  if (classID === null || asyncClass) {
-    data = await getHubbleMeasurementsForAsyncStudent(studentID, classID, excludeWithNull);
-  } else {
-    data = await getHubbleMeasurementsForSyncStudent(studentID, classID, excludeWithNull);
-  }
-  if (data != null && lastChecked != null) {
+  let data = await getHubbleMeasurementsForStudentClass(studentID, classID, excludeWithNull);
+  if (data.length > 0 && lastChecked != null) {
     const lastModified = Math.max(...data.map(meas => meas.last_modified.getTime()));
     if (lastModified <= lastChecked) {
-      data = null;
+      data = [];
     }
   }
-  return data ?? [];
+  return data;
 }
 
 // The advantage of this over the function above is that it saves bandwidth,
 // since we aren't sending the data itself.
 // This is intended to be used with cases where we need to frequently check the number of measurements
 export async function getClassMeasurementCount(studentID: number,
-                                               classID: number | null,
+                                               classID: number,
                                                excludeWithNull: boolean = false,
 ): Promise<number> {
-  const cls = classID !== null ? await findClassById(classID) : null;
-  const asyncClass = cls?.asynchronous ?? true;
-  let data: HubbleMeasurement[] | null;
-  if (classID === null || asyncClass) {
-    data = await getHubbleMeasurementsForAsyncStudent(studentID, classID, excludeWithNull);
-  } else {
-    data = await getHubbleMeasurementsForSyncStudent(studentID, classID, excludeWithNull);
-  }
+  const data = await getClassMeasurements(studentID, classID, null, excludeWithNull);
   return data?.length ?? 0;
 }
 
 // Similar to the function above, this is intended for cases where we need to frequently check
 // how many students have completed their measurements, such as the beginning of Stage 4 in the Hubble story
 export async function getStudentsWithCompleteMeasurementsCount(studentID: number,
-                                                               classID: number | null,
+                                                               classID: number,
 ): Promise<number> {
-  const cls = classID !== null ? await findClassById(classID) : null;
-  const asyncClass = cls?.asynchronous ?? true;
-  let data: HubbleMeasurement[] | null;
-  if (classID === null || asyncClass) {
-    data = await getHubbleMeasurementsForAsyncStudent(studentID, classID, true);
-  } else {
-    data = await getHubbleMeasurementsForSyncStudent(studentID, classID, true);
-  }
+  const data = await getHubbleMeasurementsForStudentClass(studentID, classID, true);
   const counts: Record<number, number> = {};
   data?.forEach(measurement => {
     if (measurement.student_id in counts) {

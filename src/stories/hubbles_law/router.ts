@@ -44,7 +44,7 @@ import {
 
 import { Express, Router } from "express";
 import { Sequelize } from "sequelize";
-import { findClassById, findStudentById } from "../../database";
+import { classForStudentStory, findClassById, findStudentById } from "../../database";
 import { SyncMergedHubbleClasses, initializeModels } from "./models";
 import { setUpHubbleAssociations } from "./associations";
 
@@ -345,8 +345,10 @@ router.get(["/class-measurements/:studentID/:classID", "/stage-3-data/:studentID
     classID = 159;
   }
 
-  const invalidStudent = (await findStudentById(studentID)) === null;
-  const invalidClass = (await findClassById(classID)) === null;
+  const student = await findStudentById(studentID);
+  const invalidStudent = student === null;
+  const cls = await findClassById(classID);
+  const invalidClass = cls === null;
   if (invalidStudent || invalidClass) {
     const invalidItems = [];
     if (invalidStudent) { invalidItems.push("student"); }
@@ -358,7 +360,7 @@ router.get(["/class-measurements/:studentID/:classID", "/stage-3-data/:studentID
     return;
   }
 
-  const measurements = await getClassMeasurements(studentID, classID, lastChecked, completeOnly);
+  const measurements = await getClassMeasurements(student.id, cls.id, lastChecked, completeOnly);
   res.status(200).json({
     student_id: studentID,
     class_id: classID,
@@ -372,12 +374,20 @@ router.get(["/class-measurements/:studentID", "stage-3-measurements/:studentID"]
   const isValidStudent = (await findStudentById(studentID)) !== null;
   if (!isValidStudent) {
     res.status(404).json({
-      message: "Invalid student ID"
+      message: "Invalid student ID",
     });
     return;
   }
 
-  const measurements = await getClassMeasurements(studentID, null);
+  const cls = await classForStudentStory(studentID, "hubbles_law");
+  if (cls === null) {
+    res.status(404).json({
+      message: `Student ${studentID} is not in a class signed up for the Hubble's Law story`,
+    });
+    return;
+  }
+
+  const measurements = await getClassMeasurements(studentID, cls.id);
   res.status(200).json({
     student_id: studentID,
     class_id: null,
