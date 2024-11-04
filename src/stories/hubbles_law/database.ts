@@ -7,6 +7,7 @@ import { HubbleStudentData } from "./models/hubble_student_data";
 import { HubbleClassData } from "./models/hubble_class_data";
 import { IgnoreStudent } from "../../models/ignore_student";
 import { logger } from "../../logger";
+import { HubbleClassMergeGroup } from "./models/hubble_class_merge_group";
 
 const galaxyAttributes = ["id", "ra", "decl", "z", "type", "name", "element"];
 
@@ -207,7 +208,9 @@ export async function getStudentHubbleMeasurements(studentID: number): Promise<H
   });
 }
 
-async function getHubbleMeasurementsForStudentClasses(studentID: number, classIDs: number[], excludeWithNull: boolean = false): Promise<HubbleMeasurement[]> {
+async function getHubbleMeasurementsForStudentClass(studentID: number, classID: number, excludeWithNull: boolean = false): Promise<HubbleMeasurement[]> {
+
+  const classIDs = await getMergedIDsForClass(classID);
 
   const studentWhereConditions: WhereOptions = [];
   const classDataStudentIDs = await getClassDataIDsForStudent(studentID);
@@ -317,6 +320,31 @@ async function getClassIDsForSyncClass(classID: number): Promise<number[]> {
   return classIDs;
 }
 
+export async function getMergedIDsForClass(classID: number): Promise<number[]> {
+  // TODO: Currently this uses two queries:
+  // The first to get the merge group (if there is one)
+  // Then a second to get all of the classes in the merge group
+  // Maybe we can just write some SQL to make these one query?
+  const mergeGroup = await HubbleClassMergeGroup.findOne({
+    where: {
+      class_id: classID
+    }
+  });
+  if (mergeGroup === null) {
+    return [classID];
+  }
+
+  const mergeEntries = await HubbleClassMergeGroup.findAll({
+    where: {
+      group_id: mergeGroup.group_id,
+      merge_order: {
+        [Op.lte] : mergeGroup.merge_order,
+      }
+    }
+  });
+  return mergeEntries.map(entry => entry.class_id);
+}
+
 export async function getClassDataIDsForStudent(studentID: number): Promise<number[]> {
   const state = (await StoryState.findOne({
     where: { student_id: studentID },
@@ -329,69 +357,38 @@ export async function getClassDataIDsForStudent(studentID: number): Promise<numb
   return state?.getDataValue("class_data_students") ?? [];
 }
 
-async function getHubbleMeasurementsForSyncStudent(studentID: number, classID: number, excludeWithNull: boolean = false): Promise<HubbleMeasurement[] | null> {
-  const classIDs = await getClassIDsForSyncClass(classID);
-  return getHubbleMeasurementsForStudentClasses(studentID, classIDs, excludeWithNull);
-}
-
-async function getHubbleMeasurementsForAsyncStudent(studentID: number, classID: number | null, excludeWithNull: boolean = false): Promise<HubbleMeasurement[] | null> {
-  const classIDs = await getClassIDsForAsyncStudent(studentID, classID);
-  return getHubbleMeasurementsForStudentClasses(studentID, classIDs, excludeWithNull);
-}
-
 export async function getClassMeasurements(studentID: number,
-                                           classID: number | null,
+                                           classID: number,
                                            lastChecked: number | null = null,
                                            excludeWithNull: boolean = false,
 ): Promise<HubbleMeasurement[]> {
-  const cls = classID !== null ? await findClassById(classID) : null;
-  const asyncClass = cls?.asynchronous ?? true;
-  let data: HubbleMeasurement[] | null;
-  if (classID === null || asyncClass) {
-    data = await getHubbleMeasurementsForAsyncStudent(studentID, classID, excludeWithNull);
-  } else {
-    data = await getHubbleMeasurementsForSyncStudent(studentID, classID, excludeWithNull);
-  }
-  if (data != null && lastChecked != null) {
+  let data = await getHubbleMeasurementsForStudentClass(studentID, classID, excludeWithNull);
+  if (data.length > 0 && lastChecked != null) {
     const lastModified = Math.max(...data.map(meas => meas.last_modified.getTime()));
     if (lastModified <= lastChecked) {
-      data = null;
+      data = [];
     }
   }
-  return data ?? [];
+  return data;
 }
 
 // The advantage of this over the function above is that it saves bandwidth,
 // since we aren't sending the data itself.
 // This is intended to be used with cases where we need to frequently check the number of measurements
 export async function getClassMeasurementCount(studentID: number,
-                                               classID: number | null,
+                                               classID: number,
                                                excludeWithNull: boolean = false,
 ): Promise<number> {
-  const cls = classID !== null ? await findClassById(classID) : null;
-  const asyncClass = cls?.asynchronous ?? true;
-  let data: HubbleMeasurement[] | null;
-  if (classID === null || asyncClass) {
-    data = await getHubbleMeasurementsForAsyncStudent(studentID, classID, excludeWithNull);
-  } else {
-    data = await getHubbleMeasurementsForSyncStudent(studentID, classID, excludeWithNull);
-  }
+  const data = await getClassMeasurements(studentID, classID, null, excludeWithNull);
   return data?.length ?? 0;
 }
 
 // Similar to the function above, this is intended for cases where we need to frequently check
 // how many students have completed their measurements, such as the beginning of Stage 4 in the Hubble story
 export async function getStudentsWithCompleteMeasurementsCount(studentID: number,
-                                                               classID: number | null,
+                                                               classID: number,
 ): Promise<number> {
-  const cls = classID !== null ? await findClassById(classID) : null;
-  const asyncClass = cls?.asynchronous ?? true;
-  let data: HubbleMeasurement[] | null;
-  if (classID === null || asyncClass) {
-    data = await getHubbleMeasurementsForAsyncStudent(studentID, classID, true);
-  } else {
-    data = await getHubbleMeasurementsForSyncStudent(studentID, classID, true);
-  }
+  const data = await getHubbleMeasurementsForStudentClass(studentID, classID, true);
   const counts: Record<number, number> = {};
   data?.forEach(measurement => {
     if (measurement.student_id in counts) {
@@ -761,60 +758,74 @@ export async function getMergeDataForClass(classID: number): Promise<SyncMergedH
   return SyncMergedHubbleClasses.findOne({ where: { class_id: classID } });
 }
 
-export async function eligibleClassesForMerge(database: Sequelize, classID: number, sizeThreshold=20): Promise<Class[]> {
-  const size = await classSize(classID);
-
-  // Running into the limits of the ORM a bit here
-  // Maybe there's a clever way to write this?
-  // But straight SQL gets the job done
-  return database.query(
-    `SELECT * FROM (SELECT
-    id,
-    test,
-    (SELECT
-            COUNT(*)
-        FROM
-            StudentsClasses
-        WHERE
-            StudentsClasses.class_id = id) AS size
+type GroupData = {
+  unique_gid: string;
+  is_group: boolean;
+  merged_count: number;
+};
+export async function findClassForMerge(database: Sequelize, classID: number): Promise<Class & GroupData> {
+  // The SQL is complicated enough here; doing this with the ORM
+  // will probably be unreadable
+  const result = await database.query(
+    `
+    SELECT
+        id,
+        COUNT(*) as group_count,
+        IFNULL(group_id, UUID()) AS unique_gid,
+        (group_id IS NOT NULL) AS is_group,
+        MAX(merge_order) as merged_count
     FROM
-        Classes) q
-    WHERE
-        (size >= ${sizeThreshold - size} AND test = 0)
-  `, { type: QueryTypes.SELECT }) as Promise<Class[]>;
+        Classes
+            LEFT OUTER JOIN
+        (SELECT * FROM HubbleClassMergeGroups ORDER BY merge_order DESC) G ON Classes.id = G.class_id
+    		INNER JOIN
+    		(
+    			SELECT * FROM StudentsClasses GROUP BY class_id
+    			HAVING COUNT(student_id) >= 12
+    		) C
+    		ON Classes.id = C.class_id
+    WHERE id != ${classID}
+    GROUP BY unique_gid
+    ORDER BY is_group ASC, group_count ASC, merged_count DESC
+    LIMIT 1;
+        `,
+    { type: QueryTypes.SELECT }
+  ) as (Class & GroupData)[];
+  return result[0];
 }
 
-// Try and merge the class with the given ID with another class such that the total size is above the threshold
-// We say "try" because if a client doesn't know that the merge has already occurred, we may get
-// multiple such requests from different student clients.
-// If a merge has already been created, we don't make another one - we just return the existing one, with a
-// message that indicates that this was the case.
-export interface MergeAttemptData {
-  mergeData: SyncMergedHubbleClasses | null;
-  message: string;
+async function nextMergeGroupID(): Promise<number> {
+  const max = (await HubbleClassMergeGroup.findAll({
+    attributes: [
+      [Sequelize.fn("MAX", Sequelize.col("group_id")), "group_id"]
+    ]
+  })) as (HubbleClassMergeGroup & { group_id: number })[];
+  return (max[0].group_id + 1) as number;
 }
-export async function tryToMergeClass(db: Sequelize, classID: number): Promise<MergeAttemptData> {
-  const cls = await findClassById(classID);
-  if (cls === null) {
-    return { mergeData: null, message: "Invalid class ID!" };
+
+export async function addClassToMergeGroup(classID: number): Promise<number | null> {
+
+  // Sanity check
+  const existingGroup = await HubbleClassMergeGroup.findOne({ where: { class_id: classID } });
+  if (existingGroup !== null) {
+    return existingGroup.group_id;
   }
 
-  let mergeData = await getMergeDataForClass(classID);
-  if (mergeData !== null) {
-    return { mergeData, message: "Class already merged" };
+  const database = Class.sequelize;
+  if (database === undefined) {
+    return null;
   }
 
-  const eligibleClasses = await eligibleClassesForMerge(db, classID);
-  if (eligibleClasses.length > 0) {
-    const index = Math.floor(Math.random() * eligibleClasses.length);
-    const classToMerge = eligibleClasses[index];
-    mergeData = await SyncMergedHubbleClasses.create({ class_id: classID, merged_class_id: classToMerge.id });
-    if (mergeData === null) {
-      return { mergeData, message: "Error creating merge!" };
-    }
-    return { mergeData, message: "New merge created" };
+  const clsToMerge = await findClassForMerge(database, classID);
+  let mergeGroup;
+  if (clsToMerge.is_group) {
+    mergeGroup = await HubbleClassMergeGroup.create({ class_id: classID, group_id: Number(clsToMerge.unique_gid), merge_order: clsToMerge.merged_count + 1 });
+  } else {
+    const newGroupID = await nextMergeGroupID();
+    await HubbleClassMergeGroup.create({ class_id: clsToMerge.id, group_id: newGroupID, merge_order: 1 });
+    mergeGroup = await HubbleClassMergeGroup.create({ class_id: classID, group_id: newGroupID, merge_order: 2 });
   }
 
-  return { mergeData: null, message: "No eligible classes to merge" };
+  return mergeGroup.group_id;
 
 }

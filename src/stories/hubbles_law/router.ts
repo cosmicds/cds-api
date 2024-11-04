@@ -1,3 +1,6 @@
+import * as S from "@effect/schema/Schema";
+import * as Either from "effect/Either";
+
 import { Galaxy } from "./models/galaxy";
 
 import {
@@ -32,9 +35,10 @@ import {
   getGalaxyById,
   removeSampleHubbleMeasurement,
   getAllNthSampleHubbleMeasurements,
-  tryToMergeClass,
   getClassMeasurementCount,
-  getStudentsWithCompleteMeasurementsCount
+  getStudentsWithCompleteMeasurementsCount,
+  getMergedIDsForClass,
+  addClassToMergeGroup
 } from "./database";
 
 import { 
@@ -44,8 +48,8 @@ import {
 
 import { Express, Router } from "express";
 import { Sequelize } from "sequelize";
-import { findClassById, findStudentById } from "../../database";
-import { SyncMergedHubbleClasses, initializeModels } from "./models";
+import { classForStudentStory, findClassById, findStudentById } from "../../database";
+import { initializeModels } from "./models";
 import { setUpHubbleAssociations } from "./associations";
 
 export const router = Router();
@@ -345,8 +349,10 @@ router.get(["/class-measurements/:studentID/:classID", "/stage-3-data/:studentID
     classID = 159;
   }
 
-  const invalidStudent = (await findStudentById(studentID)) === null;
-  const invalidClass = (await findClassById(classID)) === null;
+  const student = await findStudentById(studentID);
+  const invalidStudent = student === null;
+  const cls = await findClassById(classID);
+  const invalidClass = cls === null;
   if (invalidStudent || invalidClass) {
     const invalidItems = [];
     if (invalidStudent) { invalidItems.push("student"); }
@@ -358,7 +364,7 @@ router.get(["/class-measurements/:studentID/:classID", "/stage-3-data/:studentID
     return;
   }
 
-  const measurements = await getClassMeasurements(studentID, classID, lastChecked, completeOnly);
+  const measurements = await getClassMeasurements(student.id, cls.id, lastChecked, completeOnly);
   res.status(200).json({
     student_id: studentID,
     class_id: classID,
@@ -372,16 +378,76 @@ router.get(["/class-measurements/:studentID", "stage-3-measurements/:studentID"]
   const isValidStudent = (await findStudentById(studentID)) !== null;
   if (!isValidStudent) {
     res.status(404).json({
-      message: "Invalid student ID"
+      message: "Invalid student ID",
     });
     return;
   }
 
-  const measurements = await getClassMeasurements(studentID, null);
+  const cls = await classForStudentStory(studentID, "hubbles_law");
+  if (cls === null) {
+    res.status(404).json({
+      message: `Student ${studentID} is not in a class signed up for the Hubble's Law story`,
+    });
+    return;
+  }
+
+  const measurements = await getClassMeasurements(studentID, cls.id);
   res.status(200).json({
     student_id: studentID,
     class_id: null,
     measurements,
+  });
+});
+
+router.get("/merged-classes/:classID", async (req, res) => {
+  const classID = Number(req.params.classID);
+  const cls = await findClassById(classID);
+  if (cls === null) {
+    res.status(404).json({
+      message: `No class found with ID ${classID}`,
+    });
+    return;
+  }
+  const classIDs = await getMergedIDsForClass(classID);
+  res.json({
+    merged_class_ids: classIDs,
+  });
+});
+
+const MergeClassInfo = S.struct({
+  class_id: S.number.pipe(S.int()),
+});
+router.put("/merge-class", async (req, res) => {
+  const body = req.body;
+  const maybe = S.decodeUnknownEither(MergeClassInfo)(body);
+
+  if (Either.isLeft(maybe)) {
+    res.status(400).json({
+      message: `Expected class ID to be an integer, got ${body.class_id}`,
+    });
+    return;
+  }
+
+  const data = maybe.right;
+  const cls = await findClassById(data.class_id);
+  if (cls === null) {
+    res.status(404).json({
+      message: `No class found with ID ${data.class_id}`,
+    });
+    return;
+  }
+
+  const groupID = await addClassToMergeGroup(data.class_id);
+  if (groupID === null) {
+    res.status(500).json({
+      message: `There was an error while adding class ${data.class_id} to a merge group`,
+    });
+    return;
+  }
+
+  res.json({
+    class_id: data.class_id,
+    group_id: groupID,
   });
 });
 
@@ -399,37 +465,6 @@ router.get("/all-data", async (req, res) => {
     measurements,
     studentData,
     classData
-  });
-});
-
-router.put("/sync-merged-class/:classID", async(req, res) => {
-  const classID = parseInt(req.params.classID);
-  if (isNaN(classID)) {
-    res.statusCode = 400;
-    res.json({
-      error: "Class ID must be a number"
-    });
-    return;
-  }
-  const database = SyncMergedHubbleClasses.sequelize;
-  if (database === undefined) {
-    res.status(500).json({
-      error: "Error connecting to database",
-    });
-    return;
-  }
-  const data = await tryToMergeClass(database, classID);
-  if (data.mergeData === null) {
-    res.statusCode = 404;
-    res.json({
-      error: data.message
-    });
-    return;
-  }
-
-  res.json({
-    merge_info: data.mergeData,
-    message: data.message
   });
 });
 

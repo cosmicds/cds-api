@@ -6,6 +6,7 @@ import { SyncMergedHubbleClasses, initializeSyncMergedHubbleClassesModel } from 
 import { Sequelize } from "sequelize";
 import { initializeHubbleStudentDataModel } from "./hubble_student_data";
 import { initializeHubbleClassDataModel } from "./hubble_class_data";
+import { initializeHubbleClassMergeGroupModel } from "./hubble_class_merge_group";
 
 export {
   Galaxy,
@@ -23,4 +24,5 @@ export function initializeModels(db: Sequelize) {
   initializeSyncMergedHubbleClassesModel(db);
   initializeHubbleStudentDataModel(db);
   initializeHubbleClassDataModel(db);
+  initializeHubbleClassMergeGroupModel(db);
 }
