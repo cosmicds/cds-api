@@ -781,7 +781,12 @@ export async function eligibleClassesForMerge(database: Sequelize, classID: numb
   `, { type: QueryTypes.SELECT }) as Promise<Class[]>;
 }
 
-export async function findClassForMerge(database: Sequelize): Promise<Class> {
+type GroupData = {
+  unique_gid: string;
+  is_group: boolean;
+  merged_count: number;
+};
+export async function findClassForMerge(database: Sequelize): Promise<Class & GroupData> {
   // The SQL is complicated enough here; doing this with the ORM
   // will probably be unreadable
   const result = await database.query(
@@ -790,24 +795,60 @@ export async function findClassForMerge(database: Sequelize): Promise<Class> {
         id,
         COUNT(*) as group_count,
         IFNULL(group_id, UUID()) AS unique_gid,
-        IFNULL(group_id, 0) AS is_group
+        (group_id IS NOT NULL) AS is_group,
+        MAX(merge_order) as merged_count
     FROM
         Classes
             LEFT OUTER JOIN
-        HubbleClassMergeGroups ON Classes.id = HubbleClassMergeGroups.class_id
-    		    INNER JOIN
-    	  (
-    	  	SELECT * FROM StudentsClasses GROUP BY class_id
-    	  	HAVING COUNT(student_id) >= 12
-    	  ) C
-    	  ON Classes.id = C.class_id
+        (SELECT * FROM HubbleClassMergeGroups ORDER BY merge_order DESC) G ON Classes.id = G.class_id
+    		INNER JOIN
+    		(
+    			SELECT * FROM StudentsClasses GROUP BY class_id
+    			HAVING COUNT(student_id) >= 12
+    		) C
+    		ON Classes.id = C.class_id
     GROUP BY unique_gid
-    ORDER BY is_group ASC, group_count ASC
+    ORDER BY is_group ASC, group_count ASC, merged_count DESC
     LIMIT 1;
-    `,
+        `,
     { type: QueryTypes.SELECT }
-  ) as Class[];
+  ) as (Class & GroupData)[];
   return result[0];
+}
+
+async function nextMergeGroupID(): Promise<number> {
+  const max = (await HubbleClassMergeGroup.findAll({
+    attributes: [
+      [Sequelize.fn("MAX", Sequelize.col("group_id")), "group_id"]
+    ]
+  })) as (HubbleClassMergeGroup & { group_id: number })[];
+  return max[0].group_id as number;
+}
+
+export async function addClassToMergeGroup(classID: number): Promise<number | null> {
+
+  // Sanity check
+  const existingGroup = await HubbleClassMergeGroup.findOne({ where: { class_id: classID } });
+  if (existingGroup !== null) {
+    return existingGroup.group_id;
+  }
+
+  const database = Class.sequelize;
+  if (database === undefined) {
+    return null;
+  }
+
+  const clsToMerge = await findClassForMerge(database);
+  let mergeGroup;
+  if (clsToMerge.is_group) {
+    mergeGroup = await HubbleClassMergeGroup.create({ class_id: classID, group_id: Number(clsToMerge.unique_gid), merge_order: clsToMerge.merged_count + 1 });
+  } else {
+    const newGroupID = await nextMergeGroupID();
+    mergeGroup = await HubbleClassMergeGroup.create({ class_id: classID, group_id: newGroupID, merge_order: 1 });
+  }
+
+  return mergeGroup.group_id;
+
 }
 
 // Try and merge the class with the given ID with another class such that the total size is above the threshold
