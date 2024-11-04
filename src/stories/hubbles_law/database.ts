@@ -781,7 +781,7 @@ export async function findClassForMerge(database: Sequelize, classID: number): P
     		INNER JOIN
     		(
     			SELECT * FROM StudentsClasses GROUP BY class_id
-    			HAVING COUNT(student_id) >= 12
+    			HAVING COUNT(student_id) >= 15
     		) C
     		ON Classes.id = C.class_id
     WHERE id != ${classID}
