@@ -320,7 +320,7 @@ async function getClassIDsForSyncClass(classID: number): Promise<number[]> {
   return classIDs;
 }
 
-export async function getMergedIDsForClass(classID: number): Promise<number[]> {
+export async function getMergedIDsForClass(classID: number, ignoreMergeOrder=false): Promise<number[]> {
   // TODO: Currently this uses two queries:
   // The first to get the merge group (if there is one)
   // Then a second to get all of the classes in the merge group
@@ -334,14 +334,15 @@ export async function getMergedIDsForClass(classID: number): Promise<number[]> {
     return [classID];
   }
 
-  const mergeEntries = await HubbleClassMergeGroup.findAll({
-    where: {
-      group_id: mergeGroup.group_id,
-      merge_order: {
-        [Op.lte] : mergeGroup.merge_order,
-      }
-    }
-  });
+  const where: WhereOptions = {
+    group_id: mergeGroup.group_id,
+  };
+  if (!ignoreMergeOrder) {
+    where.merge_order = {
+      [Op.lte]: mergeGroup.merge_order,
+    };
+  }
+  const mergeEntries = await HubbleClassMergeGroup.findAll({ where });
   return mergeEntries.map(entry => entry.class_id);
 }
 

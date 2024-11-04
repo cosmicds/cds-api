@@ -401,6 +401,7 @@ router.get(["/class-measurements/:studentID", "stage-3-measurements/:studentID"]
 
 router.get("/merged-classes/:classID", async (req, res) => {
   const classID = Number(req.params.classID);
+  const ignoreMergeOrder = (req.query?.ignore_merge_order as string)?.toLowerCase() === "true";
   const cls = await findClassById(classID);
   if (cls === null) {
     res.status(404).json({
@@ -408,7 +409,7 @@ router.get("/merged-classes/:classID", async (req, res) => {
     });
     return;
   }
-  const classIDs = await getMergedIDsForClass(classID);
+  const classIDs = await getMergedIDsForClass(classID, ignoreMergeOrder);
   res.json({
     merged_class_ids: classIDs,
   });
