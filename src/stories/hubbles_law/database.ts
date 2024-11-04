@@ -781,6 +781,35 @@ export async function eligibleClassesForMerge(database: Sequelize, classID: numb
   `, { type: QueryTypes.SELECT }) as Promise<Class[]>;
 }
 
+export async function findClassForMerge(database: Sequelize): Promise<Class> {
+  // The SQL is complicated enough here; doing this with the ORM
+  // will probably be unreadable
+  const result = await database.query(
+    `
+    SELECT
+        id,
+        COUNT(*) as group_count,
+        IFNULL(group_id, UUID()) AS unique_gid,
+        IFNULL(group_id, 0) AS is_group
+    FROM
+        Classes
+            LEFT OUTER JOIN
+        HubbleClassMergeGroups ON Classes.id = HubbleClassMergeGroups.class_id
+    		    INNER JOIN
+    	  (
+    	  	SELECT * FROM StudentsClasses GROUP BY class_id
+    	  	HAVING COUNT(student_id) >= 12
+    	  ) C
+    	  ON Classes.id = C.class_id
+    GROUP BY unique_gid
+    ORDER BY is_group ASC, group_count ASC
+    LIMIT 1;
+    `,
+    { type: QueryTypes.SELECT }
+  ) as Class[];
+  return result[0];
+}
+
 // Try and merge the class with the given ID with another class such that the total size is above the threshold
 // We say "try" because if a client doesn't know that the merge has already occurred, we may get
 // multiple such requests from different student clients.
