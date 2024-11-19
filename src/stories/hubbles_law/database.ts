@@ -1,5 +1,5 @@
 import { Attributes, FindOptions, Op, QueryTypes, Sequelize, WhereAttributeHash, WhereOptions, col, fn, literal } from "sequelize";
-import { AsyncMergedHubbleStudentClasses, Galaxy, HubbleMeasurement, SampleHubbleMeasurement, SyncMergedHubbleClasses } from "./models";
+import { AsyncMergedHubbleStudentClasses, Galaxy, HubbleMeasurement, HubbleWaitingRoomOverride, SampleHubbleMeasurement, SyncMergedHubbleClasses } from "./models";
 import { classSize, findClassById, findStudentById } from "../../database";
 import { RemoveHubbleMeasurementResult, SubmitHubbleMeasurementResult } from "./request_results";
 import { Class, StoryState, Student, StudentsClasses } from "../../models";
@@ -847,4 +847,24 @@ export async function addClassToMergeGroup(classID: number): Promise<number | nu
 
   return mergeGroup.group_id;
 
+}
+
+export async function setWaitingRoomOverride(classID: number): Promise<boolean | Error> {
+  return HubbleWaitingRoomOverride.findOrCreate({
+    where: {
+      class_id: classID,
+    }
+  })
+  .then(result => result[1])
+  .catch((error: Error) => error);
+}
+
+export async function removeWaitingRoomOverride(classID: number): Promise<boolean> {
+  return HubbleWaitingRoomOverride.destroy({
+    where: {
+      class_id: classID,
+    }
+  })
+  .then(_result => true)
+  .catch(_error => false);
 }

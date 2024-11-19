@@ -1,0 +1,11 @@
+CREATE TABLE HubbleWaitingRoomOverrides (
+    class_id int(11) UNSIGNED NOT NULL,
+    timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
+
+    PRIMARY KEY(class_id),
+    FOREIGN KEY(class_id)
+        REFERENCES Classes(id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci PACK_KEYS=0;

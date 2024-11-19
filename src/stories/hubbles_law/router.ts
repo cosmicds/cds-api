@@ -38,7 +38,9 @@ import {
   getClassMeasurementCount,
   getStudentsWithCompleteMeasurementsCount,
   getMergedIDsForClass,
-  addClassToMergeGroup
+  addClassToMergeGroup,
+  setWaitingRoomOverride,
+  removeWaitingRoomOverride
 } from "./database";
 
 import { 
@@ -47,7 +49,7 @@ import {
 } from "./request_results";
 
 import { Express, Router } from "express";
-import { Sequelize } from "sequelize";
+import { Sequelize, ForeignKeyConstraintError, UniqueConstraintError } from "sequelize";
 import { classForStudentStory, findClassById, findStudentById } from "../../database";
 import { initializeModels } from "./models";
 import { setUpHubbleAssociations } from "./associations";
@@ -550,6 +552,94 @@ router.post("/mark-spectrum-bad", async (req, res) => {
 
 router.get("/spectra/:type/:name", async (req, res) => {
   res.redirect(`https://cosmicds.s3.us-east-1.amazonaws.com/spectra/${req.params.type}/${req.params.name}`);
+});
+
+
+const WaitingRoomOverrideSchema = S.struct({
+  class_id: S.number.pipe(S.int()),
+});
+
+router.put("/waiting-room-override", async (req, res) => {
+  const body = req.body;
+  const maybe = S.decodeUnknownEither(WaitingRoomOverrideSchema)(body);
+  if (Either.isLeft(maybe)) {
+    res.status(400).json({
+      error: "Invalid format. Request body should have the form { class_id: <integer> }",
+    });
+    return;
+  }
+
+  const right = maybe.right;
+  const result = await setWaitingRoomOverride(right.class_id);
+  const success = !(result instanceof Error); 
+  const responseData = {
+    success,
+    class_id: right.class_id,
+  };
+  if (!success) {
+    if (result instanceof ForeignKeyConstraintError) {
+      res.status(404).json({
+        ...responseData,
+        error: `No class found with ID ${right.class_id}`,
+      });
+
+    // It's fine if the override already exists
+    } else if (result instanceof UniqueConstraintError) {
+      res.status(200).json({
+        class_id: right.class_id,
+        success: true,
+        message: `The waiting room override for class ${right.class_id} was already set`,
+      });
+    } else {
+      res.status(500).json({
+        ...responseData,
+        error: `An error occurred while setting the waiting room override for class ${right.class_id}`,
+      });
+    }
+    return;
+  }
+  
+  if (result) {
+    res.status(201).json({
+      ...responseData,
+      message: `Successfully set waiting room override for class ${right.class_id}`,
+    });
+  } else {
+    res.status(200).json({
+      message: `The waiting room override for class ${right.class_id} was already set`,
+    });
+  }
+});
+
+
+router.delete("/waiting-room-override", async (req, res) => {
+  const body = req.body;
+  const maybe = S.decodeUnknownEither(WaitingRoomOverrideSchema)(body);
+  if (Either.isLeft(maybe)) {
+    res.status(400).json({
+      error: "Invalid format. Request body should have the form { class_id: <integer> }",
+    });
+    return;
+  }
+
+  const right = maybe.right;
+  const success = await removeWaitingRoomOverride(right.class_id);
+  const responseData = {
+    success,
+    class_id: right.class_id,
+  };
+  if (!success) {
+    res.status(500).json({
+      ...responseData,
+      error: `An error occurred while removing the waiting room override for class ${right.class_id}`,
+    });
+    return;
+  }
+
+  res.json({
+    ...responseData,
+    message: `The waiting room override for class ${right.class_id} was removed, if one existed.`,
+  });
 });
 
 
