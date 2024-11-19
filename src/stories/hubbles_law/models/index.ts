@@ -7,13 +7,15 @@ import { Sequelize } from "sequelize";
 import { initializeHubbleStudentDataModel } from "./hubble_student_data";
 import { initializeHubbleClassDataModel } from "./hubble_class_data";
 import { initializeHubbleClassMergeGroupModel } from "./hubble_class_merge_group";
+import { initializeHubbleWaitingRoomOverrideModel, HubbleWaitingRoomOverride } from "./hubble_waiting_room_override";
 
 export {
   Galaxy,
   HubbleMeasurement,
   SampleHubbleMeasurement,
   AsyncMergedHubbleStudentClasses,
-  SyncMergedHubbleClasses
+  SyncMergedHubbleClasses,
+  HubbleWaitingRoomOverride
 };
 
 export function initializeModels(db: Sequelize) {
@@ -25,4 +27,5 @@ export function initializeModels(db: Sequelize) {
   initializeHubbleStudentDataModel(db);
   initializeHubbleClassDataModel(db);
   initializeHubbleClassMergeGroupModel(db);
+  initializeHubbleWaitingRoomOverrideModel(db);
 }
