@@ -431,12 +431,17 @@ export async function _getStageThreeStudentData(studentID: number, classID: numb
 
 const MINIMAL_MEASUREMENT_FIELDS = ["student_id", "galaxy_id", "velocity_value", "est_dist_value", "class_id"];
 
-export async function getAllHubbleMeasurements(before: Date | null = null, minimal=false): Promise<HubbleMeasurement[]> {
-  const whereConditions: WhereOptions = [
+export async function getAllHubbleMeasurements(before: Date | null = null, minimal=false, classID: number | null = null): Promise<HubbleMeasurement[]> {
+  const whereOptions: WhereOptions = [
      { "$student.IgnoreStudents.student_id$": null }
   ];
   if (before !== null) {
-    whereConditions.push({ last_modified: { [Op.lt]: before } });
+    whereOptions.push({ last_modified: { [Op.lt]: before } });
+  }
+  const classesWhere: WhereOptions<Class> = [];
+  if (classID !== null) {
+    const classIDs = await getMergedIDsForClass(classID, true);
+    classesWhere.push({ id: { [Op.notIn]: classIDs } });
   }
   const exclude = minimal ? Object.keys(HubbleMeasurement.getAttributes()).filter(key => !MINIMAL_MEASUREMENT_FIELDS.includes(key)) : [];
 
@@ -449,7 +454,7 @@ export async function getAllHubbleMeasurements(before: Date | null = null, minim
       exclude,
     },
     where: {
-      [Op.and]: whereConditions
+      [Op.and]: whereOptions
     },
     include: [{
       model: Galaxy,
@@ -467,7 +472,8 @@ export async function getAllHubbleMeasurements(before: Date | null = null, minim
       include: [{
         model: Class,
         attributes: [],
-        through: { attributes: [] }
+        through: { attributes: [] },
+        where: classesWhere,
       },
       {
         model: IgnoreStudent,
@@ -482,12 +488,17 @@ export async function getAllHubbleMeasurements(before: Date | null = null, minim
 }
 
 const MINIMAL_STUDENT_DATA_FIELDS = ["student_id", "age_value"];
-export async function getAllHubbleStudentData(before: Date | null = null, minimal=false): Promise<HubbleStudentData[]> {
-  const whereConditions: WhereOptions = [
+export async function getAllHubbleStudentData(before: Date | null = null, minimal=false, classID: number | null = null): Promise<HubbleStudentData[]> {
+  const whereOptions: WhereOptions = [
     { "$student.IgnoreStudents.student_id$": null }
   ];
   if (before !== null) {
-    whereConditions.push({ last_data_update: { [Op.lt]: before } });
+    whereOptions.push({ last_data_update: { [Op.lt]: before } });
+  }
+  const classesWhere: WhereOptions<Class> = [];
+  if (classID !== null) {
+    const classIDs = await getMergedIDsForClass(classID, true);
+    classesWhere.push({ id : { [Op.notIn]: classIDs } });
   }
   const exclude = minimal ? Object.keys(HubbleStudentData.getAttributes()).filter(key => !MINIMAL_STUDENT_DATA_FIELDS.includes(key)) : [];
 
@@ -500,7 +511,7 @@ export async function getAllHubbleStudentData(before: Date | null = null, minima
       exclude,
     },
     where: {
-      [Op.and]: whereConditions
+      [Op.and]: whereOptions
     },
     include: [{
       model: Student,
@@ -517,7 +528,8 @@ export async function getAllHubbleStudentData(before: Date | null = null, minima
       {
         model: Class,
         attributes: [],
-        through: { attributes: [] }
+        through: { attributes: [] },
+        where: classesWhere,
       }],
       where: {
          [Op.or]: [
@@ -530,16 +542,22 @@ export async function getAllHubbleStudentData(before: Date | null = null, minima
   return data;
 }
 
-export async function getAllHubbleClassData(before: Date | null = null, minimal=false): Promise<HubbleClassData[]> {
-  const whereConditions = before !== null ? [{ last_data_update: { [Op.lt]: before } }] : [];
+export async function getAllHubbleClassData(before: Date | null = null, minimal=false, classID: number | null = null): Promise<HubbleClassData[]> {
+  const whereOptions: WhereOptions<HubbleClassData> = before !== null ? [{ last_data_update: { [Op.lt]: before } }] : [];
+  const studentsClassesWhere: WhereOptions<StudentsClasses> = [];
+  if (classID !== null) {
+    const classIDs = await getMergedIDsForClass(classID, true);
+    studentsClassesWhere.push({ class_id : { [Op.notIn]: classIDs } });
+  }
   const query: FindOptions<HubbleClassData> = {
     include: [{
       model: StudentsClasses,
       as: "class_data",
-      attributes: []
+      attributes: [],
+      where: studentsClassesWhere,
     }],
     where: {
-      [Op.and]: whereConditions
+      [Op.and]: whereOptions
     },
     group: ["HubbleClassData.class_id"],
     having: Sequelize.where(Sequelize.fn("count", Sequelize.col("HubbleClassData.class_id")), { [Op.gte]: 13 })

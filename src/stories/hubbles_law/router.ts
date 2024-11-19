@@ -454,13 +454,17 @@ router.put("/merge-class", async (req, res) => {
 
 router.get("/all-data", async (req, res) => {
   const minimal = (req.query?.minimal as string)?.toLowerCase() === "true";
+  let classID: number | null = parseInt(req.query.class_id as string);
+  if (isNaN(classID)) {
+    classID = null;
+  }
   const beforeMs: number = parseInt(req.query.before as string);
   const before = isNaN(beforeMs) ? null : new Date(beforeMs);
   const [measurements, studentData, classData] =
     await Promise.all([
-      getAllHubbleMeasurements(before, minimal),
-      getAllHubbleStudentData(before, minimal),
-      getAllHubbleClassData(before, minimal)
+      getAllHubbleMeasurements(before, minimal, classID),
+      getAllHubbleStudentData(before, minimal, classID),
+      getAllHubbleClassData(before, minimal, classID)
     ]);
   res.json({
     measurements,
