@@ -849,6 +849,14 @@ export async function addClassToMergeGroup(classID: number): Promise<number | nu
 
 }
 
+export async function removeClassFromMergeGroup(classID: number): Promise<number> {
+  return HubbleClassMergeGroup.destroy({
+    where: {
+      class_id: classID,
+    }
+  });
+}
+
 export async function getWaitingRoomOverride(classID: number): Promise<HubbleWaitingRoomOverride | null> {
   return HubbleWaitingRoomOverride.findOne({
     where: {
@@ -858,13 +866,21 @@ export async function getWaitingRoomOverride(classID: number): Promise<HubbleWai
 }
 
 export async function setWaitingRoomOverride(classID: number): Promise<boolean | Error> {
-  return HubbleWaitingRoomOverride.findOrCreate({
+  let successOrError = await HubbleWaitingRoomOverride.findOrCreate({
     where: {
       class_id: classID,
     }
   })
   .then(result => result[1])
   .catch((error: Error) => error);
+
+  // Once we've set the override, that means that we need to add this class to a merge group
+  const mergeGroup = await addClassToMergeGroup(classID);
+  if (mergeGroup === null) {
+    successOrError = new Error(`Error adding class ${classID} to a merge group`);
+  }
+
+  return successOrError;
 }
 
 export async function removeWaitingRoomOverride(classID: number): Promise<number> {
@@ -872,6 +888,17 @@ export async function removeWaitingRoomOverride(classID: number): Promise<number
     where: {
       class_id: classID,
     }
+  })
+  .then(async (count) => {
+    const cls = await findClassById(classID);
+
+    // This condition should always be satisfied, since we should only be doing overrides
+    // for non-small classes anyways (if the class is small, there shouldn't be any need 
+    // to want an override to begin with)
+    if (cls !== null && !cls.small_class) {
+      await removeClassFromMergeGroup(classID);
+    }
+    return count;
   })
   .catch(_error => NaN);
 }
