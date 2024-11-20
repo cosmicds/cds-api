@@ -40,7 +40,8 @@ import {
   getMergedIDsForClass,
   addClassToMergeGroup,
   setWaitingRoomOverride,
-  removeWaitingRoomOverride
+  removeWaitingRoomOverride,
+  getWaitingRoomOverride
 } from "./database";
 
 import { 
@@ -559,6 +560,31 @@ const WaitingRoomOverrideSchema = S.struct({
   class_id: S.number.pipe(S.int()),
 });
 
+router.get("/waiting-room-override/:classID", async (req, res) => {
+  const classID = Number(req.params.classID);
+  const cls = await findClassById(classID);
+  if (cls === null) {
+    res.status(404).json({
+      error: `No class found with ID ${classID}`,
+    });
+    return;
+  }
+
+  getWaitingRoomOverride(classID)
+    .then(override => {
+      res.json({
+        class_id: classID,
+        override_status: override !== null,
+      });
+    })
+    .catch(_error => {
+      res.status(500).json({
+        error: `Error determining waiting room override status for class with ID ${classID}`,
+      });
+    });
+
+});
+
 router.put("/waiting-room-override", async (req, res) => {
   const body = req.body;
   const maybe = S.decodeUnknownEither(WaitingRoomOverrideSchema)(body);
@@ -623,12 +649,14 @@ router.delete("/waiting-room-override", async (req, res) => {
   }
 
   const right = maybe.right;
-  const success = await removeWaitingRoomOverride(right.class_id);
+  const countRemoved = await removeWaitingRoomOverride(right.class_id);
+  const success = !isNaN(countRemoved);
   const responseData = {
     success,
+    removed: success && countRemoved > 0,
     class_id: right.class_id,
   };
-  if (!success) {
+  if (isNaN(countRemoved)) {
     res.status(500).json({
       ...responseData,
       error: `An error occurred while removing the waiting room override for class ${right.class_id}`,
@@ -636,9 +664,13 @@ router.delete("/waiting-room-override", async (req, res) => {
     return;
   }
 
+  const message = countRemoved > 0 ?
+    `The waiting room override for class ${right.class_id} was removed` :
+    `No waiting room override for class ${right.class_id} existed`;
+
   res.json({
     ...responseData,
-    message: `The waiting room override for class ${right.class_id} was removed, if one existed.`,
+    message,
   });
 });
 
