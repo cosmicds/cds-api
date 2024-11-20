@@ -849,6 +849,14 @@ export async function addClassToMergeGroup(classID: number): Promise<number | nu
 
 }
 
+export async function getWaitingRoomOverride(classID: number): Promise<HubbleWaitingRoomOverride | null> {
+  return HubbleWaitingRoomOverride.findOne({
+    where: {
+      class_id: classID,
+    }
+  });
+}
+
 export async function setWaitingRoomOverride(classID: number): Promise<boolean | Error> {
   return HubbleWaitingRoomOverride.findOrCreate({
     where: {
@@ -859,12 +867,11 @@ export async function setWaitingRoomOverride(classID: number): Promise<boolean |
   .catch((error: Error) => error);
 }
 
-export async function removeWaitingRoomOverride(classID: number): Promise<boolean> {
+export async function removeWaitingRoomOverride(classID: number): Promise<number> {
   return HubbleWaitingRoomOverride.destroy({
     where: {
       class_id: classID,
     }
   })
-  .then(_result => true)
-  .catch(_error => false);
+  .catch(_error => NaN);
 }
