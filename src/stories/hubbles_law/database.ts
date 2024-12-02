@@ -1,6 +1,6 @@
 import { Attributes, FindOptions, Op, QueryTypes, Sequelize, WhereAttributeHash, WhereOptions, col, fn, literal } from "sequelize";
 import { AsyncMergedHubbleStudentClasses, Galaxy, HubbleMeasurement, HubbleWaitingRoomOverride, SampleHubbleMeasurement, SyncMergedHubbleClasses } from "./models";
-import { classSize, findClassById, findStudentById } from "../../database";
+import { findClassById, findStudentById } from "../../database";
 import { RemoveHubbleMeasurementResult, SubmitHubbleMeasurementResult } from "./request_results";
 import { Class, StoryState, Student, StudentsClasses } from "../../models";
 import { HubbleStudentData } from "./models/hubble_student_data";
@@ -884,20 +884,29 @@ export async function setWaitingRoomOverride(classID: number): Promise<boolean |
 }
 
 export async function removeWaitingRoomOverride(classID: number): Promise<number> {
-  return HubbleWaitingRoomOverride.destroy({
-    where: {
-      class_id: classID,
-    }
-  })
+
+  const classFindOptions: FindOptions<HubbleClassMergeGroup> = { where: { class_id: classID } };
+  const mergeGroup = await HubbleClassMergeGroup.findOne(classFindOptions);
+  return HubbleWaitingRoomOverride.destroy(classFindOptions)
   .then(async (count) => {
     const cls = await findClassById(classID);
+    if (mergeGroup !== null && cls !== null) {
 
     // This condition should always be satisfied, since we should only be doing overrides
     // for non-small classes anyways (if the class is small, there shouldn't be any need 
     // to want an override to begin with)
-    if (cls !== null && !cls.small_class) {
-      await removeClassFromMergeGroup(classID);
+      if (cls.small_class) {
+        await removeClassFromMergeGroup(classID);
+      }
+
+      // If the merge group now only has one member, delete it
+      const groupFindOptions: FindOptions = { where: { group_id: mergeGroup.group_id } };
+      const mergeMembers = await HubbleClassMergeGroup.findAll(groupFindOptions);
+      if (mergeMembers.length === 1) {
+        await HubbleClassMergeGroup.destroy(groupFindOptions);
+      }
     }
+
     return count;
   })
   .catch(_error => NaN);
