@@ -350,10 +350,10 @@ export async function createClass(options: CreateClassOptions): Promise<CreateCl
     });
 
     // Another piece of Hubble-specific functionality
-    // Note that we need to re-query for the class as the virtual `small_class`
-    // column is only evaluted on a read (not the insert that we just did)
-    const createdClass = await findClassById(cls.id);
-    if (createdClass && (createdClass.asynchronous || createdClass.small_class)) {
+    // Note that we need to reload the class so that the virtual `small_class`
+    // column has its value populated
+    await cls.reload();
+    if (cls.asynchronous || cls.small_class) {
       await addClassToMergeGroup(cls.id);
     }
 
