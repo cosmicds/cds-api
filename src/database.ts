@@ -41,6 +41,7 @@ import { StudentOption, StudentOptions } from "./models/student_options";
 import { Question } from "./models/question";
 import { logger } from "./logger";
 import { Stage } from "./models/stage";
+import { addClassToMergeGroup } from "./stories/hubbles_law/database";
 
 export type LoginResponse = {
   type: "none" | "student" | "educator" | "admin",
@@ -329,23 +330,34 @@ export async function createClass(options: CreateClassOptions): Promise<CreateCl
   }
 
   try {
-    const transactionResult = await db.transaction(async transaction => {
+    const cls = await db.transaction(async transaction => {
 
       const cls = await Class.create(creationInfo, { transaction });
 
       // For the pilot, the Hubble Data Story will be the only option,
       // so we'll automatically associate that with the class
+      // TODO: When there are more classes available, we need to make
+      // this functionality more generic
       if (cls) {
         await ClassStories.create({
           story_name: "hubbles_law",
           class_id: cls.id
         }, { transaction });
+
       }
 
-      return creationInfo;
+      return cls;
     });
 
-    return { result: result, class: transactionResult };
+    // Another piece of Hubble-specific functionality
+    // Note that we need to reload the class so that the virtual `small_class`
+    // column has its value populated
+    await cls.reload();
+    if (cls.asynchronous || cls.small_class) {
+      await addClassToMergeGroup(cls.id);
+    }
+
+    return { result: result, class: creationInfo };
   } catch (error) {
     result = (error instanceof BaseError) ? createClassResultFromError(error) : CreateClassResult.Error;
     console.log(error);
