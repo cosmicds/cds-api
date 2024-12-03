@@ -330,7 +330,7 @@ export async function createClass(options: CreateClassOptions): Promise<CreateCl
   }
 
   try {
-    const transactionResult = await db.transaction(async transaction => {
+    const cls = await db.transaction(async transaction => {
 
       const cls = await Class.create(creationInfo, { transaction });
 
@@ -344,16 +344,20 @@ export async function createClass(options: CreateClassOptions): Promise<CreateCl
           class_id: cls.id
         }, { transaction });
 
-        // This piece in particular is very Hubble-specific
-        if (cls.asynchronous || cls.small_class) {
-          await addClassToMergeGroup(cls.id);
-        }
       }
 
-      return creationInfo;
+      return cls;
     });
 
-    return { result: result, class: transactionResult };
+    // Another piece of Hubble-specific functionality
+    // Note that the virtual `small_class` column hasn't been populated yet
+    // So we need to check the condition manually
+    // TODO: How to not need to do this?
+    if (cls.asynchronous || cls.expected_size < 15) {
+      await addClassToMergeGroup(cls.id);
+    }
+
+    return { result: result, class: creationInfo };
   } catch (error) {
     result = (error instanceof BaseError) ? createClassResultFromError(error) : CreateClassResult.Error;
     console.log(error);
