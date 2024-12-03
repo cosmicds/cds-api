@@ -350,10 +350,10 @@ export async function createClass(options: CreateClassOptions): Promise<CreateCl
     });
 
     // Another piece of Hubble-specific functionality
-    // Note that the virtual `small_class` column hasn't been populated yet
-    // So we need to check the condition manually
-    // TODO: How to not need to do this?
-    if (cls.asynchronous || cls.expected_size < 15) {
+    // Note that we need to re-query for the class as the virtual `small_class`
+    // column is only evaluted on a read (not the insert that we just did)
+    const createdClass = await findClassById(cls.id);
+    if (createdClass && (createdClass.asynchronous || createdClass.small_class)) {
       await addClassToMergeGroup(cls.id);
     }
 
