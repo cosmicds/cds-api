@@ -348,22 +348,16 @@ export async function createClass(options: CreateClassOptions): Promise<CreateCl
           class_id: cls.id,
         });
 
-        classSetupRegistry.setupFunctions(storyName)?.forEach(setup => {
-          console.log(setup);
-          setup(cls, storyName);
-        });
+        const setupFunctions = classSetupRegistry.setupFunctions(storyName);
+        if (setupFunctions) {
+          for (const setupFunc of setupFunctions) {
+            await setupFunc(cls, storyName);
+          }
+        }
       }
 
       return cls;
     });
-
-    // Another piece of Hubble-specific functionality
-    // Note that we need to reload the class so that the virtual `small_class`
-    // column has its value populated
-    await cls.reload();
-    if (cls.asynchronous || cls.small_class) {
-      await addClassToMergeGroup(cls.id);
-    }
 
     return { result: result, class: creationInfo };
   } catch (error) {
@@ -940,20 +934,4 @@ export async function getDashboardGroupClasses(code: string): Promise<Class[] | 
     }
   });
 
-}
-
-export async function hubbleClassSetup(
-  cls: Class,
-  storyName: string,
-) {
-  if (cls) {
-    await ClassStories.create({
-      story_name: storyName,
-      class_id: cls.id
-    });
-
-    if (cls.asynchronous || cls.small_class) {
-      await addClassToMergeGroup(cls.id);
-    }
-  }
 }

@@ -1,6 +1,6 @@
 import { Class } from "./models";
 
-type ClassSetupFunction = (cls: Class, storyName: string) => void;
+type ClassSetupFunction = (cls: Class, storyName: string) => Promise<void>;
 
 class ClassSetupRegistry {
 
