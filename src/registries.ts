@@ -6,7 +6,7 @@ class ClassSetupRegistry {
 
   private members: { [storyName: string]: ClassSetupFunction[] | undefined } = {};
   
-  register(setup: ClassSetupFunction, storyName: string) {
+  register(storyName: string, setup: ClassSetupFunction) {
     if (!(storyName in this.members)) {
       this.members[storyName] = [];
     }
