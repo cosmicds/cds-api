@@ -1,5 +1,6 @@
 import { BaseError, Model, Op, QueryTypes, Sequelize, Transaction, UniqueConstraintError, WhereOptions } from "sequelize";
 import dotenv from "dotenv";
+import { createNamespace } from "cls-hooked";
 
 import * as S from "@effect/schema/Schema";
 
@@ -42,6 +43,7 @@ import { Question } from "./models/question";
 import { logger } from "./logger";
 import { Stage } from "./models/stage";
 import { addClassToMergeGroup } from "./stories/hubbles_law/database";
+import { classSetupRegistry } from "./registries";
 
 export type LoginResponse = {
   type: "none" | "student" | "educator" | "admin",
@@ -92,6 +94,9 @@ export function getDatabaseConnection(options?: DBConnectionOptions) {
 
   // Create any associations that we need
   setUpAssociations();
+
+  const namespace = createNamespace("cds-api-namespace");
+  Sequelize.useCLS(namespace);
 
   return database; 
 }
@@ -282,7 +287,7 @@ export async function signUpStudent(options: SignUpStudentOptions): Promise<Sign
         email: options.email,
         age: options.age,
         gender: options.gender,
-      }, { transaction })
+      })
       .catch(error => {
         result = signupResultFromError(error);
       });
@@ -314,6 +319,7 @@ export const CreateClassSchema = S.struct({
   name: S.string,
   expected_size: S.number.pipe(S.int()),
   asynchronous: S.optional(S.boolean),
+  story_name: S.optional(S.string),
 });
 
 export type CreateClassOptions = S.Schema.To<typeof CreateClassSchema>;
@@ -330,20 +336,22 @@ export async function createClass(options: CreateClassOptions): Promise<CreateCl
   }
 
   try {
-    const cls = await db.transaction(async transaction => {
+    console.log(db);
+    const cls = await db.transaction(async _transaction => {
 
-      const cls = await Class.create(creationInfo, { transaction });
+      const cls = await Class.create(creationInfo);
 
-      // For the pilot, the Hubble Data Story will be the only option,
-      // so we'll automatically associate that with the class
-      // TODO: When there are more classes available, we need to make
-      // this functionality more generic
-      if (cls) {
+      const storyName = options.story_name;
+      if (storyName) {
         await ClassStories.create({
-          story_name: "hubbles_law",
-          class_id: cls.id
-        }, { transaction });
+          story_name: storyName,
+          class_id: cls.id,
+        });
 
+        classSetupRegistry.setupFunctions(storyName)?.forEach(setup => {
+          console.log(setup);
+          setup(cls, storyName);
+        });
       }
 
       return cls;
@@ -687,8 +695,7 @@ export async function getClassRoster(classID: number): Promise<Student[]> {
 }
 
 /** These functions are for testing purposes only */
-export async function newDummyClassForStory(storyName: string, transaction?: Transaction): Promise<{cls: Class, dummy: DummyClass}> {
-  const trans = transaction ?? null;
+export async function newDummyClassForStory(storyName: string): Promise<{cls: Class, dummy: DummyClass}> {
   const ct = await Class.count({
     where: {
       educator_id: 0,
@@ -696,16 +703,14 @@ export async function newDummyClassForStory(storyName: string, transaction?: Tra
         [Op.like]: `DummyClass_${storyName}_`
       }
     },
-    transaction: trans,
   });
   const cls = await Class.create({
     educator_id: 0,
     name: `DummyClass_${storyName}_${ct+1}`,
     code: "xxxxxx"
-  }, { transaction: trans });
+  });
   let dc = await DummyClass.findOne({
     where: { story_name: storyName },
-    transaction: trans,
   });
   if (dc !== null) {
     dc.update({ class_id: cls.id })
@@ -716,8 +721,8 @@ export async function newDummyClassForStory(storyName: string, transaction?: Tra
   } else {
     dc = await DummyClass.create({
       class_id: cls.id,
-      story_name: storyName
-    }, { transaction: trans });
+      story_name: storyName,
+    });
   }
   return { cls: cls, dummy: dc };
 }
@@ -738,7 +743,7 @@ export async function newDummyStudent(seed = false,
   }
 
   try {
-    const transactionResult = await db.transaction(async transaction => {
+    const transactionResult = await db.transaction(async _transaction => {
       const student = await Student.create({
         username: `dummy_student_${newID}`,
         verified: 1,
@@ -751,25 +756,23 @@ export async function newDummyStudent(seed = false,
         seed: seed ? 1 : 0,
         team_member: teamMember,
         dummy: true
-      }, { transaction });
+      });
 
       // If we have a story name, and are creating a seed student, we want to add this student to the current "dummy class" for that story
       if (seed && storyName !== null) {
         let cls: Class | null = null;
         let dummyClass = await DummyClass.findOne({
           where: { story_name: storyName },
-          transaction
         });
         let clsSize: number;
         if (dummyClass === null) {
-          const res = await newDummyClassForStory(storyName, transaction);
+          const res = await newDummyClassForStory(storyName);
           dummyClass = res.dummy;
           cls = res.cls;
           clsSize = 0;
         } else {
           clsSize = await StudentsClasses.count({
             where: { class_id: dummyClass.class_id },
-            transaction,
           });
         }
         
@@ -780,14 +783,13 @@ export async function newDummyStudent(seed = false,
         } else {
           cls = await Class.findOne({
             where: { id: dummyClass.class_id },
-            transaction,
           });
         }
         if (cls !== null) {
           await StudentsClasses.create({
             class_id: cls.id,
             student_id: student.id
-          }, { transaction });
+          });
         }
       }
       return student;
@@ -938,4 +940,20 @@ export async function getDashboardGroupClasses(code: string): Promise<Class[] | 
     }
   });
 
+}
+
+export async function hubbleClassSetup(
+  cls: Class,
+  storyName: string,
+) {
+  if (cls) {
+    await ClassStories.create({
+      story_name: storyName,
+      class_id: cls.id
+    });
+
+    if (cls.asynchronous || cls.small_class) {
+      await addClassToMergeGroup(cls.id);
+    }
+  }
 }
