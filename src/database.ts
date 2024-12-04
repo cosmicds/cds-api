@@ -1,4 +1,4 @@
-import { BaseError, Model, Op, QueryTypes, Sequelize, Transaction, UniqueConstraintError, WhereOptions } from "sequelize";
+import { BaseError, Model, Op, QueryTypes, Sequelize, UniqueConstraintError, WhereOptions } from "sequelize";
 import dotenv from "dotenv";
 import { createNamespace } from "cls-hooked";
 
@@ -42,7 +42,6 @@ import { StudentOption, StudentOptions } from "./models/student_options";
 import { Question } from "./models/question";
 import { logger } from "./logger";
 import { Stage } from "./models/stage";
-import { addClassToMergeGroup } from "./stories/hubbles_law/database";
 import { classSetupRegistry } from "./registries";
 
 export type LoginResponse = {
