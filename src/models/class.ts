@@ -69,7 +69,11 @@ export function initializeClassModel(sequelize: Sequelize) {
       allowNull: false,
     },
     small_class: {
-      type: "tinyint(1) GENERATED ALWAYS AS (expected_size < 15) VIRTUAL",
+      type: DataTypes.VIRTUAL,
+      // type: "tinyint(1) GENERATED ALWAYS AS (expected_size < 15) VIRTUAL",
+      get() {
+        return this.expected_size < 15; 
+      }
     },
   }, {
     sequelize,

@@ -3,6 +3,7 @@ import { join } from "path";
 import { createApp } from "./server";
 import { getDatabaseConnection } from "./database";
 
+
 const STORIES_DIR = join(__dirname, "stories");
 const MAIN_FILE = "main.js";
 

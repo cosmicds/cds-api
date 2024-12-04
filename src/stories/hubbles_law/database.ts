@@ -911,3 +911,15 @@ export async function removeWaitingRoomOverride(classID: number): Promise<number
   })
   .catch(_error => NaN);
 }
+
+export async function hubbleClassSetup(
+  cls: Class,
+  _storyName: string,
+) {
+  if (cls) {
+    console.log(cls);
+    if (cls.asynchronous || cls.small_class) {
+      await addClassToMergeGroup(cls.id);
+    }
+  }
+}

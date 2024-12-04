@@ -4,6 +4,7 @@ export class Story extends Model<InferAttributes<Story>, InferCreationAttributes
   declare id: CreationOptional<number>;
   declare name: string;
   declare display_name: string;
+  declare description: CreationOptional<string>;
 }
 
 export function initializeStoryModel(sequelize: Sequelize) {
@@ -23,6 +24,10 @@ export function initializeStoryModel(sequelize: Sequelize) {
       type: DataTypes.STRING,
       allowNull: false,
       unique: true
+    },
+    description: {
+      type: DataTypes.STRING,
+      allowNull: true,
     }
   }, {
     sequelize,
