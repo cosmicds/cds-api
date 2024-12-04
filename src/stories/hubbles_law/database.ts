@@ -2,7 +2,7 @@ import { Attributes, FindOptions, Op, QueryTypes, Sequelize, WhereAttributeHash,
 import { AsyncMergedHubbleStudentClasses, Galaxy, HubbleMeasurement, HubbleWaitingRoomOverride, SampleHubbleMeasurement, SyncMergedHubbleClasses } from "./models";
 import { findClassById, findStudentById } from "../../database";
 import { RemoveHubbleMeasurementResult, SubmitHubbleMeasurementResult } from "./request_results";
-import { Class, ClassStories, StoryState, Student, StudentsClasses } from "../../models";
+import { Class, StoryState, Student, StudentsClasses } from "../../models";
 import { HubbleStudentData } from "./models/hubble_student_data";
 import { HubbleClassData } from "./models/hubble_class_data";
 import { IgnoreStudent } from "../../models/ignore_student";

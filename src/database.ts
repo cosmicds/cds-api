@@ -335,8 +335,7 @@ export async function createClass(options: CreateClassOptions): Promise<CreateCl
   }
 
   try {
-    console.log(db);
-    const cls = await db.transaction(async _transaction => {
+    await db.transaction(async _transaction => {
 
       const cls = await Class.create(creationInfo);
 
