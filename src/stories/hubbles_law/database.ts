@@ -431,12 +431,20 @@ export async function _getStageThreeStudentData(studentID: number, classID: numb
 
 const MINIMAL_MEASUREMENT_FIELDS = ["student_id", "galaxy_id", "velocity_value", "est_dist_value", "class_id"];
 
-export async function getAllHubbleMeasurements(before: Date | null = null, minimal=false, classID: number | null = null): Promise<HubbleMeasurement[]> {
+export async function getAllHubbleMeasurements(before: Date | null = null,
+                                               minimal=false,
+                                               classID: number | null = null,
+                                               excludeWithNull=true): Promise<HubbleMeasurement[]> {
   const whereOptions: WhereOptions = [
      { "$student.IgnoreStudents.student_id$": null }
   ];
   if (before !== null) {
     whereOptions.push({ last_modified: { [Op.lt]: before } });
+  }
+  if (excludeWithNull) {
+    for (const [key, condition] of Object.entries(EXCLUDE_MEASUREMENTS_WITH_NULL_CONDITION)) {
+      whereOptions.push({ [key]: condition });
+    }
   }
   const classesWhere: WhereOptions<Class> = [];
   if (classID !== null) {
