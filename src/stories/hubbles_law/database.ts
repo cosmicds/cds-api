@@ -8,7 +8,6 @@ import { HubbleClassData } from "./models/hubble_class_data";
 import { IgnoreStudent } from "../../models/ignore_student";
 import { logger } from "../../logger";
 import { HubbleClassMergeGroup } from "./models/hubble_class_merge_group";
-import { QueryOptions } from "mysql2";
 
 const galaxyAttributes = ["id", "ra", "decl", "z", "type", "name", "element"];
 
