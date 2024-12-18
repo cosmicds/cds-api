@@ -8,6 +8,7 @@ import { HubbleClassData } from "./models/hubble_class_data";
 import { IgnoreStudent } from "../../models/ignore_student";
 import { logger } from "../../logger";
 import { HubbleClassMergeGroup } from "./models/hubble_class_merge_group";
+import { QueryOptions } from "mysql2";
 
 const galaxyAttributes = ["id", "ra", "decl", "z", "type", "name", "element"];
 
@@ -320,7 +321,7 @@ async function getClassIDsForSyncClass(classID: number): Promise<number[]> {
   return classIDs;
 }
 
-export async function getMergedIDsForClass(classID: number, ignoreMergeOrder=false): Promise<number[]> {
+export async function getMergedIDsForClass(classID: number, ignoreMergeOrder=false, mergeOrderSort: "ASC" | "DESC" | null = null): Promise<number[]> {
   // TODO: Currently this uses two queries:
   // The first to get the merge group (if there is one)
   // Then a second to get all of the classes in the merge group
@@ -342,7 +343,11 @@ export async function getMergedIDsForClass(classID: number, ignoreMergeOrder=fal
       [Op.lte]: mergeGroup.merge_order,
     };
   }
-  const mergeEntries = await HubbleClassMergeGroup.findAll({ where });
+  const query: FindOptions = { where };
+  if (mergeOrderSort) {
+    query.order = [["merge_order", mergeOrderSort]];
+  }
+  const mergeEntries = await HubbleClassMergeGroup.findAll(query);
   return mergeEntries.map(entry => entry.class_id);
 }
 
@@ -453,7 +458,7 @@ export async function getAllHubbleMeasurements(before: Date | null = null,
   }
   const exclude = minimal ? Object.keys(HubbleMeasurement.getAttributes()).filter(key => !MINIMAL_MEASUREMENT_FIELDS.includes(key)) : [];
 
-  return HubbleMeasurement.findAll({
+  const measurements = await HubbleMeasurement.findAll({
     raw: true,
     attributes: {
       // The "student" here comes from the alias below
@@ -492,7 +497,24 @@ export async function getAllHubbleMeasurements(before: Date | null = null,
         }
       }]
     }]
-  });
+  }) as (HubbleMeasurement & { class_id: number })[];
+
+  const mergeIDsToUse: Record<number, number | undefined> = {};
+  for (const measurement of measurements) {
+    const cid = measurement.class_id;
+    let mergedID = mergeIDsToUse[cid];
+    if (mergedID === undefined) {
+      const mergedIDs = await getMergedIDsForClass(cid, true, "DESC");
+      mergedID = mergedIDs[0];
+      mergedIDs.forEach(id => {
+        mergeIDsToUse[id] = mergedID;
+      });
+    }
+    measurement.class_id = mergedID;
+  }
+
+  return measurements;
+
 }
 
 const MINIMAL_STUDENT_DATA_FIELDS = ["student_id", "age_value"];
