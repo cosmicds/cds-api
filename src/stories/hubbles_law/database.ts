@@ -453,7 +453,7 @@ export async function getAllHubbleMeasurements(before: Date | null = null,
   }
   const exclude = minimal ? Object.keys(HubbleMeasurement.getAttributes()).filter(key => !MINIMAL_MEASUREMENT_FIELDS.includes(key)) : [];
 
-  return HubbleMeasurement.findAll({
+  const measurements = await HubbleMeasurement.findAll({
     raw: true,
     attributes: {
       // The "student" here comes from the alias below
@@ -492,7 +492,41 @@ export async function getAllHubbleMeasurements(before: Date | null = null,
         }
       }]
     }]
+  }) as (HubbleMeasurement & { class_id: number })[];
+
+  const classIDs = new Set<number>();
+  measurements.forEach(measurement => classIDs.add(measurement.class_id));
+  const mergeGroupData = await HubbleClassMergeGroup.findAll({
+    attributes: [
+      "class_id",
+      "group_id",
+      // We use a RANK rather than the merge order because we don't know what the highest merge order value will be
+      // But the best rank will always be 1
+      [Sequelize.literal("RANK() OVER(PARTITION BY group_id ORDER BY merge_order DESC)"), "rk"],
+    ],
+    order: [["rk", "ASC"]],
+  }) as (HubbleClassMergeGroup & { rk: number })[];
+
+  const mergeIDsToUse: Record<number, number> = {};
+  const groupIDs: Record<number, number | undefined> = {};
+  mergeGroupData.forEach(data => {
+    // Because this is a column constructed inside the query,
+    // it doesn't work to do `data.rk`, or `data.getDataValue("rk")`
+    const rank = data.get("rk");
+    if (rank === 1) {
+      mergeIDsToUse[data.class_id] = data.class_id;
+      groupIDs[data.group_id] = data.class_id;
+    } else {
+      mergeIDsToUse[data.class_id] = groupIDs[data.group_id] ?? data.class_id;
+    }
   });
+
+  measurements.forEach(measurement => {
+    measurement.class_id = mergeIDsToUse[measurement.class_id] ?? measurement.class_id;
+  });
+
+  return measurements;
+
 }
 
 const MINIMAL_STUDENT_DATA_FIELDS = ["student_id", "age_value"];
