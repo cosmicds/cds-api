@@ -8,6 +8,7 @@ import { CreateClassOptions } from "./database";
 import { ParsedQs } from "qs";
 import { Request } from "express";
 import { Response } from "express-serve-static-core";
+import { Class } from "./models";
 
 export const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(",") : [];
 
@@ -46,10 +47,34 @@ function createV5(name: string): string {
   return v5(name, cdsNamespace);
 }
 
-export function createClassCode(options: CreateClassOptions) {
-  const nameString = `${options.educator_id}_${options.name}`;
-  return createV5(nameString);
+async function isClassCodeUnique(code: string): Promise<boolean> {
+  const cls = await Class.findOne({ where: { code } });
+  return cls === null;
 }
+
+function createPossibleClassCode(length: number): string {
+  const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let result = "";
+  const charactersLength = characters.length;
+  let counter = 0;
+  while (counter < length) {
+    result += characters.charAt(Math.floor(Math.random() * charactersLength));
+    counter += 1;
+  }
+  return result;
+}
+
+export async function createClassCode(length: number = 6): Promise<string> {
+  let code = "";
+  let unique = false;
+  do {
+    code = createPossibleClassCode(length);
+    unique = await isClassCodeUnique(code);
+  } while (!unique);
+
+  return code;
+}
+
 
 // eslint-disable-next-line  @typescript-eslint/no-explicit-any
 export function isArrayThatSatisfies<T extends Array<any>>(array: any, condition: (t: Array<any>) => boolean): array is T {

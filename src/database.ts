@@ -326,7 +326,7 @@ export type CreateClassOptions = S.Schema.To<typeof CreateClassSchema>;
 export async function createClass(options: CreateClassOptions): Promise<CreateClassResponse> {
   
   let result = CreateClassResult.Ok;
-  const code = createClassCode(options);
+  const code = await createClassCode();
   const creationInfo = { ...options, code };
 
   const db = Class.sequelize;
