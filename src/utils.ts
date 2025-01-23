@@ -3,7 +3,6 @@ import { enc, SHA256 } from "crypto-js";
 import { v5 } from "uuid";
 
 import { Model } from "sequelize";
-import { CreateClassOptions } from "./database";
 
 import { ParsedQs } from "qs";
 import { Request } from "express";
@@ -43,7 +42,7 @@ export function encryptPassword(password: string): string {
 
 // A namespace for creating v5 UUIDs
 const cdsNamespace = "0a69782c-f1af-48c5-9aaf-078a4e511518";
-function createV5(name: string): string {
+export function createV5(name: string): string {
   return v5(name, cdsNamespace);
 }
 
