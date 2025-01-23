@@ -3,11 +3,11 @@ import { enc, SHA256 } from "crypto-js";
 import { v5 } from "uuid";
 
 import { Model } from "sequelize";
-import { CreateClassOptions } from "./database";
 
 import { ParsedQs } from "qs";
 import { Request } from "express";
 import { Response } from "express-serve-static-core";
+import { Class } from "./models";
 
 export const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(",") : [];
 
@@ -42,14 +42,38 @@ export function encryptPassword(password: string): string {
 
 // A namespace for creating v5 UUIDs
 const cdsNamespace = "0a69782c-f1af-48c5-9aaf-078a4e511518";
-function createV5(name: string): string {
+export function createV5(name: string): string {
   return v5(name, cdsNamespace);
 }
 
-export function createClassCode(options: CreateClassOptions) {
-  const nameString = `${options.educator_id}_${options.name}`;
-  return createV5(nameString);
+async function isClassCodeUnique(code: string): Promise<boolean> {
+  const cls = await Class.findOne({ where: { code } });
+  return cls === null;
 }
+
+function createPossibleClassCode(length: number): string {
+  const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let result = "";
+  const charactersLength = characters.length;
+  let counter = 0;
+  while (counter < length) {
+    result += characters.charAt(Math.floor(Math.random() * charactersLength));
+    counter += 1;
+  }
+  return result;
+}
+
+export async function createClassCode(length: number = 6): Promise<string> {
+  let code = "";
+  let unique = false;
+  do {
+    code = createPossibleClassCode(length);
+    unique = await isClassCodeUnique(code);
+  } while (!unique);
+
+  return code;
+}
+
 
 // eslint-disable-next-line  @typescript-eslint/no-explicit-any
 export function isArrayThatSatisfies<T extends Array<any>>(array: any, condition: (t: Array<any>) => boolean): array is T {
