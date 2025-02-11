@@ -1,15 +1,12 @@
 import * as S from "@effect/schema/Schema";
-import { logger } from "../../logger";
 
-import { UpdateAttributes } from "../../utils";
+import { logger } from "../../logger";
+import { UpdateAttributes, LatLonArray, OptionalInt, OptionalLatLonArray } from "../../utils";
+
 import { SolarEclipse2024Data } from "./models";
+import { CreationAttributes } from "sequelize";
 
 type SolarEclipse2024UpdateAttributes = UpdateAttributes<SolarEclipse2024Data>;
-
-const LatLonArray = S.mutable(S.array(S.mutable(S.tuple(S.number, S.number))));
-const OptionalInt = S.optional(S.number.pipe(S.int()), { exact: true });
-const OptionalLatLonArray = S.optional(LatLonArray, { exact: true });
-
 
 export const SolarEclipse2024Entry = S.struct({
   user_uuid: S.string,
@@ -48,7 +45,7 @@ export type SolarEclipse2024UpdateT = S.Schema.To<typeof SolarEclipse2024Update>
 export async function submitSolarEclipse2024Data(data: SolarEclipse2024EntryT): Promise<SolarEclipse2024Data | null> {
   logger.verbose(`Attempting to submit solar eclipse 2024 measurement for user ${data.user_uuid}`);
 
-  const dataWithCounts = {
+  const dataWithCounts: CreationAttributes<SolarEclipse2024Data> = {
     ...data,
     advanced_weather_selected_locations_count: data.advanced_weather_selected_locations_count ?? 0,
     cloud_cover_selected_locations_count: data.cloud_cover_selected_locations_count ?? data.cloud_cover_selected_locations.length,
