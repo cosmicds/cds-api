@@ -342,6 +342,7 @@ router.get(["/class-measurements/:studentID/:classID", "/stage-3-data/:studentID
     lastChecked = null;
   }
   const completeOnly = (req.query.complete_only as string)?.toLowerCase() === "true";
+  const excludeStudent = (req.query.exclude_student as string)?.toLowerCase() === "true";
   const params = req.params;
   let studentID = parseInt(params.studentID);
   let classID = parseInt(params.classID);
@@ -367,7 +368,7 @@ router.get(["/class-measurements/:studentID/:classID", "/stage-3-data/:studentID
     return;
   }
 
-  const measurements = await getClassMeasurements(student.id, cls.id, lastChecked, completeOnly);
+  const measurements = await getClassMeasurements(student.id, cls.id, lastChecked, completeOnly, excludeStudent);
   res.status(200).json({
     student_id: studentID,
     class_id: classID,
@@ -394,7 +395,8 @@ router.get(["/class-measurements/:studentID", "stage-3-measurements/:studentID"]
     return;
   }
 
-  const measurements = await getClassMeasurements(studentID, cls.id);
+  const excludeStudent = (req.query.exclude_student as string)?.toLowerCase() === "true";
+  const measurements = await getClassMeasurements(studentID, cls.id, null, excludeStudent);
   res.status(200).json({
     student_id: studentID,
     class_id: null,
