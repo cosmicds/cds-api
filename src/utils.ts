@@ -2,6 +2,7 @@ import { nanoid } from "nanoid";
 import { enc, SHA256 } from "crypto-js";
 import { v5 } from "uuid";
 
+import * as S from "@effect/schema/Schema";
 import { Model } from "sequelize";
 
 import { ParsedQs } from "qs";
@@ -31,6 +32,10 @@ export type Either<T, U> = Only<T,U> | Only<U,T>;
 export type Mutable<T> = {
   -readonly [P in keyof T]: T[P];
 }
+
+export const LatLonArray = S.mutable(S.array(S.mutable(S.tuple(S.number, S.number))));
+export const OptionalInt = S.optional(S.number.pipe(S.int()), { exact: true });
+export const OptionalLatLonArray = S.optional(LatLonArray, { exact: true });
 
 export function createVerificationCode(): string {
   return nanoid(21);
