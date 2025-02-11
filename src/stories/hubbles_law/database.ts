@@ -208,7 +208,11 @@ export async function getStudentHubbleMeasurements(studentID: number): Promise<H
   });
 }
 
-async function getHubbleMeasurementsForStudentClass(studentID: number, classID: number, excludeWithNull: boolean = false): Promise<HubbleMeasurement[]> {
+async function getHubbleMeasurementsForStudentClass(studentID: number,
+                                                    classID: number,
+                                                    excludeWithNull: boolean = false,
+                                                    excludeStudent: boolean = false,
+): Promise<HubbleMeasurement[]> {
 
   const classIDs = await getMergedIDsForClass(classID);
 
@@ -224,6 +228,9 @@ async function getHubbleMeasurementsForStudentClass(studentID: number, classID: 
   }
 
   const measurementWhereConditions: WhereOptions<HubbleMeasurement> = [];
+  if (excludeStudent) {
+    measurementWhereConditions.push({ student_id: { [Op.ne]: studentID } });
+  }
   if (excludeWithNull) {
     measurementWhereConditions.push(EXCLUDE_MEASUREMENTS_WITH_NULL_CONDITION);
   }
@@ -362,8 +369,9 @@ export async function getClassMeasurements(studentID: number,
                                            classID: number,
                                            lastChecked: number | null = null,
                                            excludeWithNull: boolean = false,
+                                           excludeStudent: boolean = false,
 ): Promise<HubbleMeasurement[]> {
-  let data = await getHubbleMeasurementsForStudentClass(studentID, classID, excludeWithNull);
+  let data = await getHubbleMeasurementsForStudentClass(studentID, classID, excludeWithNull, excludeStudent);
   if (data.length > 0 && lastChecked != null) {
     const lastModified = Math.max(...data.map(meas => meas.last_modified.getTime()));
     if (lastModified <= lastChecked) {
