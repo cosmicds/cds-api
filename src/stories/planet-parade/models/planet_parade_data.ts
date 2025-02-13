@@ -9,6 +9,9 @@ export class PlanetParadeData extends Model<InferAttributes<PlanetParadeData>, I
   declare user_selected_map_locations_count: number;
   declare app_time_ms: CreationOptional<number>;
   declare info_time_ms: CreationOptional<number>;
+  declare video_time_ms: CreationOptional<number>;
+  declare video_opened: CreationOptional<boolean>;
+  declare video_played: CreationOptional<boolean>;
   declare last_updated: CreationOptional<Date>;
 }
 
@@ -41,13 +44,28 @@ export function initializePlanetParadeDataModel(sequelize: Sequelize) {
       type: DataTypes.INTEGER,
       allowNull: false
     },
+    app_time_ms: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0
+    },
     info_time_ms: {
       type: DataTypes.INTEGER,
       allowNull: false,
       defaultValue: 0
     },
-    app_time_ms: {
+    video_time_ms: {
       type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0
+    },
+    video_opened: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: 0
+    },
+    video_played: {
+      type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: 0
     },

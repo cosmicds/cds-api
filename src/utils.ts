@@ -35,6 +35,7 @@ export type Mutable<T> = {
 
 export const LatLonArray = S.mutable(S.array(S.mutable(S.tuple(S.number, S.number))));
 export const OptionalInt = S.optional(S.number.pipe(S.int()), { exact: true });
+export const OptionalBoolean = S.optional(S.boolean, { exact: true });
 export const OptionalLatLonArray = S.optional(LatLonArray, { exact: true });
 
 export function createVerificationCode(): string {

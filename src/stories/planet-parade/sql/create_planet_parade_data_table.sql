@@ -7,6 +7,9 @@ CREATE TABLE PlanetParadeData (
     user_selected_map_locations_count INT NOT NULL,
     app_time_ms INT NOT NULL DEFAULT 0,
     info_time_ms INT NOT NULL DEFAULT 0,
+    video_time_ms INT NOT NULL DEFAULT 0,
+    video_opened tinyint(1) NOT NULL DEFAULT 0,
+    video_played tinyint(1) NOT NULL DEFAULT 0,
     last_updated TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     PRIMARY KEY(id),
