@@ -12,6 +12,7 @@ export class PlanetParadeData extends Model<InferAttributes<PlanetParadeData>, I
   declare video_time_ms: CreationOptional<number>;
   declare video_opened: CreationOptional<boolean>;
   declare video_played: CreationOptional<boolean>;
+  declare created: CreationOptional<Date>;
   declare last_updated: CreationOptional<Date>;
   declare wwt_time_reset_count: CreationOptional<number>;
   declare wwt_reverse_count: CreationOptional<number>;
@@ -75,6 +76,11 @@ export function initializePlanetParadeDataModel(sequelize: Sequelize) {
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: 0
+    },
+    created: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: Sequelize.literal("CURRENT_TIMESTAMP")
     },
     last_updated: {
       type: DataTypes.DATE,
