@@ -1,7 +1,7 @@
 import * as S from "@effect/schema/Schema";
 
 import { logger } from "../../logger";
-import { LatLonArray, OptionalInt, OptionalLatLonArray, OptionalBoolean, UpdateAttributes, OptionalNumberPairArray, OptionalNumberArray } from "../../utils";
+import { LatLonArray, OptionalInt, OptionalLatLonArray, OptionalBoolean, UpdateAttributes, OptionalNumberPair, OptionalNumberArray } from "../../utils";
 
 import { PlanetParadeData } from "./models";
 import { CreationAttributes } from "sequelize";
@@ -25,7 +25,7 @@ export const PlanetParadeEntry = S.struct({
   wwt_speedups: OptionalNumberArray,
   wwt_slowdowns: OptionalNumberArray,
   wwt_rate_selections: OptionalNumberArray,
-  wwt_start_stop_times: OptionalNumberPairArray,
+  wwt_start_stop_times: OptionalNumberPair,
 });
 
 export const PlanetParadeUpdate = S.struct({
@@ -42,7 +42,7 @@ export const PlanetParadeUpdate = S.struct({
   wwt_speedups: OptionalNumberArray,
   wwt_slowdowns: OptionalNumberArray,
   wwt_rate_selections: OptionalNumberArray,
-  wwt_start_stop_times: OptionalNumberPairArray,
+  wwt_start_stop_times: OptionalNumberPair,
 });
 
 export type PlanetParadeEntryT = S.Schema.To<typeof PlanetParadeEntry>;
@@ -51,8 +51,10 @@ export type PlanetParadeUpdateT = S.Schema.To<typeof PlanetParadeUpdate>;
 export async function submitPlanetParadeData(data: PlanetParadeEntryT): Promise<PlanetParadeData | null> {
   logger.verbose(`Attempting to submit planet parade data for user ${data.user_uuid}`);
 
+  const startStopTimes = data.wwt_start_stop_times ? [data.wwt_start_stop_times] : [];
   const dataWithCounts: CreationAttributes<PlanetParadeData> = {
     ...data,
+    wwt_start_stop_times: startStopTimes,
     user_selected_search_locations_count: data.user_selected_search_locations_count ?? 0,
     user_selected_map_locations_count: data.user_selected_map_locations_count ?? 0,
   };
@@ -74,6 +76,7 @@ export async function updatePlanetParadeData(userUUID: string, update: PlanetPar
   const data = await PlanetParadeData.findOne({ where: { user_uuid: userUUID } });
 
   if (data === null) {
+    const startStopTimes = update.wwt_start_stop_times ? [update.wwt_start_stop_times] : [];
     const created = await PlanetParadeData.create({
       user_uuid: userUUID,
       user_selected_search_locations: update.user_selected_search_locations ?? [],
@@ -91,12 +94,15 @@ export async function updatePlanetParadeData(userUUID: string, update: PlanetPar
       wwt_speedups: update.wwt_speedups ?? [],
       wwt_slowdowns: update.wwt_slowdowns ?? [],
       wwt_rate_selections: update.wwt_rate_selections ?? [],
-      wwt_start_stop_times: update.wwt_start_stop_times ?? [],
+      wwt_start_stop_times: startStopTimes,
     });
     return created;
   }
   
-  const dbUpdate: PlanetParadeUpdateAttributes = {};
+  const dbUpdate: PlanetParadeUpdateAttributes = {
+    last_updated: new Date(),
+  };
+
   if (update.user_selected_map_locations) {
     const selected = data.user_selected_map_locations.concat(update.user_selected_map_locations);
     dbUpdate.user_selected_map_locations = selected;
@@ -160,7 +166,7 @@ export async function updatePlanetParadeData(userUUID: string, update: PlanetPar
   }
 
   if (update.wwt_start_stop_times) {
-    dbUpdate.wwt_start_stop_times = data.wwt_start_stop_times.concat(update.wwt_start_stop_times);
+    dbUpdate.wwt_start_stop_times = data.wwt_start_stop_times.concat([update.wwt_start_stop_times]);
   }
 
   const result = await data.update(dbUpdate).catch(_err => null);
