@@ -1,7 +1,7 @@
 import * as S from "@effect/schema/Schema";
 
 import { logger } from "../../logger";
-import { LatLonArray, OptionalInt, OptionalLatLonArray, OptionalBoolean, UpdateAttributes } from "../../utils";
+import { LatLonArray, OptionalInt, OptionalLatLonArray, OptionalBoolean, UpdateAttributes, OptionalNumberPairArray, OptionalNumberArray } from "../../utils";
 
 import { PlanetParadeData } from "./models";
 import { CreationAttributes } from "sequelize";
@@ -19,6 +19,13 @@ export const PlanetParadeEntry = S.struct({
   video_time_ms: OptionalInt,
   video_opened: OptionalBoolean,
   video_played: OptionalBoolean,
+  wwt_time_reset_count: OptionalInt,
+  wwt_reverse_count: OptionalInt,
+  wwt_play_pause_count: OptionalInt,
+  wwt_speedups: OptionalNumberArray,
+  wwt_slowdowns: OptionalNumberArray,
+  wwt_rate_selections: OptionalNumberArray,
+  wwt_start_stop_times: OptionalNumberPairArray,
 });
 
 export const PlanetParadeUpdate = S.struct({
@@ -29,6 +36,13 @@ export const PlanetParadeUpdate = S.struct({
   delta_video_time_ms: OptionalInt,
   video_opened: OptionalBoolean,
   video_played: OptionalBoolean,
+  delta_wwt_time_reset_count: OptionalInt,
+  delta_wwt_reverse_count: OptionalInt,
+  delta_wwt_play_pause_count: OptionalInt,
+  wwt_speedups: OptionalNumberArray,
+  wwt_slowdowns: OptionalNumberArray,
+  wwt_rate_selections: OptionalNumberArray,
+  wwt_start_stop_times: OptionalNumberPairArray,
 });
 
 export type PlanetParadeEntryT = S.Schema.To<typeof PlanetParadeEntry>;
@@ -71,6 +85,13 @@ export async function updatePlanetParadeData(userUUID: string, update: PlanetPar
       video_time_ms: update.delta_video_time_ms ?? 0,
       video_opened: update.video_opened ?? false,
       video_played: update.video_played ?? false,
+      wwt_time_reset_count: update.delta_wwt_time_reset_count ?? 0,
+      wwt_reverse_count: update.delta_wwt_reverse_count ?? 0,
+      wwt_play_pause_count: update.delta_wwt_play_pause_count ?? 0,
+      wwt_speedups: update.wwt_speedups ?? [],
+      wwt_slowdowns: update.wwt_slowdowns ?? [],
+      wwt_rate_selections: update.wwt_rate_selections ?? [],
+      wwt_start_stop_times: update.wwt_start_stop_times ?? [],
     });
     return created;
   }
@@ -109,6 +130,37 @@ export async function updatePlanetParadeData(userUUID: string, update: PlanetPar
 
   if (update.video_played) {
     dbUpdate.video_played = true;
+  }
+
+  // WWT usage tracking
+  // See comment above about skipping the update logic
+  // if deltas are either null/undefined or zero
+  if (update.delta_wwt_time_reset_count) {
+    dbUpdate.wwt_time_reset_count = data.wwt_time_reset_count + update.delta_wwt_time_reset_count;
+  }
+
+  if (update.delta_wwt_reverse_count) {
+    dbUpdate.wwt_reverse_count = data.wwt_reverse_count + update.delta_wwt_reverse_count;
+  }
+
+  if (update.delta_wwt_play_pause_count) {
+    dbUpdate.wwt_play_pause_count = data.wwt_play_pause_count + update.delta_wwt_play_pause_count;
+  }
+
+  if (update.wwt_speedups) {
+    dbUpdate.wwt_speedups = data.wwt_speedups.concat(update.wwt_speedups);
+  }
+
+  if (update.wwt_slowdowns) {
+    dbUpdate.wwt_slowdowns = data.wwt_slowdowns.concat(update.wwt_slowdowns);
+  }
+
+  if (update.wwt_rate_selections) {
+    dbUpdate.wwt_rate_selections = data.wwt_rate_selections.concat(update.wwt_rate_selections);
+  }
+
+  if (update.wwt_start_stop_times) {
+    dbUpdate.wwt_start_stop_times = data.wwt_start_stop_times.concat(update.wwt_start_stop_times);
   }
 
   const result = await data.update(dbUpdate).catch(_err => null);
