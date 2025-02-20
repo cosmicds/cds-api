@@ -51,9 +51,10 @@ import {
 
 import { Express, Router } from "express";
 import { Sequelize, ForeignKeyConstraintError, UniqueConstraintError } from "sequelize";
-import { classForStudentStory, findClassById, findStudentById } from "../../database";
+import { classForStudentStory, findClassById, findStudentById, resetATWaitingRoomTest } from "../../database";
 import { initializeModels } from "./models";
 import { setUpHubbleAssociations } from "./associations";
+import { StudentsClasses } from "../../models";
 
 export const router = Router();
 
@@ -752,4 +753,20 @@ router.get("/new-galaxies", async (_req, res) => {
 router.get("/data-generation-galaxies", async (_req, res) => {
   const galaxies = await getGalaxiesForDataGeneration().catch(console.log);
   res.json(galaxies);
+});
+
+
+/** TEMPORARY - for the test waiting room class used by AT */
+router.delete("/at-waiting-room-test", async (_req, res) => {
+  await resetATWaitingRoomTest()
+    .then(() => {
+      res.status(200).json({
+        message: "Successfully cleared the waiting room test students.",
+      });
+    })
+    .catch(_err => {
+      res.status(500).json({
+        error: "There was an error clearing the waiting room test students.",
+      });
+    });
 });

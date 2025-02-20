@@ -43,6 +43,7 @@ import { Question } from "./models/question";
 import { logger } from "./logger";
 import { Stage } from "./models/stage";
 import { classSetupRegistry } from "./registries";
+import { HubbleMeasurement } from "./stories/hubbles_law/models";
 
 export type LoginResponse = {
   type: "none" | "student" | "educator" | "admin",
@@ -932,4 +933,26 @@ export async function getDashboardGroupClasses(code: string): Promise<Class[] | 
     }
   });
 
+}
+
+export async function resetATWaitingRoomTest(): Promise<void> {
+  const studentIDsToClear = (await StudentsClasses.findAll({
+    where: {
+      student_id: { [Op.gt]: 5000 },
+      class_id: 293,
+    }
+  })).map(sc => sc.student_id);
+
+  if (studentIDsToClear.length === 0) {
+    return;
+  }
+
+  const isIDToClear: WhereOptions = {
+    where: {
+      student_id: { [Op.in]: studentIDsToClear },
+    }
+  };
+
+  await HubbleMeasurement.destroy(isIDToClear);
+  await StageState.destroy(isIDToClear);
 }
