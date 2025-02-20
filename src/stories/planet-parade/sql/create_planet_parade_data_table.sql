@@ -10,7 +10,15 @@ CREATE TABLE PlanetParadeData (
     video_time_ms INT NOT NULL DEFAULT 0,
     video_opened tinyint(1) NOT NULL DEFAULT 0,
     video_played tinyint(1) NOT NULL DEFAULT 0,
+    created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     last_updated TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    wwt_time_reset_count int(11) UNSIGNED NOT NULL DEFAULT 0,
+    wwt_reverse_count int(11) UNSIGNED NOT NULL DEFAULT 0,
+    wwt_play_pause_count int(11) UNSIGNED NOT NULL DEFAULT 0,
+    wwt_speedups JSON NOT NULL DEFAULT ("[]"),
+    wwt_slowdowns JSON NOT NULL DEFAULT ("[]"),
+    wwt_rate_selections JSON NOT NULL DEFAULT ("[]"),
+    wwt_start_stop_times JSON NOT NULL DEFAULT ("[]"),
 
     PRIMARY KEY(id),
     INDEX(user_uuid)

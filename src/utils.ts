@@ -33,10 +33,17 @@ export type Mutable<T> = {
   -readonly [P in keyof T]: T[P];
 }
 
+
 export const LatLonArray = S.mutable(S.array(S.mutable(S.tuple(S.number, S.number))));
+export const NumberPair = S.mutable(S.tuple(S.number, S.number));
+export const NumberArray = S.mutable(S.array(S.mutable(S.number)));
+export const NumberPairArray = S.mutable(S.array(NumberPair));
 export const OptionalInt = S.optional(S.number.pipe(S.int()), { exact: true });
 export const OptionalBoolean = S.optional(S.boolean, { exact: true });
 export const OptionalLatLonArray = S.optional(LatLonArray, { exact: true });
+export const OptionalNumberPair = S.optional(NumberPair, { exact: true });
+export const OptionalNumberArray = S.optional(NumberArray, { exact: true });
+export const OptionalNumberPairArray = S.optional(NumberPairArray, { exact: true });
 
 export function createVerificationCode(): string {
   return nanoid(21);
