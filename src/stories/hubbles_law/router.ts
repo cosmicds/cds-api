@@ -41,7 +41,8 @@ import {
   addClassToMergeGroup,
   setWaitingRoomOverride,
   removeWaitingRoomOverride,
-  getWaitingRoomOverride
+  getWaitingRoomOverride,
+  resetATWaitingRoomTest,
 } from "./database";
 
 import { 
@@ -51,10 +52,9 @@ import {
 
 import { Express, Router } from "express";
 import { Sequelize, ForeignKeyConstraintError, UniqueConstraintError } from "sequelize";
-import { classForStudentStory, findClassById, findStudentById, resetATWaitingRoomTest } from "../../database";
+import { classForStudentStory, findClassById, findStudentById } from "../../database";
 import { initializeModels } from "./models";
 import { setUpHubbleAssociations } from "./associations";
-import { StudentsClasses } from "../../models";
 
 export const router = Router();
 

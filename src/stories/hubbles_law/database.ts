@@ -2,7 +2,7 @@ import { Attributes, FindOptions, Op, QueryTypes, Sequelize, WhereAttributeHash,
 import { AsyncMergedHubbleStudentClasses, Galaxy, HubbleMeasurement, HubbleWaitingRoomOverride, SampleHubbleMeasurement, SyncMergedHubbleClasses } from "./models";
 import { findClassById, findStudentById } from "../../database";
 import { RemoveHubbleMeasurementResult, SubmitHubbleMeasurementResult } from "./request_results";
-import { Class, StoryState, Student, StudentsClasses } from "../../models";
+import { Class, StageState, StoryState, Student, StudentsClasses } from "../../models";
 import { HubbleStudentData } from "./models/hubble_student_data";
 import { HubbleClassData } from "./models/hubble_class_data";
 import { IgnoreStudent } from "../../models/ignore_student";
@@ -972,4 +972,33 @@ export async function hubbleClassSetup(
       await addClassToMergeGroup(cls.id);
     }
   }
+}
+
+export async function resetATWaitingRoomTest(): Promise<void> {
+  const studentIDsToClear = (await StudentsClasses.findAll({
+    where: {
+      student_id: { [Op.gt]: 5000 },
+      class_id: 293,
+    }
+  })).map(sc => sc.student_id);
+
+  if (studentIDsToClear.length === 0) {
+    return;
+  }
+
+  const checkID: WhereOptions = {
+    where: {
+      student_id: { [Op.in]: studentIDsToClear },
+    },
+  };
+  const checkIDAndStory: WhereOptions = {
+    where: {
+      ...checkID.where,
+      story_name: "hubbles_law",
+    },
+  };
+
+  await HubbleMeasurement.destroy(checkID);
+  await StageState.destroy(checkIDAndStory);
+  await StoryState.destroy(checkIDAndStory);
 }
