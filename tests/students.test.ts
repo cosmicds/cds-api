@@ -5,66 +5,11 @@ import request from "supertest";
 import type { InferAttributes, Sequelize } from "sequelize";
 import type { Express } from "express";
 
-import { authorize, getTestDatabaseConnection } from "./utils";
+import { authorize, getTestDatabaseConnection, setupStudentInClasses } from "./utils";
 import { setupApp } from "../src/app";
-import { Class, Educator, Student, StudentsClasses } from "../src/models";
+import { Class, Student, StudentsClasses } from "../src/models";
 import { createApp } from "../src/server";
 import { v4 } from "uuid";
-
-// This is only used inside this test file,
-// so we can just let TS infer the return type
-async function setupStudentInClasses() {
-  const educator = await Educator.create({
-    first_name: v4(),
-    last_name: v4(),
-    password: v4(),
-    email: v4(),
-    verified: 1,
-    verification_code: v4(),
-    username: v4(),
-  });
-  const class1 = await Class.create({
-    name: v4(),
-    educator_id: educator.id,
-    code: v4(),
-    expected_size: 1,
-  });
-  const class2 = await Class.create({
-    name: v4(),
-    educator_id: educator.id,
-    code: v4(),
-    expected_size: 1,
-  });
-  const student = await Student.create({
-    email: v4(),
-    username: v4(),
-    password: v4(),
-    verification_code: class1.code,
-    verified: 0,
-  });
-
-  const sc1 = await StudentsClasses.create({
-    student_id: student.id,
-    class_id: class1.id,
-  });
-  const sc2 = await StudentsClasses.create({
-    student_id: student.id,
-    class_id: class2.id,
-  });
-
-  const cleanup = async () => {
-    // Sometimes we want to remove the class-student associations during the test
-    // In which case we can check whether it exists first
-    (await StudentsClasses.findOne({ where: { student_id: student.id, class_id: class1.id } }))?.destroy();
-    (await StudentsClasses.findOne({ where: { student_id: student.id, class_id: class2.id } }))?.destroy();
-    await class1.destroy();
-    await class2.destroy();
-    await educator.destroy();
-    await student.destroy();
-  };
-
-  return { student, educator, class1, class2, sc1, sc2, cleanup };
-}
 
 let testDB: Sequelize;
 let testApp: Express;
