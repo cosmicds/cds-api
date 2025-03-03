@@ -69,6 +69,7 @@ export interface DBConnectionOptions {
   username?: string;
   password?: string;
   host?: string;
+  logging?: boolean;
 }
 
 export function getDatabaseConnection(options?: DBConnectionOptions) {
@@ -79,8 +80,10 @@ export function getDatabaseConnection(options?: DBConnectionOptions) {
   const username = options?.username ?? process.env.DB_USERNAME as string;
   const password = options?.password ?? process.env.DB_PASSWORD as string;
   const host = options?.host ?? process.env.DB_HOSTNAME as string;
+  const logging = options?.logging ?? true;
   const database = new Sequelize(dbName, username, password, {
       host,
+      logging,
       dialect: "mysql",
       define: {
         timestamps: false,
