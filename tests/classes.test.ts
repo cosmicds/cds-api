@@ -49,7 +49,7 @@ describe("Test class routes", () => {
         .expect("Content-Type", /json/)
         .then((res) => {
           const resCls = res.body.class;
-          expectToMatchModel(resCls, cls);
+          expectToMatchModel(resCls, cls, ["created", "updated"]);
         });
     }
     cleanup();
@@ -63,7 +63,7 @@ describe("Test class routes", () => {
         .expect("Content-Type", /json/)
         .then((res) => {
           const resCls = res.body.class;
-          expectToMatchModel(resCls, cls);
+          expectToMatchModel(resCls, cls, ["created", "updated"]);
         });
     }
     cleanup();

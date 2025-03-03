@@ -37,7 +37,6 @@ export async function getTestDatabaseConnection(): Promise<Sequelize> {
     username,
     password,
     host,
-    logging: false,
   });
 
   await db.query("USE test;");
@@ -166,9 +165,9 @@ export async function setupStudentInClasses() {
 type ModelKey<T extends Model> = (keyof InferAttributes<T>)[];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function expectToMatchModel<T extends Model>(object: any, expected: T, exclude: ModelKey<T>): void {
+export function expectToMatchModel<T extends Model>(object: any, expected: T, exclude?: ModelKey<T>): void {
   const json: Partial<InferAttributes<T>> = expected.toJSON();
-  exclude.forEach(key => delete json[key]);
+  exclude?.forEach(key => delete json[key]);
 
   // We don't import this from @jest/globals because Jest will throw an error if we try to import a Jest global
   // outside of the testing environment
