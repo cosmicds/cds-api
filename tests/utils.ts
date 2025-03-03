@@ -163,9 +163,12 @@ export async function setupStudentInClasses() {
   return { student, educator, class1, class2, sc1, sc2, cleanup };
 }
 
+type ModelKey<T extends Model> = (keyof InferAttributes<T>)[];
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function expectToMatchModel<T extends Model>(object: any, expected: T): void {
+export function expectToMatchModel<T extends Model>(object: any, expected: T, exclude: ModelKey<T>): void {
   const json: Partial<InferAttributes<T>> = expected.toJSON();
+  exclude.forEach(key => delete json[key]);
 
   // We don't import this from @jest/globals because Jest will throw an error if we try to import a Jest global
   // outside of the testing environment
