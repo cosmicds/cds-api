@@ -3,7 +3,7 @@
 import type { Express } from "express";
 import type { Server } from "http";
 import type { Test } from "supertest";
-import type { Sequelize } from "sequelize";
+import type { InferAttributes, CreationAttributes, Model, Sequelize } from "sequelize";
 
 import { setUpAssociations } from "../src/associations";
 import { Educator, StudentsClasses, initializeModels } from "../src/models";
@@ -36,7 +36,8 @@ export async function getTestDatabaseConnection(): Promise<Sequelize> {
     dbName: "test", 
     username,
     password,
-    host
+    host,
+    logging: false,
   });
 
   await db.query("USE test;");
@@ -97,8 +98,20 @@ export function runApp(app: Express, port = 8080, callback?: () => void): Server
   return app.listen(port, callback);
 }
 
-export async function setupStudentInClasses() {
-  const educator = await Educator.create({
+export async function randomStudent(options?: Partial<CreationAttributes<Student>>): Promise<Student> {
+  const studentData: CreationAttributes<Student> = {
+    email: v4(),
+    username: v4(),
+    password: v4(),
+    verification_code: v4(),
+    verified: 0,
+    ...options,
+  };
+  return Student.create(studentData);
+}
+
+export async function randomEducator(options?: Partial<CreationAttributes<Educator>>): Promise<Educator> {
+  const educatorData: CreationAttributes<Educator> = {
     first_name: v4(),
     last_name: v4(),
     password: v4(),
@@ -106,27 +119,27 @@ export async function setupStudentInClasses() {
     verified: 1,
     verification_code: v4(),
     username: v4(),
-  });
-  const class1 = await Class.create({
-    name: v4(),
-    educator_id: educator.id,
-    code: v4(),
-    expected_size: 1,
-  });
-  const class2 = await Class.create({
-    name: v4(),
-    educator_id: educator.id,
-    code: v4(),
-    expected_size: 1,
-  });
-  const student = await Student.create({
-    email: v4(),
-    username: v4(),
-    password: v4(),
-    verification_code: class1.code,
-    verified: 0,
-  });
+    ...options,
+  };
+  return Educator.create(educatorData);
+}
 
+export async function randomClassForEducator(educatorID: number, options?: Partial<CreationAttributes<Class>>): Promise<Class> {
+  const classData: CreationAttributes<Class> = {
+    name: v4(),
+    educator_id: educatorID,
+    code: v4(),
+    expected_size: 1,
+    ...options,
+  };
+  return Class.create(classData);
+}
+
+export async function setupStudentInClasses() {
+  const educator = await randomEducator(); 
+  const class1 = await randomClassForEducator(educator.id);
+  const class2 = await randomClassForEducator(educator.id);
+  const student = await randomStudent();
   const sc1 = await StudentsClasses.create({
     student_id: student.id,
     class_id: class1.id,
@@ -150,4 +163,15 @@ export async function setupStudentInClasses() {
   return { student, educator, class1, class2, sc1, sc2, cleanup };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function expectToMatchModel<T extends Model>(object: any, expected: T): void {
+  const json: Partial<InferAttributes<T>> = expected.toJSON();
 
+  // We don't import this from @jest/globals because Jest will throw an error if we try to import a Jest global
+  // outside of the testing environment
+  // But the globals will still be available, so this works
+
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  expect(object).toMatchObject(json);
+}

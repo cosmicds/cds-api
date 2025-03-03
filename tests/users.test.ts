@@ -2,12 +2,11 @@
 
 import { beforeAll, afterAll, describe, it, expect } from "@jest/globals";
 import request from "supertest";
-import type { InferAttributes, Sequelize } from "sequelize";
+import type { Sequelize } from "sequelize";
 import type { Express } from "express";
 
-import { authorize, getTestDatabaseConnection, setupStudentInClasses } from "./utils";
+import { authorize, expectToMatchModel, getTestDatabaseConnection, setupStudentInClasses } from "./utils";
 import { setupApp } from "../src/app";
-import { Educator, Student } from "../src/models";
 import { createApp } from "../src/server";
 
 let testDB: Sequelize;
@@ -36,13 +35,8 @@ describe("Test user routes", () => {
         expect(educators.length).toBe(1);
         expect(students.length).toBe(1);
 
-        const resEducator = educators[0];
-        const resStudent = students[0];
-        const educatorJSON: Partial<InferAttributes<Educator>> = educator.toJSON();
-        expect(resEducator).toMatchObject(educatorJSON);
-        const studentJSON: Partial<InferAttributes<Student>> = student.toJSON();
-        expect(resStudent).toMatchObject(studentJSON);
-
+        expectToMatchModel(educators[0], educator);
+        expectToMatchModel(students[0], student);
       });
   });
 
