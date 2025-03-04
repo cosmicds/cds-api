@@ -967,7 +967,6 @@ export async function hubbleClassSetup(
   _storyName: string,
 ) {
   if (cls) {
-    console.log(cls);
     if (cls.asynchronous || cls.small_class) {
       await addClassToMergeGroup(cls.id);
     }
