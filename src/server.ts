@@ -604,7 +604,7 @@ export function createApp(db: Sequelize): Express {
       });
       return;
     }
-    const size = classSize(classID);
+    const size = await classSize(classID);
     res.json({
       class_id: classID,
       size
@@ -634,6 +634,7 @@ export function createApp(db: Sequelize): Express {
       res.status(404).json({
         error: `No class found with ID ${classID}`,
       });
+      return;
     }
 
     const students = await getClassRoster(classID);

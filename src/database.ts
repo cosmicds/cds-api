@@ -616,19 +616,19 @@ export async function getStudentsForClass(classID: number): Promise<Student[]> {
 
 export async function deleteClass(id: number): Promise<number> {
   return Class.destroy({
-    where: { id: id }
+    where: { id }
   });
 }
 
 export async function findClassByCode(code: string): Promise<Class | null> {
   return Class.findOne({
-    where: { code: code }
+    where: { code }
   });
 }
 
 export async function findClassById(id: number): Promise<Class | null> {
   return Class.findOne({
-    where: { id: id }
+    where: { id }
   });
 }
 

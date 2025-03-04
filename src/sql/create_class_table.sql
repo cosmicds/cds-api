@@ -13,6 +13,7 @@ CREATE TABLE Classes (
  
     PRIMARY KEY(id),
     INDEX(educator_id),
+    INDEX(code),
     UNIQUE KEY unique_entry (educator_id, name),
     FOREIGN KEY(educator_id) 
       REFERENCES Educators(id)

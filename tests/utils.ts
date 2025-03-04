@@ -153,10 +153,10 @@ export async function setupStudentInClasses() {
     // In which case we can check whether it exists first
     (await StudentsClasses.findOne({ where: { student_id: student.id, class_id: class1.id } }))?.destroy();
     (await StudentsClasses.findOne({ where: { student_id: student.id, class_id: class2.id } }))?.destroy();
-    await class1.destroy();
-    await class2.destroy();
-    await educator.destroy();
-    await student.destroy();
+    await class1?.destroy();
+    await class2?.destroy();
+    await educator?.destroy();
+    await student?.destroy();
   };
 
   return { student, educator, class1, class2, sc1, sc2, cleanup };

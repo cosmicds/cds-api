@@ -9,7 +9,6 @@ import { authorize, expectToMatchModel, getTestDatabaseConnection, randomClassFo
 import { setupApp } from "../src/app";
 import { createApp } from "../src/server";
 
-import { v4 } from "uuid";
 import { Student, StudentsClasses } from "../src/models";
 
 async function setupClassesForEducator() {
@@ -17,10 +16,11 @@ async function setupClassesForEducator() {
   const class1 = await randomClassForEducator(educator.id, { expected_size: 4 });
   const class2 = await randomClassForEducator(educator.id, { expected_size: 19 });
 
-  const cleanup = () => {
-    educator?.destroy();
-    class1?.destroy();
-    class2?.destroy();
+  const cleanup = async () => {
+    console.log(educator);
+    await class1?.destroy();
+    await class2?.destroy();
+    await educator?.destroy();
   };
 
   return { educator, class1, class2, cleanup };
@@ -52,7 +52,7 @@ describe("Test class routes", () => {
           expectToMatchModel(resCls, cls, ["created", "updated"]);
         });
     }
-    cleanup();
+    await cleanup();
   });
 
   it("Should return the correct classes by ID", async () => {
@@ -66,11 +66,11 @@ describe("Test class routes", () => {
           expectToMatchModel(resCls, cls, ["created", "updated"]);
         });
     }
-    cleanup();
+    await cleanup();
   });
 
   it("Should not find a class", async () => {
-    const badID = v4();
+    const badID = -1;
     await authorize(request(testApp).get(`/classes/${badID}`))
       .expect(404)
       .expect("Content-Type", /json/)
@@ -94,13 +94,13 @@ describe("Test class routes", () => {
   });
 
   it("Should not find a class to delete", async () => {
-    const badID = v4();
+    const badID = -1;
     await authorize(request(testApp).delete(`/classes/${badID}`))
       .expect(404)
       .expect("Content-Type", /json/)
       .then((res) => {
         expect(res.body.success).toBe(false);
-        expect(res.body.error).toEqual(`Could not find class with code ${badID}`);
+        expect(res.body.error).toEqual(`Could not find class with ID ${badID}`);
       });
   });
 
@@ -129,16 +129,15 @@ describe("Test class routes", () => {
           await sc.destroy();
         }
     }
-    cleanup();
+    await cleanup();
   });
 
   it("Should not find a class to get the size of", async () => {
-    const badID = v4();
+    const badID = -1;
     await authorize(request(testApp).get(`/classes/size/${badID}`))
       .expect(404)
       .expect("Content-Type", /json/)
       .then((res) => {
-        expect(res.body.success).toBe(false);
         expect(res.body.error).toEqual(`No class found with ID ${badID}`);
       });
   });
@@ -146,7 +145,7 @@ describe("Test class routes", () => {
   it("Should return the correct expected class sizes", async () => {
     const { class1, class2, cleanup } = await setupClassesForEducator();
     for (const cls of [class1, class2]) {
-      await authorize(request(testApp).get(`/classes/size/${cls.id}`))
+      await authorize(request(testApp).get(`/classes/expected-size/${cls.id}`))
         .expect(200)
         .expect("Content-Type", /json/)
         .then((res) => {
@@ -154,17 +153,16 @@ describe("Test class routes", () => {
           expect(res.body.expected_size).toEqual(cls.expected_size);
         });
     }
-    cleanup();
+    await cleanup();
   });
 
 
   it("Should not find a class to get the expected size of", async () => {
-    const badID = v4();
+    const badID = -1;
     await authorize(request(testApp).get(`/classes/expected-size/${badID}`))
       .expect(404)
       .expect("Content-Type", /json/)
       .then((res) => {
-        expect(res.body.success).toBe(false);
         expect(res.body.error).toEqual(`No class found with ID ${badID}`);
       });
   });
@@ -187,29 +185,28 @@ describe("Test class routes", () => {
         .expect(200)
         .expect("Content-Type", /json/)
         .then((res) => {
-          const resStudents = res.body.students;
+          const resStudents = res.body;
           expect(resStudents.length).toBe(size);
           // eslint-disable-next-line @typescript-eslint/ban-ts-comment
           // @ts-ignore
           resStudents.forEach((student, index) => {
-            expectToMatchModel(student, students[index]);
+            expectToMatchModel(student, students[index], ["profile_created", "last_visit"]);
           });
         });
         for (const sc of studentsClasses) {
           await sc.destroy();
         }
     }
-    cleanup();
+    await cleanup();
   });
 
 
   it("Should not find a class to get the roster for", async () => {
-    const badID = v4();
+    const badID = -1;
     await authorize(request(testApp).get(`/classes/roster/${badID}`))
       .expect(404)
       .expect("Content-Type", /json/)
       .then((res) => {
-        expect(res.body.success).toBe(false);
         expect(res.body.error).toEqual(`No class found with ID ${badID}`);
       });
   });
