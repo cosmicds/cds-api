@@ -5,7 +5,7 @@ import request from "supertest";
 import type { InferAttributes, Sequelize } from "sequelize";
 import type { Express } from "express";
 
-import { authorize, getTestDatabaseConnection } from "./utils";
+import { authorize, getTestDatabaseConnection, randomEducator } from "./utils";
 import { setupApp } from "../src/app";
 import { Educator } from "../src/models";
 import { createApp } from "../src/server";
@@ -116,15 +116,7 @@ describe("Test educator routes", () => {
   });
 
   it("Should return the correct educator by username", async () => {
-    const educator = await Educator.create({
-      first_name: v4(), 
-      last_name: v4(),
-      password: v4(),
-      email: v4(),
-      username: v4(),
-      verified: 1,
-      verification_code: v4(),
-    });
+    const educator = await randomEducator();
 
     const json: Partial<InferAttributes<Educator>> = educator.toJSON();
     // The Sequelize object will return the `CURRENT_TIMESTAMP` literals,

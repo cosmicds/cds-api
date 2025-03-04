@@ -69,6 +69,7 @@ export interface DBConnectionOptions {
   username?: string;
   password?: string;
   host?: string;
+  logging?: boolean;
 }
 
 export function getDatabaseConnection(options?: DBConnectionOptions) {
@@ -79,8 +80,10 @@ export function getDatabaseConnection(options?: DBConnectionOptions) {
   const username = options?.username ?? process.env.DB_USERNAME as string;
   const password = options?.password ?? process.env.DB_PASSWORD as string;
   const host = options?.host ?? process.env.DB_HOSTNAME as string;
+  const logging = options?.logging ?? console.log;
   const database = new Sequelize(dbName, username, password, {
       host,
+      logging,
       dialect: "mysql",
       define: {
         timestamps: false,
@@ -613,19 +616,19 @@ export async function getStudentsForClass(classID: number): Promise<Student[]> {
 
 export async function deleteClass(id: number): Promise<number> {
   return Class.destroy({
-    where: { id: id }
+    where: { id }
   });
 }
 
 export async function findClassByCode(code: string): Promise<Class | null> {
   return Class.findOne({
-    where: { code: code }
+    where: { code }
   });
 }
 
 export async function findClassById(id: number): Promise<Class | null> {
   return Class.findOne({
-    where: { id: id }
+    where: { id }
   });
 }
 

@@ -54,7 +54,7 @@ import {
   VerificationResult,
 } from "./request_results";
 
-import { CosmicDSSession, StudentsClasses } from "./models";
+import { CosmicDSSession, StudentsClasses, Class, Student } from "./models";
 
 import { ParsedQs } from "qs";
 import express, { Express, Request, Response as ExpressResponse } from "express";
@@ -348,7 +348,7 @@ export function createApp(db: Sequelize): Express {
     const params = req.params;
     const id = Number(params.identifier);
 
-    let student;
+    let student: Student | null;
     if (isNaN(id)) {
       student = await findStudentByUsername(params.identifier);
     } else {
@@ -535,13 +535,42 @@ export function createApp(db: Sequelize): Express {
     });
   });
 
-  app.delete("/classes/:code", async (req, res) => {
-    const code = req.params.code;
-    const cls = await findClassByCode(code);
+  app.get("/classes/:identifier", async (req, res) => {
+    const params = req.params;
+    const id = Number(params.identifier);
+
+    let cls: Class | null;
+    if (isNaN(id)) {
+      cls = await findClassByCode(params.identifier);
+    } else {
+      cls = await findClassById(id);
+    }
+
+    if (cls === null) {
+      res.statusCode = 404;
+    }
+    res.json({
+      class: cls,
+    });
+  });
+
+  app.delete("/classes/:identifier", async (req, res) => {
+    const params = req.params;
+    const id = Number(params.identifier);
+
+    let cls: Class | null;
+    let identifier: string;
+    if (isNaN(id)) {
+      cls = await findClassByCode(params.identifier);
+      identifier = "code";
+    } else {
+      cls = await findClassById(id);
+      identifier = "ID";
+    }
     if (cls === null) {
       res.status(404).json({
         success: false,
-        error: `Could not find class with code ${code}`,
+        error: `Could not find class with ${identifier} ${params.identifier}`,
       });
       return;
     }
@@ -555,7 +584,7 @@ export function createApp(db: Sequelize): Express {
     if (!success) {
       res.status(500).json({
         success: false,
-        error: `Server error deleting class with code ${code}`,
+        error: `Server error deleting class with ${identifier} ${params.identifier}`,
       });
       return;
     }
@@ -571,11 +600,11 @@ export function createApp(db: Sequelize): Express {
     const cls = await findClassById(classID);
     if (cls === null) {
       res.status(404).json({
-        message: `Class ${classID} not found`,
+        error: `No class found with ID ${classID}`,
       });
       return;
     }
-    const size = classSize(classID);
+    const size = await classSize(classID);
     res.json({
       class_id: classID,
       size
@@ -587,7 +616,7 @@ export function createApp(db: Sequelize): Express {
     const cls = await findClassById(classID);
     if (cls === null) {
       res.status(404).json({
-        message: `Class ${classID} not found`,
+        error: `No class found with ID ${classID}`,
       });
       return;
     }
@@ -605,6 +634,7 @@ export function createApp(db: Sequelize): Express {
       res.status(404).json({
         error: `No class found with ID ${classID}`,
       });
+      return;
     }
 
     const students = await getClassRoster(classID);

@@ -14,7 +14,8 @@ const config: Config = {
     "./dist/",
   ],
   globalSetup: "./tests/setup.ts",
-  globalTeardown: "./tests/teardown.ts"
+  globalTeardown: "./tests/teardown.ts",
+  testTimeout: 10_000,
 };
 
 export default config;

@@ -77,5 +77,10 @@ export function initializeClassModel(sequelize: Sequelize) {
     },
   }, {
     sequelize,
+    indexes: [
+      {
+        fields: ["code"],
+      }
+    ]
   });
 }
