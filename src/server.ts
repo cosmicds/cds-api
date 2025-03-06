@@ -784,7 +784,7 @@ export function createApp(db: Sequelize): Express {
         success,
       });
     } else {
-      res.status(400);
+      res.status(404);
       const message = "No such (student, story, stage) combination found";
       res.statusMessage = message;
       res.json({
