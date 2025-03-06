@@ -17,7 +17,6 @@ async function setupClassesForEducator() {
   const class2 = await randomClassForEducator(educator.id, { expected_size: 19 });
 
   const cleanup = async () => {
-    console.log(educator);
     await class1?.destroy();
     await class2?.destroy();
     await educator?.destroy();
