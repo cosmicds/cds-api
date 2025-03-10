@@ -5,7 +5,7 @@ import { RemoveHubbleMeasurementResult, SubmitHubbleMeasurementResult } from "./
 import { Class, StageState, StoryState, Student, StudentsClasses } from "../../models";
 import { HubbleStudentData } from "./models/hubble_student_data";
 import { HubbleClassData } from "./models/hubble_class_data";
-import { IgnoreStudent } from "../../models/ignore_student";
+import { IgnoreClass, IgnoreStudent } from "../../models";
 import { logger } from "../../logger";
 import { HubbleClassMergeGroup } from "./models/hubble_class_merge_group";
 
@@ -293,6 +293,14 @@ async function getHubbleStudentDataForClasses(classIDs: number[]): Promise<Hubbl
         where: {
           student_id: null
         }
+      },
+      {
+        model: IgnoreClass,
+        required: false,
+        attributes: ["class_id", "story_name"],
+        where: {
+          class_id: null,
+        }
       }]
     }]
   });
@@ -444,7 +452,8 @@ export async function getAllHubbleMeasurements(before: Date | null = null,
                                                classID: number | null = null,
                                                excludeWithNull=true): Promise<HubbleMeasurement[]> {
   const whereOptions: WhereOptions = [
-     { "$student.IgnoreStudents.student_id$": null }
+     { "$student.IgnoreStudents.student_id$": null },
+     { "$student.Classes.IgnoreClasses.class_id$": null },
   ];
   if (before !== null) {
     whereOptions.push({ last_modified: { [Op.lt]: before } });
@@ -490,6 +499,14 @@ export async function getAllHubbleMeasurements(before: Date | null = null,
         attributes: [],
         through: { attributes: [] },
         where: classesWhere,
+        include: [{
+          model: IgnoreClass,
+          required: false,
+          attributes: [],
+          where: {
+            story_name: "hubbles_law",
+          }
+        }]
       },
       {
         model: IgnoreStudent,
@@ -497,7 +514,7 @@ export async function getAllHubbleMeasurements(before: Date | null = null,
         attributes: [],
         where: {
           story_name: "hubbles_law"
-        }
+        },
       }]
     }]
   }) as (HubbleMeasurement & { class_id: number })[];
@@ -540,7 +557,8 @@ export async function getAllHubbleMeasurements(before: Date | null = null,
 const MINIMAL_STUDENT_DATA_FIELDS = ["student_id", "age_value"];
 export async function getAllHubbleStudentData(before: Date | null = null, minimal=false, classID: number | null = null): Promise<HubbleStudentData[]> {
   const whereOptions: WhereOptions = [
-    { "$student.IgnoreStudents.student_id$": null }
+    { "$student.IgnoreStudents.student_id$": null },
+    { "$student.Classes.IgnoreClasses.class_id$": null },
   ];
   if (before !== null) {
     whereOptions.push({ last_data_update: { [Op.lt]: before } });
@@ -580,6 +598,14 @@ export async function getAllHubbleStudentData(before: Date | null = null, minima
         attributes: [],
         through: { attributes: [] },
         where: classesWhere,
+        include: [{
+          model: IgnoreClass,
+          required: false,
+          attributes: [],
+          where: {
+            story_name: "hubbles_law",
+          }
+        }],
       }],
       where: {
          [Op.or]: [
@@ -593,7 +619,12 @@ export async function getAllHubbleStudentData(before: Date | null = null, minima
 }
 
 export async function getAllHubbleClassData(before: Date | null = null, minimal=false, classID: number | null = null): Promise<HubbleClassData[]> {
-  const whereOptions: WhereOptions<HubbleClassData> = before !== null ? [{ last_data_update: { [Op.lt]: before } }] : [];
+  const whereOptions: WhereOptions<HubbleClassData> = [
+    { "$class.IgnoreClasses.class_id$": null },
+  ];
+  if (before !== null) {
+    whereOptions.push({ last_data_update: { [Op.lt]: before } });
+  }
   const studentsClassesWhere: WhereOptions<StudentsClasses> = [];
   if (classID !== null) {
     const classIDs = await getMergedIDsForClass(classID, true);
@@ -605,6 +636,19 @@ export async function getAllHubbleClassData(before: Date | null = null, minimal=
       as: "class_data",
       attributes: [],
       where: studentsClassesWhere,
+    },
+    {
+      model: Class,
+      as: "class",
+      attributes: [],
+      include: [{
+        model: IgnoreClass,
+        required: false,
+        attributes: [],
+        where: {
+          story_name: "hubbles_law",
+        }
+      }],
     }],
     where: {
       [Op.and]: whereOptions

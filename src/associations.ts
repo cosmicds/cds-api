@@ -1,10 +1,13 @@
-import { Student } from "./models/student";
-import { Class } from "./models/class";
-import { Story } from "./models/story";
-import { StudentsClasses } from "./models/student_class";
-import { ClassStories } from "./models/story_class";
-import { StoryState } from "./models/story_state";
-import { IgnoreStudent } from "./models/ignore_student";
+import { 
+  Class,
+  ClassStories,
+  IgnoreClass,
+  IgnoreStudent,
+  Story,
+  StoryState,
+  Student,
+  StudentsClasses,
+} from "./models";
 
 export function setUpAssociations() {
 
@@ -74,10 +77,28 @@ export function setUpAssociations() {
     foreignKey: "student_id"
   });
 
+  Class.hasMany(IgnoreClass, {
+    foreignKey: "class_id"
+  });
+  IgnoreClass.belongsTo(Class, {
+    as: "class",
+    targetKey: "id",
+    foreignKey: "class_id"
+  });
+
   Story.hasMany(IgnoreStudent, {
     foreignKey: "story_name"
   });
   IgnoreStudent.belongsTo(Story, {
+    as: "story",
+    targetKey: "name",
+    foreignKey: "story_name"
+  });
+
+  Story.hasMany(IgnoreClass, {
+    foreignKey: "story_name"
+  });
+  IgnoreClass.belongsTo(Story, {
     as: "story",
     targetKey: "name",
     foreignKey: "story_name"
@@ -91,7 +112,6 @@ export function setUpAssociations() {
     targetKey: "name",
     foreignKey: "story_name"
   });
-
 
   Class.hasMany(ClassStories, {
     foreignKey: "class_id"
