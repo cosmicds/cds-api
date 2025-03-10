@@ -2,6 +2,7 @@ import { Class, initializeClassModel } from "./class";
 import { DashboardClassGroup, initializeDashboardClassGroupModel } from "./dashboard_class_group";
 import { DummyClass, initializeDummyClassModel } from "./dummy_class";
 import { Educator, initializeEducatorModel } from "./educator";
+import { IgnoreClass, initializeIgnoreClassModel } from "./ignore_class";
 import { IgnoreStudent, initializeIgnoreStudentModel } from "./ignore_student";
 import { ClassStories, initializeClassStoryModel } from "./story_class";
 import { CosmicDSSession, initializeSessionModel } from "./session";
@@ -23,6 +24,7 @@ export {
   DashboardClassGroup,
   DummyClass,
   Educator,
+  IgnoreClass,
   IgnoreStudent,
   Stage,
   StageState,
@@ -45,6 +47,7 @@ export function initializeModels(db: Sequelize) {
   initializeStoryStateModel(db);
   initializeStudentClassModel(db);
   initializeStudentOptionsModel(db);
+  initializeIgnoreClassModel(db);
   initializeIgnoreStudentModel(db);
   initializeQuestionModel(db);
   initializeDashboardClassGroupModel(db);
