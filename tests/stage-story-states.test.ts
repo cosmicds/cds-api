@@ -8,7 +8,7 @@ import type { Express } from "express";
 import { authorize, expectToMatchModel, getTestDatabaseConnection, randomClassForEducator, randomEducator, randomStudent, setupStudentInClasses } from "./utils";
 import { setupApp } from "../src/app";
 import { createApp } from "../src/server";
-import { StageState, Story, StoryState } from "../src/models";
+import { Student, StageState, Story, StoryState } from "../src/models";
 
 async function setupStoryAndStudentStates() {
   const story = await Story.create({
@@ -134,17 +134,70 @@ describe("Test stage state routes", () => {
   });
 
   it("Should return the stage states for a given student & story", async () => {
-    const { story, student1, storyState1, cleanup } = await setupStoryAndStudentStates();
+    const { story, student1, student2, storyState1, storyState2, cleanup } = await setupStoryAndStudentStates();
 
-    authorize(request(testApp).get(`/story-state/${student1.id}/{story.name}`))
+    const studentsAndStories: [Student, StoryState][] = [[student1, storyState1], [student2, storyState2]];
+
+    for (const [student, state] of studentsAndStories) {
+
+      authorize(request(testApp).get(`/story-state/${student.id}/${story.name}`))
+        .expect(200)
+        .expect("Content-Type", /json/)
+        .expect({
+          student_id: student.id,
+          story_name: story.name,
+        })
+        .then(res => {
+          expectToMatchModel(res.body.state, state);
+        });
+
+    }
+
+    await cleanup();
+  });
+
+  it("Should not find a story state for a nonexistent student", async () => {
+    const badID = -1;
+    const { story, cleanup } = await setupStoryAndStudentStates();
+    await authorize(request(testApp).get(`/story-state/${badID}/${story.name}`))
+      .expect(404)
+      .expect("Content-Type", /json/)
+      .expect({
+        student_id: badID,
+        story_name: story.name,
+        state: null,
+      });
+
+    await cleanup();
+  });
+
+  it("Should not find a story state for a nonexistent story", async () => {
+    const badID = -1;
+    const badStory = "bogus_story";
+    await authorize(request(testApp).get(`/story-state/${badID}/${badStory}`))
+      .expect(404)
+      .expect("Content-Type", /json/)
+      .expect({
+        student_id: badID,
+        story_name: badStory,
+        state: null,
+      });
+
+  });
+
+  it("Should correctly update the story state", async () => {
+    const { story, student1, storyState2, cleanup } = await setupStoryAndStudentStates();
+
+    const newStoryState = storyState2.story_state;
+
+    await authorize(request(testApp).put(`/story-state/${student1.id}/${story.name}`))
+      .send(newStoryState)
       .expect(200)
       .expect("Content-Type", /json/)
       .expect({
         student_id: student1.id,
         story_name: story.name,
-      })
-      .then(res => {
-        expectToMatchModel(res.body.state, storyState1);
+        state: newStoryState,
       });
 
     await cleanup();
