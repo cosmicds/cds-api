@@ -13,7 +13,7 @@ CREATE TABLE Students (
     lon varchar(20) COLLATE utf8_unicode_ci,
     profile_created datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
     visits int(11) NOT NULL DEFAULT 0,
-    last_visit datetime NOT NULL,
+    last_visit datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
     last_visit_ip varchar(50) COLLATE utf8_unicode_ci,
     seed tinyint(2) NOT NULL DEFAULT 0,
     team_member varchar(30),
