@@ -8,7 +8,7 @@ import type { Express } from "express";
 import { authorize, expectToMatchModel, getTestDatabaseConnection, randomClassForEducator, randomEducator, randomStudent, setupStudentInClasses } from "./utils";
 import { setupApp } from "../src/app";
 import { createApp } from "../src/server";
-import { Student, StageState, Story, StoryState } from "../src/models";
+import { Student, StageState, Story, StoryState, StudentsClasses, Class } from "../src/models";
 
 async function setupStoryAndStudentStates() {
   const story = await Story.create({
@@ -18,6 +18,16 @@ async function setupStoryAndStudentStates() {
   });
   const student1 = await randomStudent();
   const student2 = await randomStudent();
+  const educator = await randomEducator();
+  const cls = await randomClassForEducator(educator.id);
+  const studentClass1 = await StudentsClasses.create({
+    student_id: student1.id,
+    class_id: cls.id,
+  });
+  const studentClass2 = await StudentsClasses.create({
+    student_id: student2.id,
+    class_id: cls.id,
+  });
   const storyState1 = await StoryState.create({
     student_id: student1.id,
     story_name: story.name,
@@ -96,6 +106,10 @@ async function setupStoryAndStudentStates() {
 
   const cleanup = async () => {
     await story?.destroy();
+    await studentClass1?.destroy();
+    await studentClass2?.destroy();
+    await cls?.destroy();
+    await educator?.destroy();
     await student1?.destroy();
     await student2?.destroy();
     await storyState1?.destroy();
@@ -108,8 +122,12 @@ async function setupStoryAndStudentStates() {
 
   return {
     story,
+    cls,
+    educator,
     student1,
     student2,
+    studentClass1,
+    studentClass2,
     storyState1,
     storyState2,
     stageState1A,
@@ -199,6 +217,123 @@ describe("Test stage state routes", () => {
         story_name: story.name,
         state: newStoryState,
       });
+
+    await cleanup();
+  });
+
+  it("Should not update to a malformed story state", async () => {
+    const { story, student1, cleanup } = await setupStoryAndStudentStates();
+
+    const badStoryState = "{'first' 1 'second': 2}";
+    await authorize(request(testApp).put(`/story-state/${student1.id}/${story.name}`))
+      .send(badStoryState)
+      .expect(404)
+      .expect("Content-Type", /json/)
+      .expect({
+        student_id: student1.id,
+        story_name: story.name,
+        state: null,
+      });
+
+    await cleanup();
+  });
+
+  it("Should return all the stage states for a given student + story", async () => {
+    const { story, student1, student2, stageState1A, stageState1B, stageState2A, stageState2B, cleanup } = await setupStoryAndStudentStates();
+
+    const studentsAndStates: [Student, StageState[]][] =
+      [[student1, [stageState1A, stageState1B]], [student2, [stageState2A, stageState2B]];
+
+    for (const [student, states] of studentsAndStates) {
+      await authorize(request(testApp).get(`/stage-states/${story.name}?student_id=${student.id}`))
+        .expect(200)
+        .expect("Content-Type", /json/)
+        .then(res => {
+          const resStates = res.body;
+          expect(Array.isArray(resStates)).toBe(true);
+          expect(resStates.length).toBe(2);
+
+          for (const [index, state] of resStates.entries()) {
+            expectToMatchModel(state, states[index]);
+          }
+        });
+    }
+
+    await cleanup();
+  });
+
+  it("Should return all the stage states for a given class + story", async () => {
+    const { story, cls, stageState1A, stageState1B, stageState2A, stageState2B, cleanup } = await setupStoryAndStudentStates();
+
+    const states = [stageState1A, stageState1B, stageState2A, stageState2B];
+
+    await authorize(request(testApp).get(`/stage-states/${story.name}?class_id=${cls.id}`))
+      .expect(200)
+      .expect("Content-Type", /json/)
+      .then(res => {
+        const resStates = res.body;
+        expect(Array.isArray(resStates)).toBe(true);
+        expect(resStates.length).toBe(4);
+
+        for (const [index, state] of resStates.entries()) {
+          expectToMatchModel(state, states[index]);
+        }
+      });
+
+    await cleanup();
+  });
+
+  it("Should return the correct stage states for a given student + story + stage", async () => {
+    const { story, student1, student2, stageState1A, stageState1B, stageState2A, stageState2B, cleanup } = await setupStoryAndStudentStates();
+
+    const studentStageStates: [Student, string, StageState][] = [
+      [student1, "A", stageState1A],
+      [student1, "B", stageState1B],
+      [student2, "A", stageState2A],
+      [student2, "B", stageState2B],
+    ];
+
+    for (const [student, stage, state] of studentStageStates) {
+
+      await authorize(request(testApp).get(`/stage-states/${story.name}?student_id=${student.id}&stage_name=${stage}`))
+        .expect(200)
+        .expect("Content-Type", /json/)
+        .then(res => {
+          const resStates = res.body;
+          expect(Array.isArray(resStates)).toBe(true);
+          expect(resStates.length).toBe(1);
+
+          const resState = resStates[0];
+          expectToMatchModel(resState, state);
+        });
+    }
+
+    await cleanup();
+  });
+
+  it("Should return the correct stage states for a given class + story + stage", async () => {
+    const { story, cls, stageState1A, stageState1B, stageState2A, stageState2B, cleanup } = await setupStoryAndStudentStates();
+
+    const classStagesStates: [Class, string, StageState[]][] = [
+      [cls, "A", [stageState1A, stageState2A]],
+      [cls, "B", [stageState1B, stageState2B]],
+    ];
+
+    for (const [student, stage, states] of classStagesStates) {
+
+      await authorize(request(testApp).get(`/stage-states/${story.name}?class_id=${student.id}&stage_name=${stage}`))
+        .expect(200)
+        .expect("Content-Type", /json/)
+        .then(res => {
+          const resStates = res.body;
+          expect(Array.isArray(resStates)).toBe(true);
+          expect(resStates.length).toBe(2);
+
+          for (const [index, state] of resStates.entries()) {
+            expectToMatchModel(state, states[index]);
+          }
+        });
+    }
 
     await cleanup();
   });
