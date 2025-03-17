@@ -108,7 +108,13 @@ function _sendLoginCookie(userId: number, res: ExpressResponse, secret: string):
   res.cookie("login", token);
 }
 
-export function createApp(db: Sequelize): Express {
+export interface AppOptions {
+  sendEmails?: boolean;
+}
+
+export function createApp(db: Sequelize, options?: AppOptions): Express {
+
+  const sendEmails = options?.sendEmails ?? true;
 
   const app = express();
   setupApp(app, db);
@@ -147,7 +153,7 @@ export function createApp(db: Sequelize): Express {
     const statusCode = SignUpResult.statusCode(result);
     const success = SignUpResult.success(result);
 
-    if (success) {
+    if (success && sendEmails) {
       sendEmail({
         to: "cosmicds@cfa.harvard.edu",
         subject: "Educator account created",
