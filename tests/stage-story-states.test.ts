@@ -212,26 +212,6 @@ describe("Test stage state routes", () => {
     await cleanup();
   });
 
-  // TODO: I'm not actually sure how to create something malformed here
-
-  // it("Should not update to a malformed story state", async () => {
-  //   const { story, student1, cleanup } = await setupStoryAndStudentStates();
-
-  //   const badStoryState = "{'first' 1 'second': 2}";
-  //   await authorize(request(testApp).put(`/story-state/${student1.id}/${story.name}`))
-  //     .type("json")
-  //     .send(badStoryState)
-  //     .expect(404)
-  //     .expect("Content-Type", /json/)
-  //     .expect({
-  //       student_id: student1.id,
-  //       story_name: story.name,
-  //       state: null,
-  //     });
-
-  //   await cleanup();
-  // });
-
   it("Should return all the stage states for a given student + story", async () => {
     const { story, student1, student2, stageState1A, stageState1B, stageState2A, stageState2B, cleanup } = await setupStoryAndStudentStates();
 
