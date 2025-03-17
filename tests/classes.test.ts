@@ -5,9 +5,8 @@ import request from "supertest";
 import type { Sequelize } from "sequelize";
 import type { Express } from "express";
 
-import { authorize, expectToMatchModel, getTestDatabaseConnection, randomClassForEducator, randomEducator, randomStudent, setupStudentInClasses } from "./utils";
+import { authorize, createTestApp, expectToMatchModel, getTestDatabaseConnection, randomClassForEducator, randomEducator, randomStudent, setupStudentInClasses } from "./utils";
 import { setupApp } from "../src/app";
-import { createApp } from "../src/server";
 
 import { Student, StudentsClasses } from "../src/models";
 
@@ -31,7 +30,7 @@ describe("Test class routes", () => {
   let testApp: Express;
   beforeAll(async () => {
     testDB = await getTestDatabaseConnection();
-    testApp = createApp(testDB);
+    testApp = createTestApp(testDB);
     setupApp(testApp, testDB);
   });
   

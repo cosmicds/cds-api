@@ -6,7 +6,7 @@ import type { Test } from "supertest";
 import type { InferAttributes, CreationAttributes, Model, Sequelize } from "sequelize";
 
 import { setUpAssociations } from "../src/associations";
-import { Educator, StudentsClasses, initializeModels } from "../src/models";
+import { Educator, StageState, Story, StoryState, StudentsClasses, initializeModels } from "../src/models";
 import { createApp } from "../src/server";
 import { Class, Student } from "../src/models";
 import { APIKey } from "../src/models/api_key";
@@ -15,6 +15,7 @@ import { v4 } from "uuid";
 import { getDatabaseConnection } from "../src/database";
 import { createConnection, Connection } from "mysql2/promise";
 import { hashAPIKey } from "../src/authorization";
+import { setupApp } from "../src/app";
 
 export function authorize(request: Test): Test {
   return request.set({ Authorization: process.env.CDS_API_KEY });
@@ -32,11 +33,14 @@ export async function getTestDatabaseConnection(): Promise<Sequelize> {
   const username = process.env.DB_TEST_USERNAME as string;
   const password = process.env.DB_TEST_PASSWORD as string;
   const host = process.env.DB_TEST_HOSTNAME as string;
+  const envTestLogging = process.env.DB_TEST_LOGGING;
+  const logging = envTestLogging === "false" ? false : console.log;
   const db = getDatabaseConnection({
     dbName: "test", 
     username,
     password,
     host,
+    logging,
   });
 
   await db.query("USE test;");
@@ -74,6 +78,9 @@ export async function syncTables(force=false): Promise<void> {
   await Educator.sync(options);
   await Class.sync(options);
   await StudentsClasses.sync(options);
+  await Story.sync(options);
+  await StoryState.sync(options);
+  await StageState.sync(options);
 }
 
 export async function addAPIKey(): Promise<APIKey | void> {
@@ -90,7 +97,9 @@ export async function addTestData() {
 }
 
 export function createTestApp(db: Sequelize): Express {
-  return createApp(db);
+  const app = createApp(db, { sendEmails : false });
+  setupApp(app, db);
+  return app;
 }
 
 export function runApp(app: Express, port = 8080, callback?: () => void): Server {
@@ -132,6 +141,14 @@ export async function randomClassForEducator(educatorID: number, options?: Parti
     ...options,
   };
   return Class.create(classData);
+}
+
+export async function randomStory(): Promise<Story> {
+  return Story.create({
+    name: v4(),
+    display_name: v4(),
+    description: v4(),
+  });
 }
 
 export async function setupStudentInClasses() {
