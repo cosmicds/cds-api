@@ -4,11 +4,12 @@ import { beforeAll, afterAll, describe, it, expect } from "@jest/globals";
 import request from "supertest";
 import type { Sequelize } from "sequelize";
 import type { Express } from "express";
+import { v4 } from "uuid";
 
-import { authorize, createTestApp, expectToMatchModel, getTestDatabaseConnection, randomClassForEducator, randomEducator, randomStory, randomStudent } from "./utils";
-import { Student, StageState, StoryState, StudentsClasses, Class } from "../src/models";
+import { authorize, createTestApp, getTestDatabaseConnection, randomClassForEducator, randomEducator, randomStory, randomStudent } from "./utils";
+import { Student, StageState, StudentsClasses, Class } from "../src/models";
 
-async function setupStoryAndStudentStates() {
+async function setupStageAndStudentStates() {
   const story = await randomStory();
   const student1 = await randomStudent();
   const student2 = await randomStudent();
@@ -21,24 +22,6 @@ async function setupStoryAndStudentStates() {
   const studentClass2 = await StudentsClasses.create({
     student_id: student2.id,
     class_id: cls.id,
-  });
-  const storyState1 = await StoryState.create({
-    student_id: student1.id,
-    story_name: story.name,
-    story_state: {
-      a: 1,
-      b: "x",
-      flag: true,
-    } as unknown as JSON,
-  });
-  const storyState2 = await StoryState.create({
-    student_id: student2.id,
-    story_name: story.name,
-    story_state: {
-      a: 5,
-      b: "y",
-      flag: false,
-    } as unknown as JSON,
   });
 
   const stageState1A = await StageState.create({
@@ -99,8 +82,6 @@ async function setupStoryAndStudentStates() {
 
 
   const cleanup = async () => {
-    await storyState1?.destroy();
-    await storyState2?.destroy();
     await stageState1A?.destroy();
     await stageState1B?.destroy();
     await stageState2A?.destroy();
@@ -122,8 +103,6 @@ async function setupStoryAndStudentStates() {
     student2,
     studentClass1,
     studentClass2,
-    storyState1,
-    storyState2,
     stageState1A,
     stageState1B,
     stageState2A,
@@ -131,6 +110,8 @@ async function setupStoryAndStudentStates() {
     cleanup,
   };
 }
+
+
 
 describe("Test stage state routes", () => {
   let testDB: Sequelize;
@@ -144,76 +125,8 @@ describe("Test stage state routes", () => {
     testDB.close();
   });
 
-  it("Should return the stage states for a given student & story", async () => {
-    const { story, student1, student2, storyState1, storyState2, cleanup } = await setupStoryAndStudentStates();
-
-    const studentsAndStories: [Student, StoryState][] = [[student1, storyState1], [student2, storyState2]];
-
-    for (const [student, state] of studentsAndStories) {
-
-      authorize(request(testApp).get(`/story-state/${student.id}/${story.name}`))
-        .expect(200)
-        .expect("Content-Type", /json/)
-        .expect({
-          student_id: student.id,
-          story_name: story.name,
-          state,
-        });
-
-    }
-
-    await cleanup();
-  });
-
-  it("Should not find a story state for a nonexistent student", async () => {
-    const badID = -1;
-    const { story, cleanup } = await setupStoryAndStudentStates();
-    await authorize(request(testApp).get(`/story-state/${badID}/${story.name}`))
-      .expect(404)
-      .expect("Content-Type", /json/)
-      .expect({
-        student_id: badID,
-        story_name: story.name,
-        state: null,
-      });
-
-    await cleanup();
-  });
-
-  it("Should not find a story state for a nonexistent story", async () => {
-    const badID = -1;
-    const badStory = "bogus_story";
-    await authorize(request(testApp).get(`/story-state/${badID}/${badStory}`))
-      .expect(404)
-      .expect("Content-Type", /json/)
-      .expect({
-        student_id: badID,
-        story_name: badStory,
-        state: null,
-      });
-
-  });
-
-  it("Should correctly update the story state", async () => {
-    const { story, student1, storyState2, cleanup } = await setupStoryAndStudentStates();
-
-    const newStoryState = storyState2.story_state;
-
-    await authorize(request(testApp).put(`/story-state/${student1.id}/${story.name}`))
-      .send(newStoryState)
-      .expect(200)
-      .expect("Content-Type", /json/)
-      .expect({
-        student_id: student1.id,
-        story_name: story.name,
-        state: newStoryState,
-      });
-
-    await cleanup();
-  });
-
   it("Should return all the stage states for a given student + story", async () => {
-    const { story, student1, student2, stageState1A, stageState1B, stageState2A, stageState2B, cleanup } = await setupStoryAndStudentStates();
+    const { story, student1, student2, stageState1A, stageState1B, stageState2A, stageState2B, cleanup } = await setupStageAndStudentStates();
 
     const studentStates = {
       [String(student1.id)]: {
@@ -249,7 +162,7 @@ describe("Test stage state routes", () => {
   });
 
   it("Should return all the stage states for a given class + story", async () => {
-    const { story, cls, stageState1A, stageState1B, stageState2A, stageState2B, cleanup } = await setupStoryAndStudentStates();
+    const { story, cls, stageState1A, stageState1B, stageState2A, stageState2B, cleanup } = await setupStageAndStudentStates();
 
     const states = {
       "A": [stageState1A, stageState2A],
@@ -279,7 +192,7 @@ describe("Test stage state routes", () => {
   });
 
   it("Should return the correct stage states for a given student + story + stage", async () => {
-    const { story, student1, student2, stageState1A, stageState1B, stageState2A, stageState2B, cleanup } = await setupStoryAndStudentStates();
+    const { story, student1, student2, stageState1A, stageState1B, stageState2A, stageState2B, cleanup } = await setupStageAndStudentStates();
 
     const studentStageStates: [Student, string, StageState][] = [
       [student1, "A", stageState1A],
@@ -307,7 +220,7 @@ describe("Test stage state routes", () => {
   });
 
   it("Should return the correct stage states for a given class + story + stage", async () => {
-    const { story, cls, stageState1A, stageState1B, stageState2A, stageState2B, cleanup } = await setupStoryAndStudentStates();
+    const { story, cls, stageState1A, stageState1B, stageState2A, stageState2B, cleanup } = await setupStageAndStudentStates();
 
     const classStagesStates: [Class, string, StageState[]][] = [
       [cls, "A", [stageState1A, stageState2A]],
@@ -334,7 +247,7 @@ describe("Test stage state routes", () => {
   });
 
   it("Should return the correct stage state for a given student + story + stage", async () => {
-    const { story, student1, student2, stageState1A, stageState1B, stageState2A, stageState2B, cleanup } = await setupStoryAndStudentStates();
+    const { story, student1, student2, stageState1A, stageState1B, stageState2A, stageState2B, cleanup } = await setupStageAndStudentStates();
 
     const studentStageStates: [Student, string, StageState][] = [
       [student1, "A", stageState1A],
@@ -355,6 +268,56 @@ describe("Test stage state routes", () => {
           state: state.state,
         });
     }
+
+    await cleanup();
+  });
+
+  it("Should not find a stage state for an invalid student + story + stage", async () => {
+    const { story, student1, cleanup } = await setupStageAndStudentStates();
+
+    const data = {
+      studentID: student1.id,
+      storyName: story.name,
+      stage: "A",
+    };
+    const invalid = {
+      studentID: -1,
+      storyName: v4(),
+      stage: "C",
+    } as typeof data;
+
+    for (const [key, value] of Object.entries(invalid)) {
+
+      const dataToUse = { ...data, [key]: value };
+
+      await authorize(request(testApp).get(`/stage-state/${dataToUse.studentID}/${dataToUse.storyName}/${dataToUse.stage}`))
+        .expect(404)
+        .expect("Content-Type", /json/)
+        .expect({
+          student_id: dataToUse.studentID,
+          story_name: dataToUse.storyName,
+          stage_name: dataToUse.stage,
+          state: null,
+        });
+    }
+
+    await cleanup();
+  });
+
+  it("Should correctly update the stage state for a given student + story + stage", async () => {
+    const { story, student1, stageState1B, cleanup } = await setupStageAndStudentStates();
+
+    const newState = stageState1B.state;
+    await authorize(request(testApp).put(`/stage-state/${student1.id}/${story.name}/A`))
+      .send(newState)
+      .expect(200)
+      .expect("Content-Type", /json/)
+      .expect({
+        student_id: student1.id,
+        story_name: story.name,
+        stage_name: "A",
+        state: newState,
+      });
 
     await cleanup();
   });
