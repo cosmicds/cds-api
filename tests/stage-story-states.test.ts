@@ -332,4 +332,30 @@ describe("Test stage state routes", () => {
 
     await cleanup();
   });
+
+  it("Should return the correct stage state for a given student + story + stage", async () => {
+    const { story, student1, student2, stageState1A, stageState1B, stageState2A, stageState2B, cleanup } = await setupStoryAndStudentStates();
+
+    const studentStageStates: [Student, string, StageState][] = [
+      [student1, "A", stageState1A],
+      [student1, "B", stageState1B],
+      [student2, "A", stageState2A],
+      [student2, "B", stageState2B],
+    ];
+
+    for (const [student, stage, state] of studentStageStates) {
+
+      await authorize(request(testApp).get(`/stage-state/${student.id}/${story.name}/${stage}`))
+        .expect(200)
+        .expect("Content-Type", /json/)
+        .expect({
+          student_id: student.id,
+          story_name: story.name,
+          stage_name: stage,
+          state: state.state,
+        });
+    }
+
+    await cleanup();
+  });
 });

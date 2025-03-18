@@ -54,7 +54,7 @@ export async function setupTestDatabase(): Promise<Sequelize> {
   config();
   const connection = await createTestMySQLConnection();
   await connection.query("CREATE DATABASE IF NOT EXISTS test;");
-  const db = getTestDatabaseConnection();
+  const db = await getTestDatabaseConnection();
 
   // We need to close when the connection terminates!
   // See https://github.com/sequelize/sequelize/issues/7953
