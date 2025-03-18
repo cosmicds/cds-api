@@ -321,4 +321,28 @@ describe("Test stage state routes", () => {
 
     await cleanup();
   });
+
+  it("Should delete the stage state for a given student + story + stage", async () => {
+    const { story, student1, cleanup } = await setupStageAndStudentStates();
+
+    for (const stage of ["A", "B"]) {
+      await authorize(request(testApp).delete(`/stage-state/${student1.id}/${story.name}/${stage}`))
+        .expect(200)
+        .expect("Content-Type", /json/)
+        .expect({
+          success: true, 
+        });
+
+      const count = await StageState.count({
+        where: {
+          student_id: student1.id,
+          stage_name: stage,
+        }
+      });
+
+      expect(count).toBe(0);
+    }
+
+    await cleanup();
+  });
 });
