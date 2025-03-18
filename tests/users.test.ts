@@ -5,16 +5,13 @@ import request from "supertest";
 import type { Sequelize } from "sequelize";
 import type { Express } from "express";
 
-import { authorize, getTestDatabaseConnection } from "./utils";
-import { setupApp } from "../src/app";
-import { createApp } from "../src/server";
+import { authorize, createTestApp, getTestDatabaseConnection } from "./utils";
 
 let testDB: Sequelize;
 let testApp: Express;
 beforeAll(async () => {
   testDB = await getTestDatabaseConnection();
-  testApp = createApp(testDB);
-  setupApp(testApp, testDB);
+  testApp = createTestApp(testDB);
 });
 
 afterAll(() => {

@@ -108,7 +108,13 @@ function _sendLoginCookie(userId: number, res: ExpressResponse, secret: string):
   res.cookie("login", token);
 }
 
-export function createApp(db: Sequelize): Express {
+export interface AppOptions {
+  sendEmails?: boolean;
+}
+
+export function createApp(db: Sequelize, options?: AppOptions): Express {
+
+  const sendEmails = options?.sendEmails ?? true;
 
   const app = express();
   setupApp(app, db);
@@ -147,7 +153,7 @@ export function createApp(db: Sequelize): Express {
     const statusCode = SignUpResult.statusCode(result);
     const success = SignUpResult.success(result);
 
-    if (success) {
+    if (success && sendEmails) {
       sendEmail({
         to: "cosmicds@cfa.harvard.edu",
         subject: "Educator account created",
@@ -784,7 +790,7 @@ export function createApp(db: Sequelize): Express {
         success,
       });
     } else {
-      res.status(400);
+      res.status(404);
       const message = "No such (student, story, stage) combination found";
       res.statusMessage = message;
       res.json({

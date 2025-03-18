@@ -5,18 +5,15 @@ import request from "supertest";
 import type { InferAttributes, Sequelize } from "sequelize";
 import type { Express } from "express";
 
-import { authorize, getTestDatabaseConnection, randomEducator } from "./utils";
-import { setupApp } from "../src/app";
+import { authorize, createTestApp, getTestDatabaseConnection, randomEducator } from "./utils";
 import { Educator } from "../src/models";
-import { createApp } from "../src/server";
 import { v4 } from "uuid";
 
 let testDB: Sequelize;
 let testApp: Express;
 beforeAll(async () => {
   testDB = await getTestDatabaseConnection();
-  testApp = createApp(testDB);
-  setupApp(testApp, testDB);
+  testApp = createTestApp(testDB);
 });
 
 afterAll(() => {

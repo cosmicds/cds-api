@@ -1,4 +1,4 @@
-import { BaseError, Model, Op, QueryTypes, Sequelize, UniqueConstraintError, WhereOptions } from "sequelize";
+import { BaseError, Options, Model, Op, QueryTypes, Sequelize, UniqueConstraintError, WhereOptions } from "sequelize";
 import dotenv from "dotenv";
 import { createNamespace } from "cls-hooked";
 
@@ -69,7 +69,7 @@ export interface DBConnectionOptions {
   username?: string;
   password?: string;
   host?: string;
-  logging?: boolean;
+  logging?: Options["logging"];
 }
 
 export function getDatabaseConnection(options?: DBConnectionOptions) {
