@@ -647,6 +647,27 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     res.json(students);
   });
 
+  app.get("/classes/active/:classID/:storyName", async (req, res) => {
+    const classID = Number(req.params.classID);
+    const cls = await findClassById(classID);
+    if (cls === null) {
+      res.status(404).json({
+        error: `No class found with ID ${classID}`,
+      });
+      return;
+    }
+    const storyName = req.params.storyName;
+    const story = await getStory(storyName);
+    if (story === null) {
+      res.status(404).json({
+        error: `No story found with name ${storyName}`,
+      });
+      return
+    }
+
+
+  });
+
   app.get("/story-state/:studentID/:storyName", async (req, res) => {
     const params = req.params;
     const studentID = Number(params.studentID);
