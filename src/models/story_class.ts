@@ -5,7 +5,7 @@ import { Story } from "./story";
 export class ClassStories extends Model<InferAttributes<ClassStories>, InferCreationAttributes<ClassStories>> {
   declare class_id: number;
   declare story_name: string;
-  declare active: CreationOptional<number>;
+  declare active: CreationOptional<boolean>;
 }
 
 export function initializeClassStoryModel(sequelize: Sequelize) {
@@ -29,7 +29,7 @@ export function initializeClassStoryModel(sequelize: Sequelize) {
       }
     },
     active: {
-      type: DataTypes.TINYINT,
+      type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: 1,
     }

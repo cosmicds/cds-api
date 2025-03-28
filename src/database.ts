@@ -827,6 +827,30 @@ export async function classSize(classID: number): Promise<number> {
   });
 }
 
+export async function isClassStoryActive(classID: number, storyName: string): Promise<boolean | null> {
+  const classStory = await ClassStories.findOne({
+    where: {
+      class_id: classID,
+      story_name: storyName,
+    },
+  });
+  
+  return classStory?.active ?? null;
+}
+
+export async function setClassStoryActive(classID: number, storyName: string, active: boolean): Promise<boolean> {
+  const result = await ClassStories.update(
+    { active  },
+    {
+      where: {
+        class_id: classID,
+        story_name: storyName,
+      }
+    }
+  );
+  return result[0] > 0;
+}
+
 export async function getStudentOptions(studentID: number): Promise<StudentOptions | null> {
   return StudentOptions.findOne({ where: { student_id: studentID } }).catch((_error) => null);
 }

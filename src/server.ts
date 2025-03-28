@@ -45,6 +45,8 @@ import {
   CreateClassSchema,
   QuestionInfoSchema,
   getClassRoster,
+  isClassStoryActive,
+  setClassStoryActive,
 } from "./database";
 
 import {
@@ -645,6 +647,96 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
 
     const students = await getClassRoster(classID);
     res.json(students);
+  });
+
+  app.get("/classes/active/:classID/:storyName", async (req, res) => {
+    const classID = Number(req.params.classID);
+    const cls = await findClassById(classID);
+    if (cls === null) {
+      res.status(404).json({
+        error: `No class found with ID ${classID}`,
+      });
+      return;
+    }
+    const storyName = req.params.storyName;
+    const story = await getStory(storyName);
+    if (story === null) {
+      res.status(404).json({
+        error: `No story found with name ${storyName}`,
+      });
+      return;
+    }
+
+    const active = await isClassStoryActive(classID, storyName);
+    if (active === null) {
+      res.status(404).json({
+        error: `It seems that class ${classID} is not signed up for story ${storyName}`,
+      });
+      return;
+    }
+
+    res.json({
+      active,
+    });
+
+  });
+
+  app.post("/classes/active/:classID/:storyName", async (req, res) => {
+    const classID = Number(req.params.classID);
+    const cls = await findClassById(classID);
+    if (cls === null) {
+      res.status(404).json({
+        error: `No class found with ID ${classID}`,
+      });
+      return;
+    }
+    const storyName = req.params.storyName;
+    const story = await getStory(storyName);
+    if (story === null) {
+      res.status(404).json({
+        error: `No story found with name ${storyName}`,
+      });
+      return;
+    }
+
+    const schema = S.struct({
+      active: S.boolean,
+    });
+    const maybe = S.decodeUnknownEither(schema)(req.body);
+    if (Either.isLeft(maybe)) {
+      res.status(400).json({
+        error: "Invalid request body; should have form { active: <boolean> }",
+      });
+      return;
+    }
+
+    const active = maybe.right.active;
+    let error = false;
+    const success = setClassStoryActive(classID, storyName, active)
+      .catch(_err => {
+        error = true;
+      });
+
+    if (error) {
+      res.status(500).json({
+        error: `There was an error updating the active status for class ID ${classID}, story ${storyName}`,
+      });
+      return;
+    }
+    if (!success) {
+      res.status(404).json({
+        error: `It seems that class ${classID} is not signed up for story ${storyName}`,
+      });
+      return;
+    }
+
+    res.json({
+      class_id: classID,
+      story_name: storyName,
+      active,
+      success: true,
+    });
+
   });
 
   app.get("/story-state/:studentID/:storyName", async (req, res) => {
