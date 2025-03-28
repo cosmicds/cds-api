@@ -827,7 +827,7 @@ export async function classSize(classID: number): Promise<number> {
   });
 }
 
-export async function classStoryActive(classID: number, storyName: string): Promise<boolean | null> {
+export async function isClassStoryActive(classID: number, storyName: string): Promise<boolean | null> {
   const classStory = await ClassStories.findOne({
     where: {
       class_id: classID,
@@ -836,6 +836,19 @@ export async function classStoryActive(classID: number, storyName: string): Prom
   });
   
   return classStory?.active ?? null;
+}
+
+export async function setClassStoryActive(classID: number, storyName: string, active: boolean): Promise<boolean> {
+  const result = await ClassStories.update(
+    { active  },
+    {
+      where: {
+        class_id: classID,
+        story_name: storyName,
+      }
+    }
+  );
+  return result[0] > 0;
 }
 
 export async function getStudentOptions(studentID: number): Promise<StudentOptions | null> {
