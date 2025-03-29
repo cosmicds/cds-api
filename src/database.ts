@@ -632,6 +632,15 @@ export async function findClassById(id: number): Promise<Class | null> {
   });
 }
 
+export async function findClassByIdOrCode(identifier: string): Promise<Class | null> {
+  const id = Number(identifier);
+  if (isNaN(id)) {
+    return findClassByCode(identifier);
+  } else {
+    return findClassById(id);
+  }
+}
+
 export async function getRosterInfoForStory(classID: number, name: string): Promise<StoryState[]> {
   return StudentsClasses.findAll({
     where: { class_id: classID }

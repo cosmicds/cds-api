@@ -47,6 +47,7 @@ import {
   getClassRoster,
   isClassStoryActive,
   setClassStoryActive,
+  findClassByIdOrCode,
 } from "./database";
 
 import {
@@ -649,12 +650,12 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     res.json(students);
   });
 
-  app.get("/classes/active/:classID/:storyName", async (req, res) => {
-    const classID = Number(req.params.classID);
-    const cls = await findClassById(classID);
+  app.get("/classes/active/:classIdentifier/:storyName", async (req, res) => {
+    const classIdentifier = req.params.classIdentifier;
+    const cls = await findClassByIdOrCode(classIdentifier);
     if (cls === null) {
       res.status(404).json({
-        error: `No class found with ID ${classID}`,
+        error: `No class found: ${classIdentifier}`,
       });
       return;
     }
@@ -667,10 +668,10 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
       return;
     }
 
-    const active = await isClassStoryActive(classID, storyName);
+    const active = await isClassStoryActive(cls.id, storyName);
     if (active === null) {
       res.status(404).json({
-        error: `It seems that class ${classID} is not signed up for story ${storyName}`,
+        error: `It seems that class ${classIdentifier} is not signed up for story ${storyName}`,
       });
       return;
     }
@@ -681,12 +682,12 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
 
   });
 
-  app.post("/classes/active/:classID/:storyName", async (req, res) => {
-    const classID = Number(req.params.classID);
-    const cls = await findClassById(classID);
+  app.post("/classes/active/:classIdentifier/:storyName", async (req, res) => {
+    const classIdentifier = req.params.classIdentifier;
+    const cls = await findClassByIdOrCode(classIdentifier);
     if (cls === null) {
       res.status(404).json({
-        error: `No class found with ID ${classID}`,
+        error: `No class found: ${classIdentifier}`,
       });
       return;
     }
@@ -712,26 +713,27 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
 
     const active = maybe.right.active;
     let error = false;
-    const success = setClassStoryActive(classID, storyName, active)
+    const success = setClassStoryActive(cls.id, storyName, active)
       .catch(_err => {
         error = true;
       });
 
     if (error) {
       res.status(500).json({
-        error: `There was an error updating the active status for class ID ${classID}, story ${storyName}`,
+        error: `There was an error updating the active status for ${classIdentifier}, story ${storyName}`,
       });
       return;
     }
     if (!success) {
       res.status(404).json({
-        error: `It seems that class ${classID} is not signed up for story ${storyName}`,
+        error: `It seems that class ${classIdentifier} is not signed up for story ${storyName}`,
       });
       return;
     }
 
     res.json({
-      class_id: classID,
+      class_id: cls.id,
+      class_code: cls.code,
       story_name: storyName,
       active,
       success: true,
