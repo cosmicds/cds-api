@@ -47,6 +47,7 @@ import {
   getClassRoster,
   isClassStoryActive,
   setClassStoryActive,
+  findClassByIdOrCode,
 } from "./database";
 
 import {
@@ -650,17 +651,11 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
   });
 
   app.get("/classes/active/:classIdentifier/:storyName", async (req, res) => {
-    const classIdentifierString = req.params.classIdentifier;
-    const classIdentifier = Number(classIdentifierString);
-    let cls: Class | null;
-    if (isNaN(classIdentifier)) {
-      cls = await findClassByCode(classIdentifierString); 
-    } else {
-      cls = await findClassById(classIdentifier);
-    }
+    const classIdentifier = req.params.classIdentifier;
+    const cls = await findClassByIdOrCode(classIdentifier);
     if (cls === null) {
       res.status(404).json({
-        error: `No class found: ${classIdentifierString}`,
+        error: `No class found: ${classIdentifier}`,
       });
       return;
     }
@@ -676,7 +671,7 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     const active = await isClassStoryActive(cls.id, storyName);
     if (active === null) {
       res.status(404).json({
-        error: `It seems that class ${classIdentifierString} is not signed up for story ${storyName}`,
+        error: `It seems that class ${classIdentifier} is not signed up for story ${storyName}`,
       });
       return;
     }
@@ -688,14 +683,8 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
   });
 
   app.post("/classes/active/:classIdentifier/:storyName", async (req, res) => {
-    const classIdentifierString = req.params.classIdentifier;
-    const classIdentifier = Number(classIdentifierString);
-    let cls: Class | null;
-    if (isNaN(classIdentifier)) {
-      cls = await findClassByCode(classIdentifierString); 
-    } else {
-      cls = await findClassById(classIdentifier);
-    }
+    const classIdentifier = req.params.classIdentifier;
+    const cls = await findClassByIdOrCode(classIdentifier);
     if (cls === null) {
       res.status(404).json({
         error: `No class found: ${classIdentifier}`,
@@ -731,19 +720,20 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
 
     if (error) {
       res.status(500).json({
-        error: `There was an error updating the active status for ${classIdentifierString}, story ${storyName}`,
+        error: `There was an error updating the active status for ${classIdentifier}, story ${storyName}`,
       });
       return;
     }
     if (!success) {
       res.status(404).json({
-        error: `It seems that class ${classIdentifierString} is not signed up for story ${storyName}`,
+        error: `It seems that class ${classIdentifier} is not signed up for story ${storyName}`,
       });
       return;
     }
 
     res.json({
-      class_identifier: isNaN(classIdentifier) ? classIdentifierString : classIdentifier,
+      class_id: cls.id,
+      class_code: cls.code,
       story_name: storyName,
       active,
       success: true,
