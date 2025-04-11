@@ -555,11 +555,13 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
       cls = await findClassById(id);
     }
 
+    const size = cls != null ? await classSize(cls.id) : 0;
     if (cls === null) {
       res.statusCode = 404;
     }
     res.json({
       class: cls,
+      size,
     });
   });
 
