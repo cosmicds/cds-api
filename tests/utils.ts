@@ -6,7 +6,7 @@ import type { Test } from "supertest";
 import type { InferAttributes, CreationAttributes, Model, Sequelize } from "sequelize";
 
 import { setUpAssociations } from "../src/associations";
-import { Educator, StageState, Story, StoryState, StudentsClasses, initializeModels } from "../src/models";
+import { Educator, IgnoreStudent, StageState, Story, StoryState, StudentsClasses, initializeModels } from "../src/models";
 import { createApp } from "../src/server";
 import { Class, Student } from "../src/models";
 import { APIKey } from "../src/models/api_key";
@@ -81,6 +81,7 @@ export async function syncTables(force=false): Promise<void> {
   await Story.sync(options);
   await StoryState.sync(options);
   await StageState.sync(options);
+  await IgnoreStudent.sync(options);
 }
 
 export async function addAPIKey(): Promise<APIKey | void> {

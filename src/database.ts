@@ -145,6 +145,16 @@ export async function findStudentById(id: number): Promise<Student | null> {
   });
 }
 
+// This is a very common operation, so we create a utility method for it
+export async function findStudentByIdOrUsername(identifier: string): Promise<Student | null> {
+  const id = Number(identifier);
+  if (isNaN(id)) {
+    return findStudentByUsername(identifier);
+  } else {
+    return findStudentById(id);
+  }
+}
+
 export async function findEducatorById(id: number): Promise<Educator | null> {
   return Educator.findOne({
     where: { id }
