@@ -444,8 +444,8 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     const student = await findStudentByIdOrUsername(identifier);
     if (student === null) {
       res.status(404).json({
-        message: `No student found for identifier ${identifier}`,
         success: false,
+        error: `No student found for identifier ${identifier}`,
       });
       return;
     }
@@ -454,8 +454,8 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     const story = await getStory(storyName);
     if (story === null) {
       res.status(404).json({
-        error: `No story found with name ${storyName}`,
         success: false,
+        error: `No story found with name ${storyName}`,
       });
       return;
     }
@@ -466,6 +466,7 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     const maybe = S.decodeUnknownEither(schema)(req.body);
     if (Either.isLeft(maybe)) {
       res.status(400).json({
+        success: false,
         error: "Invalid request body; should have form { ignore: <boolean> }",
       });
       return;
