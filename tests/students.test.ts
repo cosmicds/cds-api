@@ -5,8 +5,8 @@ import request from "supertest";
 import type { InferAttributes, Sequelize } from "sequelize";
 import type { Express } from "express";
 
-import { authorize, createTestApp, getTestDatabaseConnection, setupStudentInClasses } from "./utils";
-import { Class, Student, StudentsClasses } from "../src/models";
+import { authorize, createTestApp, getTestDatabaseConnection, randomStory, randomStudent, setupStudentInClasses } from "./utils";
+import { Class, IgnoreStudent, Student, StudentsClasses } from "../src/models";
 import { v4 } from "uuid";
 
 let testDB: Sequelize;
@@ -147,6 +147,93 @@ describe("Test student routes", () => {
 
     await cleanup();
 
+  });
+
+  it("Should properly ignore and un-ignore a student", async () => {
+    const student = await randomStudent();
+    const story = await randomStory();
+
+    async function getIgnore() {
+      return IgnoreStudent.findOne({
+        where: {
+          student_id: student.id,
+          story_name: story.name,
+        }
+      });
+    }
+
+    function setIgnored(ignore: boolean) {
+      return authorize(request(testApp).put(`/students/ignore/${student.id}/${story.name}`))
+        .send({ ignore });
+    }
+
+    await setIgnored(true)
+      .expect(200)
+      .expect({
+        success: true,
+        message: `Successfully ignored student ${student.id} for story ${story.name}`,
+      });
+
+    expect(await getIgnore()).not.toBeNull();
+
+    await setIgnored(true)
+      .expect(200)
+      .expect({
+        success: true,
+        message: `Student ${student.id} was already ignored for story ${story.name}`,
+      });
+
+    expect(await getIgnore()).not.toBeNull();
+
+    await setIgnored(false)
+      .expect(200)
+      .expect({
+        success: true,
+        message: `Successfully unignored student ${student.id} for story ${story.name}`,
+      });
+
+    expect(await getIgnore()).toBeNull();
+
+    await setIgnored(false)
+      .expect(200)
+      .expect({
+        success: true,
+        message: `Student ${student.id} was already not ignored for story ${story.name}`,
+      });
+
+    expect(await getIgnore()).toBeNull();
+  });
+
+  it("Should properly handle invalid ignore student requests", async () => {
+
+    const badID = -1;
+    const badStory = v4();
+    await authorize(request(testApp).put(`/students/ignore/${badID}/${badStory}`))
+      .expect(404)
+      .expect({
+        success: false,
+        error: `No student found for identifier ${badID}`,
+      });
+
+    const student = await randomStudent();
+    await authorize(request(testApp).put(`/students/ignore/${student.username}/${badStory}`))
+      .expect(404)
+      .expect({
+        success: false,
+        error: `No story found with name ${badStory}`,
+      });
+
+    const story = await randomStory();
+    await authorize(request(testApp).put(`/students/ignore/${student.username}/${story.name}`))
+      .send({ bogusKey: true })
+      .expect(400)
+      .expect({
+        success: false,
+        error: "Invalid request body; should have form { ignore: <boolean> }",
+      });
+
+    await student.destroy();
+    await story.destroy();
   });
 
 });
