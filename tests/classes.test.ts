@@ -48,6 +48,7 @@ describe("Test class routes", () => {
         .then((res) => {
           const resCls = res.body.class;
           expectToMatchModel(resCls, cls, ["created", "updated"]);
+          expect(res.body.size).toEqual(0);
         });
     }
     await cleanup();
@@ -62,6 +63,7 @@ describe("Test class routes", () => {
         .then((res) => {
           const resCls = res.body.class;
           expectToMatchModel(resCls, cls, ["created", "updated"]);
+          expect(res.body.size).toEqual(0);
         });
     }
     await cleanup();
@@ -74,6 +76,7 @@ describe("Test class routes", () => {
       .expect("Content-Type", /json/)
       .then((res) => {
         expect(res.body.class).toBeNull();
+        expect(res.body.size).toEqual(0);
       });
   });
 
