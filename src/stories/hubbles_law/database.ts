@@ -881,25 +881,40 @@ export async function findClassForMerge(database: Sequelize, classID: number): P
   // will probably be unreadable
   const result = await database.query(
     `
-    SELECT
+    SELECT 
         id,
-        COUNT(*) as group_count,
+        COUNT(*) AS group_count,
         IFNULL(group_id, UUID()) AS unique_gid,
         (group_id IS NOT NULL) AS is_group,
-        MAX(merge_order) as merged_count
+        MAX(merge_order) AS merged_count
     FROM
         Classes
             LEFT OUTER JOIN
-        (SELECT * FROM HubbleClassMergeGroups ORDER BY merge_order DESC) G ON Classes.id = G.class_id
-    		INNER JOIN
-    		(
-    			SELECT * FROM StudentsClasses GROUP BY class_id
-    			HAVING COUNT(student_id) >= 15
-    		) C
-    		ON Classes.id = C.class_id
-    WHERE id != ${classID}
+        (SELECT 
+            *
+        FROM
+            IgnoreClasses
+        WHERE
+            (story_name IS NULL
+                OR story_name = 'hubbles_law')) ignore_classes ON ignore_classes.class_id = Classes.id
+            LEFT OUTER JOIN
+        (SELECT 
+            *
+        FROM
+            HubbleClassMergeGroups
+        ORDER BY merge_order DESC) G ON Classes.id = G.class_id
+            INNER JOIN
+        (SELECT 
+            *
+        FROM
+            StudentsClasses
+        GROUP BY class_id
+        HAVING COUNT(student_id) >= 15) C ON Classes.id = C.class_id
+    WHERE
+        id != ${classID}
+        AND ignore_classes.class_id IS NULL
     GROUP BY unique_gid
-    ORDER BY is_group ASC, group_count ASC, merged_count DESC
+    ORDER BY is_group ASC , group_count ASC , merged_count DESC
     LIMIT 1;
         `,
     { type: QueryTypes.SELECT }
