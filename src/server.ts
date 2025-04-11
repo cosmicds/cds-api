@@ -48,6 +48,7 @@ import {
   isClassStoryActive,
   setClassStoryActive,
   findClassByIdOrCode,
+  findStudentByIdOrUsername,
 } from "./database";
 
 import {
@@ -57,7 +58,7 @@ import {
   VerificationResult,
 } from "./request_results";
 
-import { CosmicDSSession, StudentsClasses, Class, Student } from "./models";
+import { CosmicDSSession, StudentsClasses, Class, Student, IgnoreStudent } from "./models";
 
 import { ParsedQs } from "qs";
 import express, { Express, Request, Response as ExpressResponse } from "express";
@@ -74,6 +75,7 @@ import { setupApp } from "./app";
 import { getAPIKey } from "./authorization";
 import { Sequelize } from "sequelize";
 import { sendEmail } from "./email";
+import { logger } from "./logger";
 
 // TODO: Clean up these type definitions
 
@@ -354,15 +356,7 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     "/students/:identifier",
     "/student/:identifier", // Backwards compatibility
   ], async (req, res) => {
-    const params = req.params;
-    const id = Number(params.identifier);
-
-    let student: Student | null;
-    if (isNaN(id)) {
-      student = await findStudentByUsername(params.identifier);
-    } else {
-      student = await findStudentById(id);
-    }
+    const student = await findStudentByIdOrUsername(req.params.identifier);
     if (student == null) {
       res.statusCode = 404;
     }
@@ -372,15 +366,7 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
   });
 
   app.get("/students/:identifier/classes", async (req, res) => {
-    const id = Number(req.params.identifier);
-
-    let student;
-    if (isNaN(id)) {
-      student = await findStudentByUsername(req.params.identifier);
-    } else {
-      student = await findStudentById(id);
-    }
-
+    const student = await findStudentByIdOrUsername(req.params.identifier);
     if (student === null) {
       res.statusCode = 404;
       res.json({
@@ -399,15 +385,9 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
   });
 
   app.delete("/students/:identifier/classes/:classID", async (req, res) => {
-    const identifier = Number(req.params.identifier);
 
-    let student;
-    if (isNaN(identifier)) {
-      student = await findStudentByUsername(req.params.identifier);
-    } else {
-      student = await findStudentById(identifier);
-    }
-
+    const identifier = req.params.identifier;
+    const student = await findStudentByIdOrUsername(identifier);
     if (student === null) {
       res.statusCode = 404;
       res.json({
@@ -457,6 +437,86 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
         });
       });
 
+  });
+
+  app.put("/students/ignore/:identifier/:storyName", async (req, res) => {
+    const identifier = req.params.identifier;
+    const student = await findStudentByIdOrUsername(identifier);
+    if (student === null) {
+      res.status(404).json({
+        message: `No student found for identifier ${identifier}`,
+        success: false,
+      });
+      return;
+    }
+
+    const storyName = req.params.storyName;
+    const story = await getStory(storyName);
+    if (story === null) {
+      res.status(404).json({
+        error: `No story found with name ${storyName}`,
+        success: false,
+      });
+      return;
+    }
+
+    const schema = S.struct({
+      ignore: S.boolean
+    });
+    const maybe = S.decodeUnknownEither(schema)(req.body);
+    if (Either.isLeft(maybe)) {
+      res.status(400).json({
+        error: "Invalid request body; should have form { ignore: <boolean> }",
+      });
+      return;
+    }
+
+    const ignore = maybe.right.ignore;
+    let success = false;
+    let message: string;
+    
+    if (ignore) {
+
+      const [ignored, created] = await IgnoreStudent.upsert({
+        student_id: student.id,
+        story_name: story.name,
+      });
+      success = ignored !== null;
+      res.statusCode = success ? 200 : 500;
+      if (!success) {
+        message = `Error ignoring student ${student.id} in story ${story.name}`;
+      } else if (!created) {
+        message = `Student ${student.id} was already ignored for story ${story.name}`;
+      } else {
+        message = `Successfully ignored student ${student.id} for story ${story.name}`;
+      }
+    } else {
+      const modified = await IgnoreStudent.destroy({
+        where: {
+          student_id: student.id,
+          story_name: story.name,
+        }
+      })
+      .then((count) => {
+        success = true;
+        return count;
+      })
+      .catch((error: Error) => {
+        logger.error(error);
+        success = false;
+        return 0;
+      });
+
+      if (!success) {
+        message = `Error unignoring student ${student.id} for story ${story.name}`;
+      } else if (modified === 0) {
+        message = `Student ${student.id} was already not ignored for story ${story.name}`;
+      } else {
+        message = `Successfully unignored student ${student.id} for story ${story.name}`;
+      }
+    }
+
+    res.json({ success, message });
   });
 
   app.get("/educators/:identifier", async (req, res) => {
