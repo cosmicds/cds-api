@@ -58,7 +58,7 @@ import {
   VerificationResult,
 } from "./request_results";
 
-import { CosmicDSSession, StudentsClasses, Class, Student, IgnoreStudent } from "./models";
+import { CosmicDSSession, StudentsClasses, Class, IgnoreStudent } from "./models";
 
 import { ParsedQs } from "qs";
 import express, { Express, Request, Response as ExpressResponse } from "express";
