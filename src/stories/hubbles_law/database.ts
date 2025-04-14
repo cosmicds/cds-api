@@ -8,6 +8,7 @@ import { HubbleClassData } from "./models/hubble_class_data";
 import { IgnoreClass, IgnoreStudent } from "../../models";
 import { logger } from "../../logger";
 import { HubbleClassMergeGroup } from "./models/hubble_class_merge_group";
+import { mySqlDatetime } from "../../utils";
 
 const galaxyAttributes = ["id", "ra", "decl", "z", "type", "name", "element"];
 
@@ -652,59 +653,76 @@ export async function getAllHubbleStudentData(before: Date | null = null, minima
   return data;
 }
 
-export async function getAllHubbleClassData(before: Date | null = null, minimal=false, classID: number | null = null): Promise<HubbleClassData[]> {
-  const whereOptions: WhereOptions<HubbleClassData> = [
-    { "$class.IgnoreClasses.class_id$": null },
-  ];
-  if (before !== null) {
-    whereOptions.push({ last_data_update: { [Op.lt]: before } });
-  }
-  const studentsClassesWhere: WhereOptions<StudentsClasses> = [];
+export async function getAllHubbleClassData(database: Sequelize, before: Date | null = null, minimal=false, classID: number | null = null): Promise<HubbleClassData[]> {
+  const lastUpdate = before !== null ? `AND HubbleClassData.last_data_update < ${mySqlDatetime(before)}` : "";
+  const attributes = minimal ? ["HubbleClassData.class_id", "HubbleClassData.age_value"].join(", ") : "*";
+  let classIDString: string;
   if (classID !== null) {
     const classIDs = await getMergedIDsForClass(classID, true);
-    studentsClassesWhere.push({ class_id : { [Op.notIn]: classIDs } });
+    classIDString = `(${classIDs.join(", ")})`;
+  } else {
+    classIDString = "";
   }
-  const query: FindOptions<HubbleClassData> = {
-    include: [{
-      model: StudentsClasses,
-      as: "class_data",
-      attributes: [],
-      where: studentsClassesWhere,
-      include: [{
-        model: Student,
-        attributes: [
-          "id",
-          [Sequelize.fn("COUNT", Sequelize.col("id")), "count"],
-        ],
-        include: [{
-          model: HubbleMeasurement,
-          where: EXCLUDE_MEASUREMENTS_WITH_NULL_CONDITION,
-        }],
-      }]
-    },
-    {
-      model: Class,
-      as: "class",
-      attributes: [],
-      include: [{
-        model: IgnoreClass,
-        required: false,
-        attributes: [],
-        where: {
-          story_name: "hubbles_law",
-        }
-      }],
-    }],
-    where: {
-      [Op.and]: whereOptions
-    },
-    group: ["HubbleClassData.class_id"],
-    having: Sequelize.where(Sequelize.fn("count", Sequelize.col("HubbleClassData.class_id")), { [Op.gte]: 13*5 })
-  };
-  if (minimal) {
-    query.attributes = ["class_id", "age_value"];
-  }
-  return HubbleClassData.findAll(query);
+  const sql = `
+    SELECT 
+        ${attributes}
+    FROM
+        HubbleClassData
+            INNER JOIN
+        StudentsClasses ON HubbleClassData.class_id = StudentsClasses.class_id
+            AND (StudentsClasses.class_id NOT IN ${classIDString})
+            LEFT OUTER JOIN
+        HubbleMeasurements ON HubbleMeasurements.student_id = StudentsClasses.student_id
+            AND HubbleMeasurements.rest_wave_value IS NOT NULL
+            AND HubbleMeasurements.obs_wave_value IS NOT NULL
+            AND HubbleMeasurements.est_dist_value IS NOT NULL
+            AND HubbleMeasurements.velocity_value IS NOT NULL
+            AND HubbleMeasurements.ang_size_value IS NOT NULL
+            LEFT OUTER JOIN
+        Classes ON HubbleClassData.class_id = Classes.id
+            LEFT OUTER JOIN
+    	IgnoreClasses ON IgnoreClasses.class_id = Classes.id
+            AND IgnoreClasses.story_name = 'hubbles_law'
+            LEFT OUTER JOIN
+    	(
+    			SELECT 
+    			id, COUNT(id) as count
+    		FROM
+    			Students
+    				INNER JOIN
+    			HubbleMeasurements ON Students.id = HubbleMeasurements.student_id
+    				LEFT OUTER JOIN
+    			(
+    				SELECT 
+    					*
+    				FROM
+    					IgnoreStudents
+    				WHERE
+    					(story_name IS NULL
+    						OR story_name = 'hubbles_law')
+    			)
+    			ignore_students ON ignore_students.student_id = HubbleMeasurements.student_id
+    		WHERE
+    			HubbleMeasurements.obs_wave_value IS NOT NULL
+    				AND HubbleMeasurements.rest_wave_value IS NOT NULL
+    				AND HubbleMeasurements.est_dist_value IS NOT NULL
+    				AND HubbleMeasurements.ang_size_value IS NOT NULL
+    				AND HubbleMeasurements.velocity_value IS NOT NULL
+    				AND ignore_students.student_id IS NULL
+    
+    		GROUP BY id
+    		HAVING count >= 5
+        ) students ON students.id = StudentsClasses.student_id
+    WHERE
+        (IgnoreClasses.class_id IS NULL) ${lastUpdate}
+    GROUP BY HubbleClassData.class_id
+    HAVING COUNT(HubbleClassData.class_id) >= 65;
+  `;
+
+  return database.query(sql, {
+    type: QueryTypes.SELECT,
+    model: HubbleClassData,
+  });
 }
 
 export async function removeHubbleMeasurement(studentID: number, galaxyID: number): Promise<RemoveHubbleMeasurementResult> {
