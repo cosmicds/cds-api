@@ -636,6 +636,19 @@ export async function getAllHubbleClassData(before: Date | null = null, minimal=
       as: "class_data",
       attributes: [],
       where: studentsClassesWhere,
+      include: [
+        {
+          model: HubbleMeasurement,
+          attributes: [],
+          where: {
+            rest_wave_value: { [Op.ne]: null },
+            obs_wave_value: { [Op.ne]: null },
+            est_dist_value: { [Op.ne]: null },
+            velocity_value: { [Op.ne]: null },
+            ang_size_value: { [Op.ne]: null },
+          }
+        },
+      ]
     },
     {
       model: Class,
@@ -654,7 +667,7 @@ export async function getAllHubbleClassData(before: Date | null = null, minimal=
       [Op.and]: whereOptions
     },
     group: ["HubbleClassData.class_id"],
-    having: Sequelize.where(Sequelize.fn("count", Sequelize.col("HubbleClassData.class_id")), { [Op.gte]: 13 })
+    having: Sequelize.where(Sequelize.fn("count", Sequelize.col("HubbleClassData.class_id")), { [Op.gte]: 13*5 })
   };
   if (minimal) {
     query.attributes = ["class_id", "age_value"];
