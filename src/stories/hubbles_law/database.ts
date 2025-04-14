@@ -653,8 +653,12 @@ export async function getAllHubbleStudentData(before: Date | null = null, minima
   return data;
 }
 
-export async function getAllHubbleClassData(database: Sequelize, before: Date | null = null, minimal=false, classID: number | null = null): Promise<HubbleClassData[]> {
-  const lastUpdate = before !== null ? `AND HubbleClassData.last_data_update < ${mySqlDatetime(before)}` : "";
+export async function getAllHubbleClassData(before: Date | null = null, minimal=false, classID: number | null = null): Promise<HubbleClassData[]> {
+  const database = HubbleClassData.sequelize;
+  if (database == null) {
+    return [];
+  }
+  const lastUpdate = before !== null ? `AND HubbleClassData.last_data_update < '${mySqlDatetime(before)}'` : "";
   const attributes = minimal ? ["HubbleClassData.class_id", "HubbleClassData.age_value"].join(", ") : "*";
   let classIDString: string;
   if (classID !== null) {
@@ -684,7 +688,7 @@ export async function getAllHubbleClassData(database: Sequelize, before: Date | 
     	IgnoreClasses ON IgnoreClasses.class_id = Classes.id
             AND IgnoreClasses.story_name = 'hubbles_law'
             LEFT OUTER JOIN
-    	(
+      (
     			SELECT 
     			id, COUNT(id) as count
     		FROM
@@ -712,7 +716,7 @@ export async function getAllHubbleClassData(database: Sequelize, before: Date | 
     
     		GROUP BY id
     		HAVING count >= 5
-        ) students ON students.id = StudentsClasses.student_id
+      ) students ON students.id = StudentsClasses.student_id
     WHERE
         (IgnoreClasses.class_id IS NULL) ${lastUpdate}
     GROUP BY HubbleClassData.class_id
