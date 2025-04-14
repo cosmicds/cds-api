@@ -180,24 +180,6 @@ const EXCLUDE_MEASUREMENTS_WITH_NULL_CONDITION: WhereAttributeHash<HubbleMeasure
   est_dist_value: { [Op.not]: null }
 };
 
-const STUDENTS_COMPLETE_MEASUREMENTS_SQL = `
-SELECT 
-    id, COUNT(id) as count
-FROM
-    Students
-        INNER JOIN
-    HubbleMeasurements ON Students.id = HubbleMeasurements.student_id
-WHERE
-    HubbleMeasurements.obs_wave_value IS NOT NULL
-        AND HubbleMeasurements.rest_wave_value IS NOT NULL
-        AND HubbleMeasurements.est_dist_value IS NOT NULL
-        AND HubbleMeasurements.ang_size_value IS NOT NULL
-        AND HubbleMeasurements.velocity_value IS NOT NULL
-
-GROUP BY id
-HAVING count >= 5;
-`;
-
 export async function getStudentsWithCompleteMeasurements(): Promise<Student[]> {
   return Student.findAll({
     attributes: [
