@@ -666,8 +666,8 @@ export async function getAllHubbleClassData(before: Date | null = null, minimal=
             LEFT OUTER JOIN
         Classes ON HubbleClassData.class_id = Classes.id
             LEFT OUTER JOIN
-    	IgnoreClasses ON IgnoreClasses.class_id = Classes.id
-            AND IgnoreClasses.story_name = 'hubbles_law'
+      (SELECT class_id AS cid, story_name FROM IgnoreClasses) ignore_classes ON ignore_classes.cid = Classes.id
+            AND ignore_classes.story_name = 'hubbles_law'
             LEFT OUTER JOIN
       (
     			SELECT 
@@ -699,7 +699,7 @@ export async function getAllHubbleClassData(before: Date | null = null, minimal=
     		HAVING count >= 5
       ) students ON students.id = StudentsClasses.student_id
     WHERE
-        (IgnoreClasses.class_id IS NULL) ${lastUpdate}
+        (ignore_classes.cid IS NULL) ${lastUpdate}
     GROUP BY HubbleClassData.class_id
     HAVING COUNT(HubbleClassData.class_id) >= 75;
   `;
