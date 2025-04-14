@@ -702,7 +702,7 @@ export async function getAllHubbleClassData(before: Date | null = null, minimal=
     WHERE
         (IgnoreClasses.class_id IS NULL) ${lastUpdate}
     GROUP BY HubbleClassData.class_id
-    HAVING COUNT(HubbleClassData.class_id) >= 65;
+    HAVING COUNT(HubbleClassData.class_id) >= 75;
   `;
 
   return database.query(sql, {
