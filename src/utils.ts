@@ -102,3 +102,7 @@ export function isNumberArray(arr: any): arr is number[] {
 export function isStringArray(arr: any): arr is string[] {
   return Array.isArray(arr) && arr.every(x => typeof x === "string");
 }
+
+export function mySqlDatetime(dt: Date): string {
+  return `${String(dt.getUTCFullYear()).padStart(4, "0")}-${String(dt.getUTCMonth()+1).padStart(2, "0")}-${String(dt.getUTCDay()).padStart(2, "0")} ${String(dt.getUTCHours()).padStart(2, "0")}:${String(dt.getUTCMinutes()).padStart(2, "0")}:${String(dt.getUTCSeconds()).padStart(2, "0")}`;
+}
