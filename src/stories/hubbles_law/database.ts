@@ -179,6 +179,40 @@ const EXCLUDE_MEASUREMENTS_WITH_NULL_CONDITION: WhereAttributeHash<HubbleMeasure
   est_dist_value: { [Op.not]: null }
 };
 
+const STUDENTS_COMPLETE_MEASUREMENTS_SQL = `
+SELECT 
+    id, COUNT(id) as count
+FROM
+    Students
+        INNER JOIN
+    HubbleMeasurements ON Students.id = HubbleMeasurements.student_id
+WHERE
+    HubbleMeasurements.obs_wave_value IS NOT NULL
+        AND HubbleMeasurements.rest_wave_value IS NOT NULL
+        AND HubbleMeasurements.est_dist_value IS NOT NULL
+        AND HubbleMeasurements.ang_size_value IS NOT NULL
+        AND HubbleMeasurements.velocity_value IS NOT NULL
+
+GROUP BY id
+HAVING count >= 5;
+`;
+
+export async function getStudentsWithCompleteMeasurements(): Promise<Student[]> {
+  return Student.findAll({
+    attributes: [
+      "id",
+      [Sequelize.fn("COUNT", Sequelize.col("id")), "count"],
+    ],
+    include: [{
+      model: HubbleMeasurement,
+      where: EXCLUDE_MEASUREMENTS_WITH_NULL_CONDITION,
+    }],
+    
+    group: ["id"],
+    having: Sequelize.where(Sequelize.fn("count", Sequelize.col("count")), { [Op.gte]: 5 })
+  });
+}
+
 export async function getAllSampleHubbleMeasurements(excludeWithNull = true): Promise<SampleHubbleMeasurement[]> {
   const query = excludeWithNull ? { where: EXCLUDE_MEASUREMENTS_WITH_NULL_CONDITION } : {};
   return SampleHubbleMeasurement.findAll(query).catch(_error => []);
@@ -636,19 +670,17 @@ export async function getAllHubbleClassData(before: Date | null = null, minimal=
       as: "class_data",
       attributes: [],
       where: studentsClassesWhere,
-      include: [
-        {
+      include: [{
+        model: Student,
+        attributes: [
+          "id",
+          [Sequelize.fn("COUNT", Sequelize.col("id")), "count"],
+        ],
+        include: [{
           model: HubbleMeasurement,
-          attributes: [],
-          where: {
-            rest_wave_value: { [Op.ne]: null },
-            obs_wave_value: { [Op.ne]: null },
-            est_dist_value: { [Op.ne]: null },
-            velocity_value: { [Op.ne]: null },
-            ang_size_value: { [Op.ne]: null },
-          }
-        },
-      ]
+          where: EXCLUDE_MEASUREMENTS_WITH_NULL_CONDITION,
+        }],
+      }]
     },
     {
       model: Class,
