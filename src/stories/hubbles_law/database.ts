@@ -645,7 +645,7 @@ export async function getAllHubbleClassData(before: Date | null = null, minimal=
   let classIDString: string;
   if (classID !== null) {
     const classIDs = await getMergedIDsForClass(classID, true);
-    classIDString = `(${classIDs.join(", ")})`;
+    classIDString = `\nAND StudentsClasses.class_id NOT IN (${classIDs.join(", ")})`;
   } else {
     classIDString = "";
   }
@@ -655,8 +655,7 @@ export async function getAllHubbleClassData(before: Date | null = null, minimal=
     FROM
         HubbleClassData
             INNER JOIN
-        StudentsClasses ON HubbleClassData.class_id = StudentsClasses.class_id
-            AND (StudentsClasses.class_id NOT IN ${classIDString})
+        StudentsClasses ON HubbleClassData.class_id = StudentsClasses.class_id ${classIDString}
             LEFT OUTER JOIN
         HubbleMeasurements ON HubbleMeasurements.student_id = StudentsClasses.student_id
             AND HubbleMeasurements.rest_wave_value IS NOT NULL
