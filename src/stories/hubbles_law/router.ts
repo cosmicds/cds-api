@@ -469,7 +469,7 @@ router.get("/all-data", async (req, res) => {
   const [measurements, studentData, classData] =
     await Promise.all([
       getAllHubbleMeasurements(before, minimal, classID),
-      getAllHubbleStudentData(before, minimal, classID),
+      getAllHubbleStudentData([], minimal),
       getAllHubbleClassData(before, minimal, classID)
     ]);
   res.json({

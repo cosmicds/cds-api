@@ -572,67 +572,69 @@ export async function getAllHubbleMeasurements(before: Date | null = null,
 }
 
 const MINIMAL_STUDENT_DATA_FIELDS = ["student_id", "age_value"];
-export async function getAllHubbleStudentData(before: Date | null = null, minimal=false, classID: number | null = null): Promise<HubbleStudentData[]> {
-  const whereOptions: WhereOptions = [
-    { "$student.IgnoreStudents.student_id$": null },
-    { "$student.Classes.IgnoreClasses.class_id$": null },
-  ];
-  if (before !== null) {
-    whereOptions.push({ last_data_update: { [Op.lt]: before } });
-  }
-  const classesWhere: WhereOptions<Class> = [];
-  if (classID !== null) {
-    const classIDs = await getMergedIDsForClass(classID, true);
-    classesWhere.push({ id : { [Op.notIn]: classIDs } });
-  }
-  const exclude = minimal ? Object.keys(HubbleStudentData.getAttributes()).filter(key => !MINIMAL_STUDENT_DATA_FIELDS.includes(key)) : [];
+export async function getAllHubbleStudentData(includeClasses: number[] = [], minimal=false,): Promise<HubbleStudentData[]> {
 
-  const data = await HubbleStudentData.findAll({
-    raw: true, // We want a flattened object
-    attributes: {
-      // The "student" here comes from the alias below
-      // We do this so that we get access to the included field as just "class_id"
-      include: [[Sequelize.col("student.Classes.id"), "class_id"]],
-      exclude,
-    },
-    where: {
-      [Op.and]: whereOptions
-    },
-    include: [{
-      model: Student,
-      as: "student",
-      attributes: minimal ? [] : ["seed", "dummy"],
-      include: [{
-        model: IgnoreStudent,
-        required: false,
-        attributes: [],
-        where: {
-          story_name: "hubbles_law"
-        }
-      },
-      {
-        model: Class,
-        attributes: [],
-        through: { attributes: [] },
-        where: classesWhere,
-        include: [{
-          model: IgnoreClass,
-          required: false,
-          attributes: [],
-          where: {
-            story_name: "hubbles_law",
-          }
-        }],
-      }],
-      where: {
-         [Op.or]: [
-          { seed: 1 }, { dummy: 0 }
-        ]
-      }
-    }],
+  const database = HubbleStudentData.sequelize;
+  if (database == null) {
+    return [];
+  }
+
+  const attributes = minimal ? MINIMAL_STUDENT_DATA_FIELDS.map(field => `A.${field}`).join(",\n") : "A.*";
+  const having = includeClasses.length ? `\nHAVING class_id IN (${includeClasses.join(", ")})` : "";
+
+  const sql = `
+    SELECT
+        ${attributes},
+        COALESCE(Z.merged_cid, A.class_id) AS class_id 
+    FROM
+    	(SELECT HubbleStudentData.student_id, HubbleStudentData.age_value, class_id FROM StudentsClasses
+    		INNER JOIN
+    	HubbleStudentData ON StudentsClasses.student_id = HubbleStudentData.student_id) A
+    		LEFT OUTER JOIN
+        (SELECT Y.student_id, Y.merged_cid, Y.class_id, age_value FROM HubbleStudentData
+            INNER JOIN
+        Students ON HubbleStudentData.student_id = Students.id
+            AND (Students.seed = 1 OR Students.dummy = 0)
+            LEFT OUTER JOIN
+        IgnoreStudents ON Students.id = IgnoreStudents.student_id
+            AND IgnoreStudents.story_name = "hubbles_law"
+            LEFT OUTER JOIN
+        (
+            SELECT 
+                student_id, merged_cid, X.class_id
+            FROM
+                StudentsClasses
+                    INNER JOIN
+                (SELECT 
+                    class_id, merged_cid
+                FROM
+                    HubbleClassMergeGroups L
+                INNER JOIN (SELECT 
+                    group_id, class_id AS merged_cid
+                FROM
+                    HubbleClassMergeGroups G
+                WHERE
+                    G.merge_order = (SELECT 
+                            MAX(H.merge_order)
+                        FROM
+                            HubbleClassMergeGroups H
+                        WHERE
+                            H.group_id = G.group_id)) K ON K.group_id = L.group_id) X ON X.class_id = StudentsClasses.class_id
+        ) Y ON Y.student_id = HubbleStudentData.student_id
+            LEFT OUTER JOIN
+        IgnoreClasses ON Y.merged_cid = IgnoreClasses.class_id
+            AND IgnoreClasses.story_name = "hubbles_law"
+    WHERE
+        IgnoreStudents.student_id IS NULL
+        AND IgnoreClasses.class_id IS NULL)
+    Z ON Z.student_id = A.student_id
+    GROUP BY student_id ${having};
+  `;
+
+  return database.query(sql, {
+    type: QueryTypes.SELECT,
+    model: HubbleStudentData,
   });
-
-  return data;
 }
 
 export async function getAllHubbleClassData(before: Date | null = null, minimal=false, classID: number | null = null): Promise<HubbleClassData[]> {
@@ -978,6 +980,7 @@ async function nextMergeGroupID(): Promise<number> {
   })) as (HubbleClassMergeGroup & { group_id: number })[];
   return (max[0].group_id + 1) as number;
 }
+
 
 export async function addClassToMergeGroup(classID: number): Promise<number | null> {
 
