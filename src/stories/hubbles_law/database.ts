@@ -647,19 +647,40 @@ export async function getAllHubbleClassData(before: Date | null = null, minimal=
   let classIDString: string;
   if (classID !== null) {
     const classIDs = await getMergedIDsForClass(classID, true);
-    classIDString = `\nAND StudentsClasses.class_id NOT IN (${classIDs.join(", ")})`;
+    classIDString = `\nAND SC.class_id NOT IN (${classIDs.join(", ")})`;
   } else {
     classIDString = "";
   }
   const sql = `
     SELECT 
-        ${attributes}
+      ${attributes}
     FROM
         HubbleClassData
             INNER JOIN
-        StudentsClasses ON HubbleClassData.class_id = StudentsClasses.class_id ${classIDString}
+        (
+		SELECT 
+			student_id, COALESCE(merged_cid, StudentsClasses.class_id) AS class_id
+		FROM
+			StudentsClasses
+				LEFT OUTER JOIN
+			(SELECT 
+				class_id, merged_cid
+			FROM
+				HubbleClassMergeGroups L
+			INNER JOIN (SELECT 
+				group_id, class_id AS merged_cid
+			FROM
+				HubbleClassMergeGroups G
+			WHERE
+				G.merge_order = (SELECT 
+						MAX(H.merge_order)
+					FROM
+						HubbleClassMergeGroups H
+					WHERE
+						H.group_id = G.group_id)) K ON K.group_id = L.group_id) X ON X.class_id = StudentsClasses.class_id
+        ) SC ON HubbleClassData.class_id = SC.class_id ${classIDString}
             LEFT OUTER JOIN
-        HubbleMeasurements ON HubbleMeasurements.student_id = StudentsClasses.student_id
+        HubbleMeasurements ON HubbleMeasurements.student_id = SC.student_id
             AND HubbleMeasurements.rest_wave_value IS NOT NULL
             AND HubbleMeasurements.obs_wave_value IS NOT NULL
             AND HubbleMeasurements.est_dist_value IS NOT NULL
@@ -699,7 +720,7 @@ export async function getAllHubbleClassData(before: Date | null = null, minimal=
     
     		GROUP BY id
     		HAVING count >= 5
-      ) students ON students.id = StudentsClasses.student_id
+      ) students ON students.id = SC.student_id
     WHERE
         (ignore_classes.cid IS NULL) ${lastUpdate}
     GROUP BY HubbleClassData.class_id
