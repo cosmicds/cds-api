@@ -466,11 +466,26 @@ router.get("/all-data", async (req, res) => {
   }
   const beforeMs: number = parseInt(req.query.before as string);
   const before = isNaN(beforeMs) ? null : new Date(beforeMs);
-  const [measurements, studentData, classData] =
+  const classData = await getAllHubbleClassData(before, minimal, classID);
+  const classIDs = new Set(classData.map(data => data.class_id));
+  for (const id of classIDs) {
+    const mergedIDs = await getMergedIDsForClass(id, true);
+    mergedIDs.forEach(mid => {
+      if (!classIDs.has(mid)) {
+        classIDs.add(mid);
+      }
+    });
+  }
+
+  if (classID !== null) {
+    const merged = await getMergedIDsForClass(classID, true);
+    merged.forEach(mid => classIDs.delete(mid));
+  }
+
+  const [measurements, studentData] =
     await Promise.all([
       getAllHubbleMeasurements(before, minimal, classID),
-      getAllHubbleStudentData(before, minimal, classID),
-      getAllHubbleClassData(before, minimal, classID)
+      getAllHubbleStudentData([...classIDs], minimal),
     ]);
   res.json({
     measurements,
