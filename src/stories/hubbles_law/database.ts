@@ -571,7 +571,7 @@ export async function getAllHubbleMeasurements(before: Date | null = null,
 
 }
 
-const MINIMAL_STUDENT_DATA_FIELDS = ["student_id", "age_value"];
+const MINIMAL_STUDENT_DATA_FIELDS = ["student_id", "age_value", "class_id"];
 export async function getAllHubbleStudentData(includeClasses: number[] = [], minimal=false,): Promise<HubbleStudentData[]> {
 
   const database = HubbleStudentData.sequelize;
@@ -579,56 +579,55 @@ export async function getAllHubbleStudentData(includeClasses: number[] = [], min
     return [];
   }
 
-  const attributes = minimal ? MINIMAL_STUDENT_DATA_FIELDS.map(field => `A.${field}`).join(",\n") : "A.*";
+  const attributes = minimal ? MINIMAL_STUDENT_DATA_FIELDS.map(field => `B.${field}`).join(",\n") : "B.*";
   const having = includeClasses.length ? `\nHAVING class_id IN (${includeClasses.join(", ")})` : "";
 
   const sql = `
-    SELECT
-        ${attributes},
-        COALESCE(Z.merged_cid, A.class_id) AS class_id 
+    SELECT ${attributes} FROM (SELECT 
+        A.student_id,
+        A.age_value,
+        COALESCE(Z.merged_cid, A.class_id) AS class_id
     FROM
-    	(SELECT HubbleStudentData.student_id, HubbleStudentData.age_value, class_id FROM StudentsClasses
-    		INNER JOIN
-    	HubbleStudentData ON StudentsClasses.student_id = HubbleStudentData.student_id) A
-    		LEFT OUTER JOIN
-        (SELECT Y.student_id, Y.merged_cid, Y.class_id, age_value FROM HubbleStudentData
-            INNER JOIN
-        Students ON HubbleStudentData.student_id = Students.id
+        (SELECT 
+            HubbleStudentData.student_id,
+                HubbleStudentData.age_value,
+                class_id
+        FROM
+            StudentsClasses
+        INNER JOIN HubbleStudentData ON StudentsClasses.student_id = HubbleStudentData.student_id) A
+            LEFT OUTER JOIN
+        (SELECT 
+            Y.student_id, Y.merged_cid, Y.class_id, age_value
+        FROM
+            HubbleStudentData
+        INNER JOIN Students ON HubbleStudentData.student_id = Students.id
             AND (Students.seed = 1 OR Students.dummy = 0)
-            LEFT OUTER JOIN
-        IgnoreStudents ON Students.id = IgnoreStudents.student_id
-            AND IgnoreStudents.story_name = "hubbles_law"
-            LEFT OUTER JOIN
-        (
-            SELECT 
-                student_id, merged_cid, X.class_id
-            FROM
-                StudentsClasses
-                    INNER JOIN
-                (SELECT 
-                    class_id, merged_cid
+        LEFT OUTER JOIN (SELECT 
+            student_id, merged_cid, X.class_id
+        FROM
+            StudentsClasses
+        INNER JOIN (SELECT 
+            class_id, merged_cid
+        FROM
+            HubbleClassMergeGroups L
+        INNER JOIN (SELECT 
+            group_id, class_id AS merged_cid
+        FROM
+            HubbleClassMergeGroups G
+        WHERE
+            G.merge_order = (SELECT 
+                    MAX(H.merge_order)
                 FROM
-                    HubbleClassMergeGroups L
-                INNER JOIN (SELECT 
-                    group_id, class_id AS merged_cid
-                FROM
-                    HubbleClassMergeGroups G
+                    HubbleClassMergeGroups H
                 WHERE
-                    G.merge_order = (SELECT 
-                            MAX(H.merge_order)
-                        FROM
-                            HubbleClassMergeGroups H
-                        WHERE
-                            H.group_id = G.group_id)) K ON K.group_id = L.group_id) X ON X.class_id = StudentsClasses.class_id
-        ) Y ON Y.student_id = HubbleStudentData.student_id
-            LEFT OUTER JOIN
-        IgnoreClasses ON Y.merged_cid = IgnoreClasses.class_id
-            AND IgnoreClasses.story_name = "hubbles_law"
-    WHERE
-        IgnoreStudents.student_id IS NULL
-        AND IgnoreClasses.class_id IS NULL)
-    Z ON Z.student_id = A.student_id
-    GROUP BY student_id ${having};
+                    H.group_id = G.group_id)) K ON K.group_id = L.group_id) X ON X.class_id = StudentsClasses.class_id) Y ON Y.student_id = HubbleStudentData.student_id
+    ) Z ON Z.student_id = A.student_id) B
+    	LEFT OUTER JOIN
+    IgnoreStudents ON IgnoreStudents.student_id = B.student_id
+    	LEFT OUTER JOIN
+    IgnoreClasses ON IgnoreClasses.class_id = B.class_id
+    WHERE IgnoreClasses.class_id IS NULL AND IgnoreStudents.student_id IS NULL
+    GROUP BY B.student_id ${having}
   `;
 
   return database.query(sql, {
