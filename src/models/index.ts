@@ -8,8 +8,9 @@ import { ClassStories, initializeClassStoryModel } from "./story_class";
 import { CosmicDSSession, initializeSessionModel } from "./session";
 import { Stage, initializeStageModel } from "./stage";
 import { StageState, initializeStageStateModel } from "./stage_state";
-import { StoryState, initializeStoryStateModel } from "./story_state";
 import { Story, initializeStoryModel } from "./story";
+import { StoryState, initializeStoryStateModel } from "./story_state";
+import { StoryVisitInfo, initializeStoryVisitInfoModel } from "./story_visit";
 import { StudentsClasses, initializeStudentClassModel } from "./student_class";
 import { Student, initializeStudentModel } from "./student";
 import { Sequelize } from "sequelize/types";
@@ -30,6 +31,7 @@ export {
   StageState,
   Story,
   StoryState,
+  StoryVisitInfo,
   Student,
   StudentsClasses,
 };
@@ -51,4 +53,5 @@ export function initializeModels(db: Sequelize) {
   initializeIgnoreStudentModel(db);
   initializeQuestionModel(db);
   initializeDashboardClassGroupModel(db);
+  initializeStoryVisitInfoModel(db);
 }
