@@ -58,7 +58,7 @@ import {
   VerificationResult,
 } from "./request_results";
 
-import { CosmicDSSession, StudentsClasses, Class, IgnoreStudent } from "./models";
+import { CosmicDSSession, StudentsClasses, Class, IgnoreStudent, StoryVisitInfo } from "./models";
 
 import { ParsedQs } from "qs";
 import express, { Express, Request, Response as ExpressResponse } from "express";
@@ -1152,6 +1152,43 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
         classes
       });
     }
+  });
+
+  app.post("/stories/visit", async (req, res) => {
+    const schema = S.struct({
+      story_name: S.string,
+      info: S.object,
+    });
+    const body = req.body;
+    const maybe = S.decodeUnknownEither(schema)(body);
+    if (Either.isLeft(maybe)) {
+      res.status(400).json({
+        success: false,
+        error: "Invalid request body; should have form { story_name: <string>, info: <object> }",
+      });
+      return;
+    }
+
+    const data = maybe.right;
+    const storyVisitInfo = await StoryVisitInfo.create({
+      story_name: data.story_name,
+      info: data.info as JSON,
+    }).catch(error => {
+      logger.error(error);
+      return null;
+    });
+
+  if (storyVisitInfo !== null) {
+    res.json({
+      success: true,
+    });
+  } else {
+    res.status(500).json({
+      success: false,
+      error: "Error creating story visit info entry",
+    });
+  }
+    
   });
 
   return app;
