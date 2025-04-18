@@ -13,6 +13,7 @@ export function initializeStoryVisitInfoModel(sequelize: Sequelize) {
     id: {
       type: DataTypes.INTEGER.UNSIGNED,
       allowNull: false,
+      autoIncrement: true,
       primaryKey: true,
     },
     story_name: {
@@ -34,5 +35,6 @@ export function initializeStoryVisitInfoModel(sequelize: Sequelize) {
     }
   }, {
     sequelize,
+    tableName: "StoryVisitInfo",
   });
 }
