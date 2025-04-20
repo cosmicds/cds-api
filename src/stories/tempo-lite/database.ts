@@ -4,7 +4,7 @@ import { logger } from "../../logger";
 
 import { TempoLiteData } from "./models";
 import { CreationAttributes } from "sequelize";
-import { OptionalInt, OptionalIntArray, OptionalStringArray, StringPairArray, UpdateAttributes } from "../../utils";
+import { OptionalInt, OptionalIntArray, OptionalStringArray, OptionalStringPairArray, UpdateAttributes } from "../../utils";
 
 type TempoLiteDataUpdateAttributes = UpdateAttributes<TempoLiteData>;
 
@@ -16,7 +16,7 @@ export const TempoLiteEntry = S.struct({
   user_selected_timezones_count: OptionalInt,
   user_selected_locations: OptionalStringArray,
   user_selected_locations_count: OptionalInt,
-  user_selected_notable_events: StringPairArray,
+  user_selected_notable_events: OptionalStringPairArray,
   user_selected_notable_events_count: OptionalInt,
   whats_new_opened_count: OptionalInt,
   whats_new_open_time_ms: OptionalInt,
@@ -38,7 +38,7 @@ export const TempoLiteUpdate = S.struct({
   user_selected_timezones_count: OptionalInt,
   user_selected_locations: OptionalStringArray,
   user_selected_locations_count: OptionalInt,
-  user_selected_notable_events: StringPairArray,
+  user_selected_notable_events: OptionalStringPairArray,
   user_selected_notable_events_count: OptionalInt,
   delta_whats_new_opened_count: OptionalInt,
   delta_whats_new_open_time_ms: OptionalInt,

@@ -62,6 +62,7 @@ export const OptionalNumberPair = S.optional(NumberPair, { exact: true });
 export const OptionalNumberArray = S.optional(NumberArray, { exact: true });
 export const OptionalNumberPairArray = S.optional(NumberPairArray, { exact: true });
 export const OptionalStringArray = S.optional(StringArray, { exact: true });
+export const OptionalStringPairArray = S.optional(StringPairArray, { exact: true });
 
 export function createVerificationCode(): string {
   return nanoid(21);
