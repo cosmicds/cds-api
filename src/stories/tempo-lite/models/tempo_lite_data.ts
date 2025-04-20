@@ -3,12 +3,14 @@ import { Sequelize, DataTypes, Model, InferAttributes, InferCreationAttributes, 
 export class TempoLiteData extends Model<InferAttributes<TempoLiteData>, InferCreationAttributes<TempoLiteData>> {
   declare id: CreationOptional<number>;
   declare user_uuid: string;
-  declare selected_calendar_dates: CreationOptional<Date[]>;
-  declare selected_timezones: CreationOptional<string[]>;
+  declare user_selected_calendar_dates: CreationOptional<number[]>;
+  declare user_selected_calendar_dates_count: CreationOptional<number>;
+  declare user_selected_timezones: CreationOptional<string[]>;
+  declare user_selected_timezones_count: CreationOptional<number>;
   declare user_selected_locations: CreationOptional<string[]>;
   declare user_selected_locations_count: CreationOptional<number>;
-  declare notable_events_selected: CreationOptional<[string, string][]>;
-  declare notable_events_selected_count: CreationOptional<number>;
+  declare user_selected_notable_events: CreationOptional<[string, string][]>;
+  declare user_selected_notable_events_count: CreationOptional<number>;
   declare whats_new_opened_count: CreationOptional<number>;
   declare whats_new_open_time_ms: CreationOptional<number>;
   declare introduction_opened_count: CreationOptional<number>;
@@ -20,6 +22,7 @@ export class TempoLiteData extends Model<InferAttributes<TempoLiteData>, InferCr
   declare credits_opened_count: CreationOptional<number>;
   declare credits_open_time_ms: CreationOptional<number>;
   declare share_button_clicked_count: CreationOptional<number>;
+  declare last_updated: CreationOptional<Date>;
 }
 
 export function initializeTempoLiteDataModel(sequelize: Sequelize) {
@@ -35,13 +38,21 @@ export function initializeTempoLiteDataModel(sequelize: Sequelize) {
       unique: true,
       allowNull: false
     },
-    selected_calendar_dates: {
+    user_selected_calendar_dates: {
       type: DataTypes.JSON,
       defaultValue: "[]",
     },
-    selected_timezones: {
+    user_selected_calendar_dates_count: {
       type: DataTypes.JSON,
       defaultValue: "[]",
+    },
+    user_selected_timezones: {
+      type: DataTypes.JSON,
+      defaultValue: "[]",
+    },
+    user_selected_timezones_count: {
+      type: DataTypes.INTEGER.UNSIGNED,
+      defaultValue: 0,
     },
     user_selected_locations: {
       type: DataTypes.JSON,
@@ -51,11 +62,11 @@ export function initializeTempoLiteDataModel(sequelize: Sequelize) {
       type: DataTypes.INTEGER.UNSIGNED,
       defaultValue: 0,
     },
-    notable_events_selected: {
+    user_selected_notable_events: {
       type: DataTypes.JSON,
       defaultValue: "[]",
     },
-    notable_events_selected_count: {
+    user_selected_notable_events_count: {
       type: DataTypes.JSON,
       defaultValue: 0,
     },
@@ -102,6 +113,11 @@ export function initializeTempoLiteDataModel(sequelize: Sequelize) {
     share_button_clicked_count: {
       type: DataTypes.INTEGER.UNSIGNED,
       defaultValue: 0,
+    },
+    last_updated: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: Sequelize.literal("CURRENT_TIMESTAMP")
     },
   }, {
     sequelize,
