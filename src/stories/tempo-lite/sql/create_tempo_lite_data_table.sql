@@ -1,0 +1,27 @@
+CREATE TABLE TempoLiteData (
+    id int(11) UNSIGNED NOT NULL UNIQUE AUTO_INCREMENT,
+    user_uuid varchar(36) NOT NULL UNIQUE,
+    user_selected_calendar_dates JSON NOT NULL DEFAULT (JSON_ARRAY()),
+    user_selected_calendar_dates_count int(11) UNSIGNED NOT NULL DEFAULT 0,
+    user_selected_timezones JSON NOT NULL DEFAULT (JSON_ARRAY()),
+    user_selected_timezones_count int(11) UNSIGNED NOT NULL DEFAULT 0,
+    user_selected_locations JSON NOT NULL DEFAULT (JSON_ARRAY()),
+    user_selected_locations_count int(11) UNSIGNED NOT NULL DEFAULT 0,
+    user_selected_notable_events JSON NOT NULL DEFAULT (JSON_ARRAY()),
+    user_selected_notable_events_count int(11) UNSIGNED NOT NULL DEFAULT 0,
+    whats_new_opened_count int(11) UNSIGNED NOT NULL DEFAULT 0,
+    whats_new_open_time_ms int(11) UNSIGNED NOT NULL DEFAULT 0,
+    introduction_opened_count int(11) UNSIGNED NOT NULL DEFAULT 0,
+    introduction_open_time_ms int(11) UNSIGNED NOT NULL DEFAULT 0,
+    user_guide_opened_count int(11) UNSIGNED NOT NULL DEFAULT 0,
+    user_guide_open_time_ms int(11) UNSIGNED NOT NULL DEFAULT 0,
+    about_data_opened_count int(11) UNSIGNED NOT NULL DEFAULT 0,
+    about_data_open_time_ms int(11) UNSIGNED NOT NULL DEFAULT 0,
+    credits_opened_count int(11) UNSIGNED NOT NULL DEFAULT 0,
+    credits_open_time_ms int(11) UNSIGNED NOT NULL DEFAULT 0,
+    share_button_clicked_count int(11) UNSIGNED NOT NULL DEFAULT 0,
+    last_updated TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    
+    PRIMARY KEY(id),
+    INDEX(user_uuid)
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci PACK_KEYS=0;

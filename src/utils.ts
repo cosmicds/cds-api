@@ -33,17 +33,36 @@ export type Mutable<T> = {
   -readonly [P in keyof T]: T[P];
 }
 
+function pairType<T>(type: S.Schema<T,T,never>): S.Schema<[T, T], [T, T], never> {
+  return S.mutable(S.tuple(type, type));
+}
 
-export const LatLonArray = S.mutable(S.array(S.mutable(S.tuple(S.number, S.number))));
-export const NumberPair = S.mutable(S.tuple(S.number, S.number));
-export const NumberArray = S.mutable(S.array(S.mutable(S.number)));
-export const NumberPairArray = S.mutable(S.array(NumberPair));
+function arrayType<T>(type: S.Schema<T,T,never>) {
+  return S.mutable(S.array(S.mutable(type)));
+}
+
+function pairArrayType<T>(type: S.Schema<T,T,never>): S.Schema<[T, T][], [T, T][], never> {
+  return S.mutable(S.array(pairType(type)));
+}
+
+export const LatLon = S.tuple(S.number, S.number);
+export const LatLonArray = arrayType(LatLon);
+export const NumberPair = pairType(S.number);
+export const NumberArray = arrayType(S.number);
+export const NumberPairArray = pairArrayType(S.number);
+export const IntArray = arrayType(S.number.pipe(S.int()));
+export const StringArray = arrayType(S.string);
+export const StringPair = pairType(S.string);
+export const StringPairArray = pairArrayType(S.string);
 export const OptionalInt = S.optional(S.number.pipe(S.int()), { exact: true });
 export const OptionalBoolean = S.optional(S.boolean, { exact: true });
 export const OptionalLatLonArray = S.optional(LatLonArray, { exact: true });
+export const OptionalIntArray = S.optional(IntArray, { exact: true });
 export const OptionalNumberPair = S.optional(NumberPair, { exact: true });
 export const OptionalNumberArray = S.optional(NumberArray, { exact: true });
 export const OptionalNumberPairArray = S.optional(NumberPairArray, { exact: true });
+export const OptionalStringArray = S.optional(StringArray, { exact: true });
+export const OptionalStringPairArray = S.optional(StringPairArray, { exact: true });
 
 export function createVerificationCode(): string {
   return nanoid(21);
