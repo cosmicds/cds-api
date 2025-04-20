@@ -40,15 +40,15 @@ export function initializeTempoLiteDataModel(sequelize: Sequelize) {
     },
     user_selected_calendar_dates: {
       type: DataTypes.JSON,
-      defaultValue: "[]",
+      defaultValue: [],
     },
     user_selected_calendar_dates_count: {
-      type: DataTypes.JSON,
-      defaultValue: "[]",
+      type: DataTypes.INTEGER.UNSIGNED,
+      defaultValue: 0,
     },
     user_selected_timezones: {
       type: DataTypes.JSON,
-      defaultValue: "[]",
+      defaultValue: [],
     },
     user_selected_timezones_count: {
       type: DataTypes.INTEGER.UNSIGNED,
@@ -56,7 +56,7 @@ export function initializeTempoLiteDataModel(sequelize: Sequelize) {
     },
     user_selected_locations: {
       type: DataTypes.JSON,
-      defaultValue: "[]",
+      defaultValue: [],
     },
     user_selected_locations_count: {
       type: DataTypes.INTEGER.UNSIGNED,
@@ -64,7 +64,7 @@ export function initializeTempoLiteDataModel(sequelize: Sequelize) {
     },
     user_selected_notable_events: {
       type: DataTypes.JSON,
-      defaultValue: "[]",
+      defaultValue: [],
     },
     user_selected_notable_events_count: {
       type: DataTypes.JSON,
