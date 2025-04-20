@@ -49,6 +49,7 @@ import {
   setClassStoryActive,
   findClassByIdOrCode,
   findStudentByIdOrUsername,
+  addVisitForStory,
 } from "./database";
 
 import {
@@ -1170,24 +1171,17 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     }
 
     const data = maybe.right;
-    const storyVisitInfo = await StoryVisitInfo.create({
-      story_name: data.story_name,
-      info: data.info as JSON,
-    }).catch(error => {
-      logger.error(error);
-      return null;
-    });
-
-  if (storyVisitInfo !== null) {
-    res.json({
-      success: true,
-    });
-  } else {
-    res.status(500).json({
-      success: false,
-      error: "Error creating story visit info entry",
-    });
-  }
+    const storyVisitInfo = await addVisitForStory(data.story_name, data.info);
+    if (storyVisitInfo !== null) {
+      res.json({
+        success: true,
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: "Error creating story visit info entry",
+      });
+    }
     
   });
 

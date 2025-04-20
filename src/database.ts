@@ -15,6 +15,7 @@ import {
   DummyClass,
   DashboardClassGroup,
   StageState,
+  StoryVisitInfo,
 } from "./models";
 
 import {
@@ -978,4 +979,14 @@ export async function getDashboardGroupClasses(code: string): Promise<Class[] | 
     }
   });
 
+}
+
+export async function addVisitForStory(storyName: string, info: object): Promise<StoryVisitInfo | null> {
+  return StoryVisitInfo.create({
+    story_name: storyName,
+    info: info as JSON,
+  }).catch(error => {
+    logger.error(error);
+    return null;
+  });
 }
