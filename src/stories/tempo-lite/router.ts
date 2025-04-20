@@ -71,14 +71,16 @@ router.patch("/data/:uuid", async (req, res) => {
 
 router.post("/visit", async (req, res) => {
   const schema = S.struct({
-    info: S.object,
+    info: S.struct({
+      venue: S.string,
+    }),
   });
   const body = req.body;
   const maybe = S.decodeUnknownEither(schema)(body);
   if (Either.isLeft(maybe)) {
     res.status(400).json({
       success: false,
-      error: "Invalid request body; should have form { info: <object> }",
+      error: "Invalid request body; should have form { info: { venue: <string> } }",
     });
     return;
   }
