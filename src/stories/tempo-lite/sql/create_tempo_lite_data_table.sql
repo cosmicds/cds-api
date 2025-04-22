@@ -22,7 +22,7 @@ CREATE TABLE TempoLiteData (
     share_button_clicked_count int(11) UNSIGNED NOT NULL DEFAULT 0,
     play_clicked_count int(11) UNSIGNED NOT NULL DEFAULT 0,
     time_slider_user_count int(11) UNSIGNED NOT NULL DEFAULT 0,
-    opacity_slider_used tinyint(1) UNSIGNED NOT NULL DEFAULT 0,
+    opacity_slider_used_count int(11) UNSIGNED NOT NULL DEFAULT 0,
     field_of_regard_toggled tinyint(1) UNSIGNED NOT NULL DEFAULT 0,
     cloud_mask_toggled tinyint(1) UNSIGNED NOT NULL DEFAULT 0,
     high_res_data_toggled tinyint(1) UNSIGNED NOT NULL DEFAULT 0,

@@ -24,7 +24,7 @@ export class TempoLiteData extends Model<InferAttributes<TempoLiteData>, InferCr
   declare share_button_clicked_count: CreationOptional<number>;
   declare play_clicked_count: CreationOptional<number>;
   declare time_slider_used_count: CreationOptional<number>;
-  declare opacity_slider_used: CreationOptional<boolean>;
+  declare opacity_slider_used_count: CreationOptional<number>;
   declare field_of_regard_toggled: CreationOptional<boolean>;
   declare cloud_mask_toggled: CreationOptional<boolean>;
   declare high_res_data_toggled: CreationOptional<boolean>;
@@ -128,8 +128,8 @@ export function initializeTempoLiteDataModel(sequelize: Sequelize) {
       type: DataTypes.INTEGER.UNSIGNED,
       defaultValue: 0,
     },
-    opacity_slider_used: {
-      type: DataTypes.BOOLEAN,
+    opacity_slider_used_count: {
+      type: DataTypes.INTEGER.UNSIGNED,
       defaultValue: false,
     },
     field_of_regard_toggled: {

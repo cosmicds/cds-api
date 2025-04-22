@@ -4,7 +4,7 @@ import { logger } from "../../logger";
 
 import { TempoLiteData } from "./models";
 import { CreationAttributes } from "sequelize";
-import { OptionalInt, OptionalIntArray, OptionalStringArray, OptionalStringPairArray, UpdateAttributes } from "../../utils";
+import { OptionalBoolean, OptionalInt, OptionalIntArray, OptionalStringArray, OptionalStringPairArray, UpdateAttributes } from "../../utils";
 
 type TempoLiteDataUpdateAttributes = UpdateAttributes<TempoLiteData>;
 
@@ -29,6 +29,12 @@ export const TempoLiteEntry = S.struct({
   credits_opened_count: OptionalInt,
   credits_open_time_ms: OptionalInt,
   share_button_clicked_count: OptionalInt,
+  play_clicked_count: OptionalInt,
+  time_slider_used_count: OptionalInt,
+  opacity_slider_used: OptionalBoolean,
+  field_of_regard_toggled: OptionalBoolean,
+  cloud_mask_toggled: OptionalBoolean,
+  high_res_data_toggled: OptionalBoolean,
 });
 
 export const TempoLiteUpdate = S.struct({
@@ -51,6 +57,12 @@ export const TempoLiteUpdate = S.struct({
   delta_credits_opened_count: OptionalInt,
   delta_credits_open_time_ms: OptionalInt,
   delta_share_button_clicked_count: OptionalInt,
+  delta_play_clicked_count: OptionalInt,
+  delta_time_slider_used_count: OptionalInt,
+  opacity_slider_used: OptionalBoolean,
+  field_of_regard_toggled: OptionalBoolean,
+  cloud_mask_toggled: OptionalBoolean,
+  high_res_data_toggled: OptionalBoolean,
 });
 
 export type TempoLiteEntryT = S.Schema.To<typeof TempoLiteEntry>;
