@@ -117,7 +117,7 @@ export async function updateTempoLiteData(userUUID: string, update: TempoLiteUpd
       share_button_clicked_count: update.delta_share_button_clicked_count ?? 0,
       play_clicked_count: update.delta_play_clicked_count ?? 0,
       time_slider_used_count: update.delta_time_slider_used_count ?? 0,
-      opacity_slider_used_count: update.opacity_slider_used_count ?? 0,
+      opacity_slider_used_count: update.delta_opacity_slider_used_count ?? 0,
       field_of_regard_toggled: update.field_of_regard_toggled ?? false,
       cloud_mask_toggled: update.cloud_mask_toggled ?? false,
       high_res_data_toggled: update.high_res_data_toggled ?? false,
