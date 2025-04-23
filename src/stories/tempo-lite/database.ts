@@ -31,7 +31,7 @@ export const TempoLiteEntry = S.struct({
   share_button_clicked_count: OptionalInt,
   play_clicked_count: OptionalInt,
   time_slider_used_count: OptionalInt,
-  opacity_slider_used: OptionalBoolean,
+  opacity_slider_used_count: OptionalInt,
   field_of_regard_toggled: OptionalBoolean,
   cloud_mask_toggled: OptionalBoolean,
   high_res_data_toggled: OptionalBoolean,
@@ -59,7 +59,7 @@ export const TempoLiteUpdate = S.struct({
   delta_share_button_clicked_count: OptionalInt,
   delta_play_clicked_count: OptionalInt,
   delta_time_slider_used_count: OptionalInt,
-  opacity_slider_used: OptionalBoolean,
+  delta_opacity_slider_used_count: OptionalInt,
   field_of_regard_toggled: OptionalBoolean,
   cloud_mask_toggled: OptionalBoolean,
   high_res_data_toggled: OptionalBoolean,
@@ -115,6 +115,12 @@ export async function updateTempoLiteData(userUUID: string, update: TempoLiteUpd
       credits_opened_count: update.delta_credits_opened_count ?? 0,
       credits_open_time_ms: update.delta_credits_open_time_ms ?? 0,
       share_button_clicked_count: update.delta_share_button_clicked_count ?? 0,
+      play_clicked_count: update.delta_play_clicked_count ?? 0,
+      time_slider_used_count: update.delta_time_slider_used_count ?? 0,
+      opacity_slider_used_count: update.opacity_slider_used_count ?? 0,
+      field_of_regard_toggled: update.field_of_regard_toggled ?? false,
+      cloud_mask_toggled: update.cloud_mask_toggled ?? false,
+      high_res_data_toggled: update.high_res_data_toggled ?? false,
     });
     return created;
   }
@@ -164,6 +170,9 @@ export async function updateTempoLiteData(userUUID: string, update: TempoLiteUpd
     "credits_opened_count",
     "credits_open_time_ms",
     "share_button_clicked_count",
+    "play_clicked_count",
+    "time_slider_used_count",
+    "opacity_slider_used_count",
   ] as const;
 
   for (const key of numberEntryKeys) {
@@ -171,6 +180,20 @@ export async function updateTempoLiteData(userUUID: string, update: TempoLiteUpd
     const updateValue = update[updateKey];
     if (updateValue) {
       dbUpdate[key] = data[key] + updateValue;
+    }
+  }
+
+  // Here, note that a user can't ever "undo" these actions
+  const booleanEntryKeys = [
+    "field_of_regard_toggled",
+    "cloud_mask_toggled",
+    "high_res_data_toggled",
+  ] as const;
+
+  for (const key of booleanEntryKeys) {
+    const updateValue = update[key];
+    if (updateValue) {
+      dbUpdate[key] = true;
     }
   }
 
