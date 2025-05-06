@@ -11,6 +11,7 @@ export class Class extends Model<InferAttributes<Class>, InferCreationAttributes
   declare code: string;
   declare asynchronous: CreationOptional<boolean>;
   declare test: CreationOptional<boolean>;
+  declare seed: CreationOptional<boolean>;
   declare expected_size: CreationOptional<number>;
   declare small_class: CreationOptional<boolean>;
 }
@@ -63,6 +64,11 @@ export function initializeClassModel(sequelize: Sequelize) {
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: 0
+    },
+    seed: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: 0,
     },
     expected_size: {
       type: DataTypes.INTEGER.UNSIGNED,

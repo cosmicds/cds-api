@@ -7,6 +7,7 @@ CREATE TABLE Classes (
     code varchar(50) NOT NULL UNIQUE,
     asynchronous tinyint(1) NOT NULL DEFAULT 0,
     test tinyint(1) NOT NULL DEFAULT 0,
+    seed tinyint(1) NOT NULL DEFAULT 0,
     updated datetime DEFAULT NULL,
     expected_size int(11) UNSIGNED NOT NULL,
     small_class tinyint(1) GENERATED ALWAYS AS (expected_size < 15) VIRTUAL,
