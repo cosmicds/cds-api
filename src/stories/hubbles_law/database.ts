@@ -975,14 +975,18 @@ export async function findClassForMerge(database: Sequelize, classID: number): P
         ORDER BY merge_order DESC) G ON Classes.id = G.class_id
             INNER JOIN
         (SELECT 
-            *
+            class_id, COUNT(*) AS count
         FROM
             StudentsClasses
+            		INNER JOIN
+		        HubbleMeasurements ON StudentsClasses.student_id = HubbleMeasurements.student_id
+        WHERE est_dist_value IS NOT NULL AND velocity_value IS NOT NULL
         GROUP BY class_id
-        HAVING COUNT(student_id) >= 15) C ON Classes.id = C.class_id
+        HAVING count >= 60) C ON Classes.id = C.class_id
     WHERE
         id != ${classID}
         AND ignore_classes.class_id IS NULL
+        AND test = 0
     GROUP BY unique_gid
     ORDER BY is_group ASC , group_count ASC , merged_count DESC
     LIMIT 1;
