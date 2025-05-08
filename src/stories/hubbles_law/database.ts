@@ -287,6 +287,55 @@ async function getHubbleMeasurementsForStudentClass(studentID: number,
   });
 }
 
+export async function getClassMeasurements(classID: number,
+                                           includeMergedClasses: boolean = true,
+                                           excludeWithNull: boolean = false
+): Promise<HubbleMeasurement[]> {
+
+  const classWhereConditions: WhereOptions<Class> = [];
+  if (includeMergedClasses) {
+    const classIDs = await getMergedIDsForClass(classID);
+    classWhereConditions.push({ id: { [Op.in]: classIDs } });
+  } else {
+    classWhereConditions.push({ id: classID });
+  }
+
+  const measurementWhereConditions: WhereOptions<HubbleMeasurement> = [];
+  if (excludeWithNull) {
+    measurementWhereConditions.push(EXCLUDE_MEASUREMENTS_WITH_NULL_CONDITION);
+  }
+
+  return HubbleMeasurement.findAll({
+    where: measurementWhereConditions,
+    include: [{
+      model: Student,
+      attributes: ["id"],
+      as: "student",
+      required: true,
+      include: [{
+        model: Class,
+        attributes: ["id"],
+        where: classWhereConditions,
+      },
+      {
+        model: IgnoreStudent,
+        required: false,
+        attributes: [],
+        where: {
+          story_name: "hubbles_law",
+          student_id: { [Op.is]: null },
+        }
+      }],
+    },
+    {
+      model: Galaxy,
+      attributes: galaxyAttributes,
+      as: "galaxy",
+      required: true,
+    }]
+  });
+}
+
 async function getHubbleStudentDataForClasses(classIDs: number[]): Promise<HubbleStudentData[]> {
   return HubbleStudentData.findAll({
     include: [{
@@ -390,11 +439,11 @@ export async function getClassDataIDsForStudent(studentID: number): Promise<numb
   return state?.getDataValue("class_data_students") ?? [];
 }
 
-export async function getClassMeasurements(studentID: number,
-                                           classID: number,
-                                           lastChecked: number | null = null,
-                                           excludeWithNull: boolean = false,
-                                           excludeStudent: boolean = false,
+export async function getClassMeasurementsForStudent(studentID: number,
+                                                     classID: number,
+                                                     lastChecked: number | null = null,
+                                                     excludeWithNull: boolean = false,
+                                                     excludeStudent: boolean = false,
 ): Promise<HubbleMeasurement[]> {
   let data = await getHubbleMeasurementsForStudentClass(studentID, classID, excludeWithNull, excludeStudent);
   if (data.length > 0 && lastChecked != null) {
@@ -409,11 +458,11 @@ export async function getClassMeasurements(studentID: number,
 // The advantage of this over the function above is that it saves bandwidth,
 // since we aren't sending the data itself.
 // This is intended to be used with cases where we need to frequently check the number of measurements
-export async function getClassMeasurementCount(studentID: number,
-                                               classID: number,
-                                               excludeWithNull: boolean = false,
+export async function getClassMeasurementCountForStudent(studentID: number,
+                                                         classID: number,
+                                                         excludeWithNull: boolean = false,
 ): Promise<number> {
-  const data = await getClassMeasurements(studentID, classID, null, excludeWithNull);
+  const data = await getClassMeasurementsForStudent(studentID, classID, null, excludeWithNull);
   return data?.length ?? 0;
 }
 
