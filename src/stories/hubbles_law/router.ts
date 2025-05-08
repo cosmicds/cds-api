@@ -24,6 +24,7 @@ import {
   setGalaxySpectrumStatus,
   getUncheckedSpectraGalaxies,
   getClassMeasurements,
+  getClassMeasurementsForStudent,
   getAllHubbleMeasurements,
   getAllHubbleStudentData,
   getAllHubbleClassData,
@@ -35,7 +36,7 @@ import {
   getGalaxyById,
   removeSampleHubbleMeasurement,
   getAllNthSampleHubbleMeasurements,
-  getClassMeasurementCount,
+  getClassMeasurementCountForStudent,
   getStudentsWithCompleteMeasurementsCount,
   getMergedIDsForClass,
   addClassToMergeGroup,
@@ -203,6 +204,25 @@ router.delete("/sample-measurement/:studentID/:measurementNumber", async (req, r
     });
 });
 
+router.get("/measurements/classes/:classID", async (req, res) => {
+  const classID = parseInt(req.params.classID);
+  const isValidClass = (await findClassById(classID)) !== null;
+  if (!isValidClass) {
+    res.status(404).json({
+      message: `No class with ID ${classID}`,
+    });
+    return;
+  }
+
+  const completeOnly = (req.query.complete_only as string)?.toLowerCase() === "true";
+  const excludeMergedClasses = (req.query.exclude_merge as string)?.toLowerCase() === "true";
+  const measurements = await getClassMeasurements(classID, !excludeMergedClasses, completeOnly);
+  res.status(200).json({
+    class_id: classID,
+    measurements,
+  });
+});
+
 router.get("/measurements/:studentID", async (req, res) => {
   const params = req.params;
   const studentID = parseInt(params.studentID);
@@ -298,7 +318,7 @@ router.get("/class-measurements/size/:studentID/:classID", async (req, res) => {
   }
 
   const completeOnly = (req.query.complete_only as string)?.toLowerCase() === "true";
-  const count = await getClassMeasurementCount(studentID, classID, completeOnly);
+  const count = await getClassMeasurementCountForStudent(studentID, classID, completeOnly);
   res.status(200).json({
     student_id: studentID,
     class_id: classID,
@@ -369,7 +389,7 @@ router.get(["/class-measurements/:studentID/:classID", "/stage-3-data/:studentID
     return;
   }
 
-  const measurements = await getClassMeasurements(student.id, cls.id, lastChecked, completeOnly, excludeStudent);
+  const measurements = await getClassMeasurementsForStudent(student.id, cls.id, lastChecked, completeOnly, excludeStudent);
   res.status(200).json({
     student_id: studentID,
     class_id: classID,
@@ -397,7 +417,7 @@ router.get(["/class-measurements/:studentID", "stage-3-measurements/:studentID"]
   }
 
   const excludeStudent = (req.query.exclude_student as string)?.toLowerCase() === "true";
-  const measurements = await getClassMeasurements(studentID, cls.id, null, excludeStudent);
+  const measurements = await getClassMeasurementsForStudent(studentID, cls.id, null, excludeStudent);
   res.status(200).json({
     student_id: studentID,
     class_id: null,
