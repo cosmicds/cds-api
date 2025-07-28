@@ -501,6 +501,48 @@ export async function updateStoryState(studentID: number, storyName: string, new
   return result?.story_state ?? null;
 }
 
+function patchState(state: Record<string,any>, patch: Record<string,any>, rootKey?: string) {
+  Object.entries(patch).forEach(([key, value]) => {
+    const isObject = typeof value === 'object' && !Array.isArray(value) && value !== null;
+    const fullKey = rootKey ? `${rootKey}:${key}` : key;
+    if (isObject) {
+      patchState(state, patch, fullKey);
+    } else {
+      state[key] = value;
+    }
+  });
+}
+
+export async function patchStoryState(studentID: number, storyName: string, patch: JSON) {
+  const query = {
+    student_id: studentID,
+    story_name: storyName,
+  };
+  let result = await StoryState.findOne({
+    where: query
+  })
+  .catch(error => {
+    console.log(error);
+    return null;
+  });
+
+  if (result !== null) {
+    patchState(result, patch);
+    const storyData = { ...query, story_state: result.story_state };
+    result?.update(storyData).catch(error => {
+      console.log(error);
+      return null;
+    });
+  } else {
+    const storyData = { ...query, story_state: patch };
+    result = await StoryState.create(storyData).catch(error => {
+      console.log(error);
+      return null;
+    });
+  }
+  return result?.story_state ?? null;
+}
+
 export async function getStudentStageState(studentID: number, storyName: string, stageName: string): Promise<JSON | null> {
   const result = await StageState.findOne({
     where: {
