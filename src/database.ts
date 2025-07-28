@@ -501,19 +501,23 @@ export async function updateStoryState(studentID: number, storyName: string, new
   return result?.story_state ?? null;
 }
 
-function patchState(state: Record<string,any>, patch: Record<string,any>, rootKey?: string) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function patchState(state: Record<string,any>, patch: Record<string,any>) {
   Object.entries(patch).forEach(([key, value]) => {
-    const isObject = typeof value === 'object' && !Array.isArray(value) && value !== null;
-    const fullKey = rootKey ? `${rootKey}:${key}` : key;
+    const isObject = typeof value === "object" && !Array.isArray(value) && value !== null;
     if (isObject) {
-      patchState(state, patch, fullKey);
+      if (!(key in state)) {
+        state[key] = value;
+      } else {
+        patchState(state[key], value);
+      }
     } else {
       state[key] = value;
     }
   });
 }
 
-export async function patchStoryState(studentID: number, storyName: string, patch: JSON) {
+export async function patchStoryState(studentID: number, storyName: string, patch: JSON): Promise<JSON | null> {
   const query = {
     student_id: studentID,
     story_name: storyName,
@@ -527,12 +531,14 @@ export async function patchStoryState(studentID: number, storyName: string, patc
   });
 
   if (result !== null) {
-    patchState(result, patch);
-    const storyData = { ...query, story_state: result.story_state };
-    result?.update(storyData).catch(error => {
-      console.log(error);
-      return null;
-    });
+    const state = result.story_state;
+    patchState(state, patch);
+    // TODO: For some reason, doing a regular `await result.update({ story_state: state })...`
+    // did not produce an update to the database. Something about how JSON-type fields are handled?
+    // Until we figure this out, just force-update
+    result.story_state = state;
+    result.changed("story_state", true);
+    await result.save();
   } else {
     const storyData = { ...query, story_state: patch };
     result = await StoryState.create(storyData).catch(error => {
