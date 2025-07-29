@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-floating-promises */
 
-import { beforeAll, afterAll, describe, it, expect } from "@jest/globals";
+import { beforeAll, afterAll, describe, it } from "@jest/globals";
 import request from "supertest";
 import type { Sequelize } from "sequelize";
 import type { Express } from "express";
 
 import { authorize, createTestApp, getTestDatabaseConnection, randomClassForEducator, randomEducator, randomStory, randomStudent } from "./utils";
-import { Student, StageState, StoryState, StudentsClasses } from "../src/models";
+import { Student, StoryState, StudentsClasses } from "../src/models";
 
 async function setupStoryAndStudentStates() {
   const story = await randomStory();
@@ -29,6 +29,7 @@ async function setupStoryAndStudentStates() {
       a: 1,
       b: "x",
       flag: true,
+      arr: [1, 2, 3],
     } as unknown as JSON,
   });
   const storyState2 = await StoryState.create({
@@ -38,6 +39,7 @@ async function setupStoryAndStudentStates() {
       a: 5,
       b: "y",
       flag: false,
+      arr: [2, 4],
     } as unknown as JSON,
   });
 
@@ -79,7 +81,7 @@ describe("Test story state routes", () => {
     testDB.close();
   });
 
-  it("Should return the stage states for a given student & story", async () => {
+  it("Should return the story state for a given student & story", async () => {
     const { story, student1, student2, storyState1, storyState2, cleanup } = await setupStoryAndStudentStates();
 
     const studentsAndStories: [Student, StoryState][] = [[student1, storyState1], [student2, storyState2]];
@@ -142,6 +144,33 @@ describe("Test story state routes", () => {
         student_id: student1.id,
         story_name: story.name,
         state: newStoryState,
+      });
+
+    await cleanup();
+  });
+
+  it("Should correctly patch the story state", async () => {
+    const { story, student1, cleanup } = await setupStoryAndStudentStates();
+
+    const patch = {
+      a: 2,
+      b: "w",
+      arr: { "0": 6, "3": 5 },
+    };
+
+    await authorize(request(testApp).patch(`/story-state/${student1.id}/${story.name}`))
+      .send(patch)
+      .expect(200)
+      .expect("Content-Type", /json/)
+      .expect({
+        student_id: student1.id,
+        story_name: story.name,
+        state: {
+          a: 2,
+          b: "w",
+          flag: true,
+          arr: [6, 2, 3, 5],
+        }
       });
 
     await cleanup();
