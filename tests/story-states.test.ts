@@ -150,16 +150,16 @@ describe("Test story state routes", () => {
   });
 
   it("Should correctly patch the story state", async () => {
-    const { story, student1, cleanup } = await setupStoryAndStudentStates();
+    const { story, student1, student2, cleanup } = await setupStoryAndStudentStates();
 
-    const patch = {
+    const patch1 = {
       a: 2,
       b: "w",
       arr: { "0": 6, "3": 5 },
     };
 
     await authorize(request(testApp).patch(`/story-state/${student1.id}/${story.name}`))
-      .send(patch)
+      .send(patch1)
       .expect(200)
       .expect("Content-Type", /json/)
       .expect({
@@ -170,6 +170,28 @@ describe("Test story state routes", () => {
           b: "w",
           flag: true,
           arr: [6, 2, 3, 5],
+        }
+      });
+
+    const patch2 = {
+      arr: { "1" : 7 },
+      c: "test",
+      flag: true,
+    };
+
+    await authorize(request(testApp).patch(`/story-state/${student2.id}/${story.name}`))
+      .send(patch2)
+      .expect(200)
+      .expect("Content-Type", /json/)
+      .expect({
+        student_id: student2.id,
+        story_name: story.name,
+        state: {
+          a: 5,
+          b: "y",
+          flag: true,
+          arr: [2, 7],
+          c: "test",
         }
       });
 
