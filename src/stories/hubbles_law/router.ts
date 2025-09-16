@@ -226,6 +226,12 @@ router.get("/measurements/classes/:classID", async (req, res) => {
 router.get("/measurements/:studentID", async (req, res) => {
   const params = req.params;
   const studentID = parseInt(params.studentID);
+  if (isNaN(studentID)) {
+    res.status(400).json({
+      message: "Invalid student ID!",
+    });
+    return;
+  }
   const student = await findStudentById(studentID);
   const measurements = student !== null ?
     await getStudentHubbleMeasurements(studentID) :

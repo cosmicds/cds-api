@@ -50,6 +50,7 @@ import {
   findClassByIdOrCode,
   findStudentByIdOrUsername,
   addVisitForStory,
+  patchStoryState,
 } from "./database";
 
 import {
@@ -824,6 +825,20 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     const storyName = params.storyName;
     const newState = req.body;
     const state = await updateStoryState(studentID, storyName, newState);
+    const status = state !== null ? 200 : 404;
+    res.status(status).json({
+      student_id: studentID,
+      story_name: storyName,
+      state
+    });
+  });
+
+  app.patch("/story-state/:studentID/:storyName", async (req, res) => {
+    const params = req.params;
+    const studentID = Number(params.studentID);
+    const storyName = params.storyName;
+    const patch = req.body;
+    const state = await patchStoryState(studentID, storyName, patch);
     const status = state !== null ? 200 : 404;
     res.status(status).json({
       student_id: studentID,
