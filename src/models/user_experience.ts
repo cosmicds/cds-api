@@ -1,10 +1,17 @@
 import { Sequelize, DataTypes, Model, InferAttributes, InferCreationAttributes, CreationOptional } from "sequelize";
 import { Story } from "./story";
 
-type Rating = "very_bad" | "poor" | "medium" | "good" | "excellent";
+export enum ExperienceRating {
+  VeryBad = "very_bad",
+  Poor = "poor",
+  Medium = "medium",
+  Good = "good",
+  Excellent = "excellent",
+};
+
 export class UserExperienceRating extends Model<InferAttributes<UserExperienceRating>, InferCreationAttributes<UserExperienceRating>> {
   declare story_name: string;
-  declare rating: CreationOptional<Rating>;
+  declare rating: CreationOptional<ExperienceRating>;
   declare uuid: string;
   declare comments: CreationOptional<string>;
 }
