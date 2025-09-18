@@ -7,7 +7,7 @@ export enum ExperienceRating {
   Medium = "medium",
   Good = "good",
   Excellent = "excellent",
-};
+}
 
 export class UserExperienceRating extends Model<InferAttributes<UserExperienceRating>, InferCreationAttributes<UserExperienceRating>> {
   declare story_name: string;

@@ -998,4 +998,4 @@ export async function addExperienceInfoForStory(info: CreationAttributes<UserExp
     logger.error(error);
     return null;
   });
-};
+}
