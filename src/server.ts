@@ -1203,7 +1203,7 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
         success: false,
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-expect-error The generated schema has a properties field
-        error: `Invalid request body; should have the following schema: ${JSONSchema.make(schema).properties}`,
+        error: `Invalid request body; should have the following schema: ${JSON.stringify(JSONSchema.make(schema).properties)}`,
       });
       return;
     }

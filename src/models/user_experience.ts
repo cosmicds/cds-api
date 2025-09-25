@@ -27,7 +27,7 @@ export function initializeUserExperienceRatingModel(sequelize: Sequelize) {
       }
     },
     rating: {
-      type: DataTypes.ENUM,
+      type: DataTypes.ENUM(ExperienceRating.VeryBad, ExperienceRating.Poor, ExperienceRating.Medium, ExperienceRating.Good, ExperienceRating.Excellent),
       allowNull: true,
     },
     uuid: {
