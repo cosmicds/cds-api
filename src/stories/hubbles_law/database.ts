@@ -628,25 +628,26 @@ export async function getAllHubbleStudentData(includeClasses: number[] = [], min
     return [];
   }
 
-  const attributes = minimal ? MINIMAL_STUDENT_DATA_FIELDS.map(field => `B.${field}`).join(",\n") : "B.*";
+  // TODO: This is a mess, clean it up
+  const finalAttributes = minimal ? MINIMAL_STUDENT_DATA_FIELDS.map(field => `B.${field}`).join(",\n") : "B.*";
+  const aAttributes = minimal ? 
+    "HubbleStudentData.student_id, HubbleStudentData.age_value, class_id" :
+    "HubbleStudentData.*, class_id";
+  const bAttributes = minimal ? "A.student_id, A.age_value, COALESCE(Z.merged_cid, A.class_id) AS class_id" : "A.student_id, A.age_value, A.hubble_fit_value, COALESCE(Z.merged_cid, A.class_id) AS class_id";
+  const yAttributes = minimal ? "Y.student_id, Y.merged_cid, Y.class_id, age_value" : "Y.*, age_value";
   const having = includeClasses.length ? `\nHAVING class_id IN (${includeClasses.join(", ")})` : "";
 
   const sql = `
-    SELECT ${attributes} FROM (SELECT 
-        A.student_id,
-        A.age_value,
-        COALESCE(Z.merged_cid, A.class_id) AS class_id
+    SELECT ${finalAttributes} FROM (SELECT 
+        ${bAttributes}
     FROM
-        (SELECT 
-            HubbleStudentData.student_id,
-                HubbleStudentData.age_value,
-                class_id
+        (SELECT ${aAttributes}
         FROM
             StudentsClasses
         INNER JOIN HubbleStudentData ON StudentsClasses.student_id = HubbleStudentData.student_id) A
             LEFT OUTER JOIN
         (SELECT 
-            Y.student_id, Y.merged_cid, Y.class_id, age_value
+          ${yAttributes}
         FROM
             HubbleStudentData
         INNER JOIN Students ON HubbleStudentData.student_id = Students.id
