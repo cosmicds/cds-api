@@ -78,8 +78,6 @@ import { Sequelize } from "sequelize";
 import { sendEmail } from "./email";
 import { logger } from "./logger";
 
-import { ExperienceRating } from "./models/user_experience";
-import { JSONSchema } from "@effect/schema";
 import { handleUserExperienceSubmission } from "./handlers";
 
 // TODO: Clean up these type definitions

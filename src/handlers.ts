@@ -1,5 +1,6 @@
 import * as S from "@effect/schema/Schema";
 import * as Either from "effect/Either";
+import { JSONSchema } from "@effect/schema";
 
 import type { GenericRequest, GenericResponse } from "./utils";
 import { ExperienceRating } from "./models/user_experience";
