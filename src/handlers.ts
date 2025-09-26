@@ -10,6 +10,7 @@ export async function handleUserExperienceSubmission(req: GenericRequest, res: G
     story_name: S.string,
     comments: S.optional(S.string),
     uuid: S.string,
+    question: S.string,
     rating: S.optional(S.enums(ExperienceRating)),
   });
   const body = req.body;
