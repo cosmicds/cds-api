@@ -59,7 +59,7 @@ import {
   VerificationResult,
 } from "./request_results";
 
-import { CosmicDSSession, StudentsClasses, Class, IgnoreStudent, StoryVisitInfo } from "./models";
+import { CosmicDSSession, StudentsClasses, Class, IgnoreStudent } from "./models";
 
 import { ParsedQs } from "qs";
 import express, { Express, Request, Response as ExpressResponse } from "express";
@@ -77,6 +77,8 @@ import { getAPIKey } from "./authorization";
 import { Sequelize } from "sequelize";
 import { sendEmail } from "./email";
 import { logger } from "./logger";
+
+import { handleUserExperienceSubmission } from "./handlers";
 
 // TODO: Clean up these type definitions
 
@@ -1184,6 +1186,8 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     }
     
   });
+
+  app.put("/stories/user-experience", handleUserExperienceSubmission);
 
   return app;
 }

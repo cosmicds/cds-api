@@ -17,6 +17,7 @@ import { Sequelize } from "sequelize/types";
 import { initializeStudentOptionsModel } from "./student_options";
 import { initializeQuestionModel } from "./question";
 import { initializeAPIKeyModel } from "./api_key";
+import { initializeUserExperienceRatingModel } from "./user_experience";
 
 export {
   Class,
@@ -54,4 +55,5 @@ export function initializeModels(db: Sequelize) {
   initializeQuestionModel(db);
   initializeDashboardClassGroupModel(db);
   initializeStoryVisitInfoModel(db);
+  initializeUserExperienceRatingModel(db);
 }

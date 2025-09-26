@@ -1,4 +1,4 @@
-import { BaseError, Options, Model, Op, QueryTypes, Sequelize, UniqueConstraintError, WhereOptions } from "sequelize";
+import { BaseError, Options, Model, Op, QueryTypes, Sequelize, UniqueConstraintError, WhereOptions, CreationAttributes } from "sequelize";
 import dotenv from "dotenv";
 import { createNamespace } from "cls-hooked";
 
@@ -44,6 +44,7 @@ import { Question } from "./models/question";
 import { logger } from "./logger";
 import { Stage } from "./models/stage";
 import { classSetupRegistry } from "./registries";
+import { UserExperienceRating } from "./models/user_experience";
 
 export type LoginResponse = {
   type: "none" | "student" | "educator" | "admin",
@@ -986,6 +987,14 @@ export async function addVisitForStory(storyName: string, info: object): Promise
     story_name: storyName,
     info: info as JSON,
   }).catch(error => {
+    logger.error(error);
+    return null;
+  });
+}
+
+export async function addExperienceInfoForStory(info: CreationAttributes<UserExperienceRating>): Promise<UserExperienceRating | null> {
+  return UserExperienceRating.create(info)
+    .catch(error => {
     logger.error(error);
     return null;
   });
