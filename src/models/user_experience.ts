@@ -14,6 +14,7 @@ export class UserExperienceRating extends Model<InferAttributes<UserExperienceRa
   declare rating: CreationOptional<ExperienceRating>;
   declare uuid: string;
   declare comments: CreationOptional<string>;
+  declare question: string;
 }
 
 export function initializeUserExperienceRatingModel(sequelize: Sequelize) {
@@ -39,7 +40,11 @@ export function initializeUserExperienceRatingModel(sequelize: Sequelize) {
     comments: {
       type: DataTypes.TEXT,
       allowNull: true,
-    }
+    },
+    question: {
+      type: DataTypes.TEXT,
+      allowNull: false,
+    },
   }, {
     sequelize
   });
