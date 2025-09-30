@@ -9,6 +9,7 @@ export enum ExperienceRating {
 }
 
 export class UserExperienceRating extends Model<InferAttributes<UserExperienceRating>, InferCreationAttributes<UserExperienceRating>> {
+  declare id: CreationOptional<number>;
   declare story_name: string;
   declare rating: CreationOptional<ExperienceRating>;
   declare uuid: string;
@@ -18,6 +19,13 @@ export class UserExperienceRating extends Model<InferAttributes<UserExperienceRa
 
 export function initializeUserExperienceRatingModel(sequelize: Sequelize) {
   UserExperienceRating.init({
+    id: {
+      type: DataTypes.INTEGER.UNSIGNED,
+      allowNull: false,
+      autoIncrement: true,
+      primaryKey: true,
+      unique: true
+    },
     story_name: {
       type: DataTypes.STRING,
       allowNull: false,
@@ -33,7 +41,6 @@ export function initializeUserExperienceRatingModel(sequelize: Sequelize) {
     uuid: {
       type: DataTypes.STRING,
       allowNull: false,
-      primaryKey: true,
     },
     comments: {
       type: DataTypes.TEXT,
@@ -44,6 +51,14 @@ export function initializeUserExperienceRatingModel(sequelize: Sequelize) {
       allowNull: false,
     },
   }, {
-    sequelize
+    sequelize,
+    indexes: [
+      {
+        fields: ["story_name"],
+      },
+      {
+        fields: ["story_name", "uuid"],
+      }
+    ]
   });
 }
