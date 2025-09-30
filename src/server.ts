@@ -74,6 +74,7 @@ import { ExperienceRating } from "./models/user_experience";
 
 import * as S from "@effect/schema/Schema";
 import * as Either from "effect/Either";
+import { JSONSchema } from "@effect/schema";
 
 import { setupApp } from "./app";
 import { getAPIKey } from "./authorization";
