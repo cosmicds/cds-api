@@ -25,6 +25,8 @@ import {
   isNumberArray,
   Either,
   Mutable,
+  UpdateAttributes,
+  creationToUpdateAttributes,
 } from "./utils";
 
 
@@ -992,12 +994,23 @@ export async function addVisitForStory(storyName: string, info: object): Promise
   });
 }
 
-export async function addExperienceInfoForStory(info: CreationAttributes<UserExperienceRating>): Promise<UserExperienceRating | null> {
-  return UserExperienceRating.create(info)
-    .catch(error => {
-      logger.error(error);
-      return null;
-  });
+export async function setExperienceInfoForStory(info: CreationAttributes<UserExperienceRating>): Promise<UserExperienceRating | null> {
+  const rating = await UserExperienceRating.findOne({ where: info });
+  if (rating === null) {
+    return UserExperienceRating.create(info)
+      .catch(error => {
+        logger.error(error);
+        return null;
+    });
+  } else {
+    const update = creationToUpdateAttributes(info);
+    rating.update(update)
+      .catch(error => {
+        logger.error(error);
+        return null;
+      });
+    return rating;
+  }
 }
 
 export async function getUserExperienceForStory(uuid: string, storyName: string): Promise<UserExperienceRating[]> {
