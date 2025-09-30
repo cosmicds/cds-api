@@ -1217,6 +1217,7 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     if (experienceInfo !== null) {
       res.json({
         success: true,
+        rating: experienceInfo.toJSON(),
       });
     } else {
       res.status(500).json({
