@@ -25,7 +25,6 @@ import {
   isNumberArray,
   Either,
   Mutable,
-  UpdateAttributes,
   creationToUpdateAttributes,
 } from "./utils";
 
@@ -995,7 +994,13 @@ export async function addVisitForStory(storyName: string, info: object): Promise
 }
 
 export async function setExperienceInfoForStory(info: CreationAttributes<UserExperienceRating>): Promise<UserExperienceRating | null> {
-  const rating = await UserExperienceRating.findOne({ where: info });
+  const rating = await UserExperienceRating.findOne({
+    where: {
+      uuid: info.uuid,
+      story_name: info.story_name,
+      question: info.question,
+    }
+  });
   if (rating === null) {
     return UserExperienceRating.create(info)
       .catch(error => {
