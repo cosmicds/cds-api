@@ -4,7 +4,6 @@ import { Story } from "./story";
 export enum ExperienceRating {
   VeryBad = "very_bad",
   Poor = "poor",
-  Medium = "medium",
   Good = "good",
   Excellent = "excellent",
 }
@@ -28,7 +27,7 @@ export function initializeUserExperienceRatingModel(sequelize: Sequelize) {
       }
     },
     rating: {
-      type: DataTypes.ENUM(ExperienceRating.VeryBad, ExperienceRating.Poor, ExperienceRating.Medium, ExperienceRating.Good, ExperienceRating.Excellent),
+      type: DataTypes.ENUM(ExperienceRating.VeryBad, ExperienceRating.Poor, ExperienceRating.Good, ExperienceRating.Excellent),
       allowNull: true,
     },
     uuid: {
