@@ -51,6 +51,7 @@ import {
   findStudentByIdOrUsername,
   addVisitForStory,
   getUserExperienceForStory,
+  setExperienceInfoForStory,
 } from "./database";
 
 import {
@@ -69,6 +70,7 @@ import session from "express-session";
 import jwt from "jsonwebtoken";
 
 import { isStudentOption } from "./models/student_options";
+import { ExperienceRating } from "./models/user_experience";
 
 import * as S from "@effect/schema/Schema";
 import * as Either from "effect/Either";
@@ -78,8 +80,6 @@ import { getAPIKey } from "./authorization";
 import { Sequelize } from "sequelize";
 import { sendEmail } from "./email";
 import { logger } from "./logger";
-
-import { handleUserExperienceSubmission } from "./handlers";
 
 // TODO: Clean up these type definitions
 
@@ -1188,12 +1188,61 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     
   });
 
-  app.put("/stories/user-experience", handleUserExperienceSubmission);
+  app.put("/stories/user-experience/:storyName", async (req, res) => {
+    const storyName = req.params.storyName as string;
+    const schema = S.struct({
+      story_name: S.string,
+      comments: S.optional(S.string),
+      uuid: S.string,
+      question: S.string,
+      rating: S.optional(S.enums(ExperienceRating)),
+    });
+    const body = {
+      ...req.body,
+      story_name: storyName,
+    };
+    const maybe = S.decodeUnknownEither(schema)(body);
+    if (Either.isLeft(maybe)) {
+      res.status(400).json({
+        success: false,
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-expect-error The generated schema has a properties field
+        error: `Invalid request body; should have the following schema: ${JSON.stringify(JSONSchema.make(schema).properties)}`,
+      });
+      return;
+    }
+
+    const data = maybe.right;
+    const experienceInfo = await setExperienceInfoForStory(data);
+    if (experienceInfo !== null) {
+      res.json({
+        success: true,
+        rating: experienceInfo.toJSON(),
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: "Error creating user experience info",
+      });
+    }
+  });
 
   app.get("/stories/user-experience/:storyName/:uuid", async (req, res) => {
     const uuid = req.params.uuid as string;
     const storyName = req.params.storyName as string;
-    const ratings = await getUserExperienceForStory(uuid, storyName);
+    const ratings = await getUserExperienceForStory(uuid, storyName)
+      .catch(error => {
+        logger.error(error);
+        return null;
+      });
+
+    if (ratings === null) {
+      res.status(500).json({
+        error: `There was an error creating a user experience rating for used ${uuid}, story ${storyName}`,
+      });
+      return;
+    }
+
     if (ratings.length === 0) {
       res.status(404).json({
         error: `User ${uuid} does not have any user experience ratings for story ${storyName}`,
