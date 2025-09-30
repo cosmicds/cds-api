@@ -35,7 +35,6 @@ export function initializeUserExperienceRatingModel(sequelize: Sequelize) {
       type: DataTypes.STRING,
       allowNull: false,
       primaryKey: true,
-      unique: true,
     },
     comments: {
       type: DataTypes.TEXT,

@@ -1,7 +1,7 @@
 CREATE TABLE UserExperienceRatings (
 	story_name varchar(32) NOT NULL,
     rating ENUM("very_bad", "poor", "medium", "good", "excellent") DEFAULT NULL,
-    uuid varchar(36) NOT NULL UNIQUE,
+    uuid varchar(36) NOT NULL,
     comments TEXT DEFAULT NULL,
     question TEXT NOT NULL,
     
