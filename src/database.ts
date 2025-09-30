@@ -995,8 +995,8 @@ export async function addVisitForStory(storyName: string, info: object): Promise
 export async function addExperienceInfoForStory(info: CreationAttributes<UserExperienceRating>): Promise<UserExperienceRating | null> {
   return UserExperienceRating.create(info)
     .catch(error => {
-    logger.error(error);
-    return null;
+      logger.error(error);
+      return null;
   });
 }
 

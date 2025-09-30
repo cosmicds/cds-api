@@ -1229,7 +1229,19 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
   app.get("/stories/user-experience/:storyName/:uuid", async (req, res) => {
     const uuid = req.params.uuid as string;
     const storyName = req.params.storyName as string;
-    const ratings = await getUserExperienceForStory(uuid, storyName);
+    const ratings = await getUserExperienceForStory(uuid, storyName)
+      .catch(error => {
+        logger.error(error);
+        return null;
+      });
+
+    if (ratings === null) {
+      res.status(500).json({
+        error: `There was an error creating a user experience rating for used ${uuid}, story ${storyName}`,
+      });
+      return;
+    }
+
     if (ratings.length === 0) {
       res.status(404).json({
         error: `User ${uuid} does not have any user experience ratings for story ${storyName}`,
