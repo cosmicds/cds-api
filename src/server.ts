@@ -50,6 +50,7 @@ import {
   findClassByIdOrCode,
   findStudentByIdOrUsername,
   addVisitForStory,
+  getUserExperienceForStory,
 } from "./database";
 
 import {
@@ -1188,6 +1189,20 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
   });
 
   app.put("/stories/user-experience", handleUserExperienceSubmission);
+
+  app.get("/stories/user-experience/:storyName/:uuid", async (req, res) => {
+    const uuid = req.params.uuid as string;
+    const storyName = req.params.storyName as string;
+    const ratings = await getUserExperienceForStory(uuid, storyName);
+    if (ratings.length === 0) {
+      res.status(404).json({
+        error: `User ${uuid} does not have any user experience ratings for story ${storyName}`,
+      });
+      return;
+    }
+
+    res.json({ ratings });
+  });
 
   return app;
 }

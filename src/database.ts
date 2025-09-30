@@ -999,3 +999,12 @@ export async function addExperienceInfoForStory(info: CreationAttributes<UserExp
     return null;
   });
 }
+
+export async function getUserExperienceForStory(uuid: string, storyName: string): Promise<UserExperienceRating[]> {
+  return UserExperienceRating.findAll({
+    where: {
+      uuid,
+      story_name: storyName,
+    }
+  });
+}
