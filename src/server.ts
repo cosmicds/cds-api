@@ -51,7 +51,7 @@ import {
   findStudentByIdOrUsername,
   addVisitForStory,
   getUserExperienceForStory,
-  addExperienceInfoForStory,
+  setExperienceInfoForStory,
 } from "./database";
 
 import {
@@ -1213,7 +1213,7 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     }
 
     const data = maybe.right;
-    const experienceInfo = await addExperienceInfoForStory(data);
+    const experienceInfo = await setExperienceInfoForStory(data);
     if (experienceInfo !== null) {
       res.json({
         success: true,
