@@ -1,13 +1,18 @@
 import { 
+    APIKeyRole,
   Class,
   ClassStories,
   IgnoreClass,
   IgnoreStudent,
+  Permission,
+  Role,
+  RolePermission,
   Story,
   StoryState,
   Student,
   StudentsClasses,
 } from "./models";
+import { APIKey } from "./models/api_key";
 
 export function setUpAssociations() {
 
@@ -138,6 +143,58 @@ export function setUpAssociations() {
     as: "class",
     targetKey: "id",
     foreignKey: "class_id"
+  });
+
+  Permission.hasMany(RolePermission, {
+    foreignKey: "permission_id",
+  });
+  RolePermission.belongsTo(Permission, {
+    as: "permission",
+    targetKey: "id",
+    foreignKey: "permission_id",
+  });
+
+  Role.hasMany(RolePermission, {
+    foreignKey: "role_id",
+  });
+  RolePermission.belongsTo(Role, {
+    as: "role_permission",
+    targetKey: "id",
+    foreignKey: "role_id",
+  });
+
+  Permission.belongsToMany(Role, {
+    through: RolePermission,
+    sourceKey: "id",
+    targetKey: "id",
+    foreignKey: "permission_id",
+    otherKey: "role_id",
+    onUpdate: "CASCADE",
+    onDelete: "CASCADE",
+  });
+
+  APIKey.hasMany(APIKeyRole, {
+    foreignKey: "api_key_id",
+  });
+
+  Role.belongsToMany(APIKey, {
+    through: APIKeyRole,
+    sourceKey: "id",
+    targetKey: "id",
+    foreignKey: "role_id",
+    otherKey: "api_key_id",
+    onUpdate: "CASCADE",
+    onDelete: "CASCADE",
+  });
+
+  APIKey.belongsToMany(Role, {
+    through: APIKeyRole,
+    sourceKey: "id",
+    targetKey: "id",
+    foreignKey: "api_key_id",
+    otherKey: "role_id",
+    onUpdate: "CASCADE",
+    onDelete: "CASCADE",
   });
 
 }
