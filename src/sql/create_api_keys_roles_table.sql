@@ -1,6 +1,7 @@
-CREATE TABLE APIKeyRoles (
+CREATE TABLE APIKeysRoles (
     api_key_id int(11) UNSIGNED NOT NULL,
 	role_id int(11) UNSIGNED NOT NULL,
+    assigned datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (api_key_id, role_id),
 	FOREIGN KEY (api_key_id)
 		REFERENCES APIKeys(id)

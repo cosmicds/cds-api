@@ -2,6 +2,7 @@ CREATE TABLE Roles (
 	id int(11) UNSIGNED NOT NULL UNIQUE AUTO_INCREMENT,
     name varchar(32) UNIQUE NOT NULL,
     parent_id int(11) UNSIGNED DEFAULT NULL,
+    PRIMARY KEY (id),
 	FOREIGN KEY (parent_id)
         REFERENCES Roles(id)
         ON UPDATE CASCADE

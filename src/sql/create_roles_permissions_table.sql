@@ -1,6 +1,7 @@
-CREATE TABLE RolePermissions (
+CREATE TABLE RolesPermissions (
 	role_id int(11) UNSIGNED NOT NULL,
     permission_id int(11) UNSIGNED NOT NULL,
+    assigned datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (role_id, permission_id),
     FOREIGN KEY (role_id)
 		REFERENCES Roles(id)
