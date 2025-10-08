@@ -6,7 +6,19 @@ import type { Test } from "supertest";
 import type { InferAttributes, CreationAttributes, Model, Sequelize } from "sequelize";
 
 import { setUpAssociations } from "../src/associations";
-import { Educator, IgnoreStudent, StageState, Story, StoryState, StudentsClasses, initializeModels } from "../src/models";
+import {
+  APIKeyRole,
+  Educator,
+  IgnoreStudent,
+  Permission,
+  Role,
+  RolePermission,
+  StageState,
+  Story,
+  StoryState,
+  StudentsClasses,
+  initializeModels
+} from "../src/models";
 import { createApp } from "../src/server";
 import { Class, Student } from "../src/models";
 import { APIKey } from "../src/models/api_key";
@@ -77,6 +89,10 @@ export async function syncTables(force=false): Promise<void> {
   await Student.sync(options);
   await Educator.sync(options);
   await Class.sync(options);
+  await Permission.sync(options);
+  await Role.sync(options);
+  await RolePermission.sync(options);
+  await APIKeyRole.sync(options);
   await StudentsClasses.sync(options);
   await Story.sync(options);
   await StoryState.sync(options);
@@ -84,17 +100,40 @@ export async function syncTables(force=false): Promise<void> {
   await IgnoreStudent.sync(options);
 }
 
-export async function addAPIKey(): Promise<APIKey | void> {
+export async function addAdminAPIKey(): Promise<APIKey | void> {
   // Set up some basic data that we're going to want
   const hashedKey = hashAPIKey(process.env.CDS_API_KEY as string);
-  return APIKey.create({
+  const key = await APIKey.create({
     hashed_key: hashedKey,
     client: "Tests",
   });
+
+  const admin = await Role.create({
+    name: "admin",
+  });
+
+  const globalRead = await Permission.create({ name: "global-read", action: "read", resource_pattern: "/" });
+  const globalWrite = await Permission.create({ name: "global-write", action: "write", resource_pattern: "/" });
+  const globalDelete = await Permission.create({ name: "global-delete", action: "delete", resource_pattern: "/" });
+
+  const globalPermissions: Permission[] = [globalRead, globalWrite, globalDelete];
+  for (const permission of globalPermissions) {
+    RolePermission.create({
+      role_id: admin.id,
+      permission_id: permission.id,
+    });
+  }
+
+  await APIKeyRole.create({
+    api_key_id: key.id,
+    role_id: admin.id,
+  });
+
+  return key;
 }
 
 export async function addTestData() {
-  await addAPIKey();
+  await addAdminAPIKey();
 }
 
 export function createTestApp(db: Sequelize): Express {
