@@ -3,12 +3,14 @@ import { enc, SHA256 } from "crypto-js";
 import { v5 } from "uuid";
 
 import * as S from "@effect/schema/Schema";
-import { CreationAttributes, Model } from "sequelize";
+import { CreationAttributes, Model, InferAttributes, InferCreationAttributes } from "sequelize";
 
 import { ParsedQs } from "qs";
 import { Request } from "express";
 import { Response } from "express-serve-static-core";
 import { Class } from "./models";
+
+export type Action = "read" | "write" | "delete";
 
 export const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(",") : [];
 
@@ -145,3 +147,4 @@ export function creationToUpdateAttributes<M extends Model>(info: CreationAttrib
   }
   return update;
 }
+
