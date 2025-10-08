@@ -81,7 +81,6 @@ import { getAPIKey, hasPermission } from "./authorization";
 import { Sequelize } from "sequelize";
 import { sendEmail } from "./email";
 import { logger } from "./logger";
-import type { Action } from "./utils";
 
 // TODO: Clean up these type definitions
 

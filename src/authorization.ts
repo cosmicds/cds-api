@@ -3,7 +3,7 @@ import { APIKey } from "./models/api_key";
 import { Permission, Role } from "./models";
 import { logger } from "./logger";
 import type { Action, GenericRequest } from "./utils";
-import { literal, Op, Sequelize } from "sequelize";
+import { literal, Op } from "sequelize";
 
 const HASHER = new SHA3(256);
 

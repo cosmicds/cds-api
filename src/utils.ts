@@ -3,7 +3,7 @@ import { enc, SHA256 } from "crypto-js";
 import { v5 } from "uuid";
 
 import * as S from "@effect/schema/Schema";
-import { CreationAttributes, Model, InferAttributes, InferCreationAttributes } from "sequelize";
+import { CreationAttributes, Model } from "sequelize";
 
 import { ParsedQs } from "qs";
 import { Request } from "express";
