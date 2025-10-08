@@ -1,6 +1,6 @@
 import * as S from "@effect/schema/Schema";
 import * as Either from "effect/Either";
-import { Express, Router } from "express";
+import { Express } from "express";
 import { Sequelize } from "sequelize";
 
 import {
@@ -11,8 +11,9 @@ import {
   updatePlanetParadeData
 } from "./database";
 import { initializeModels } from "./models";
+import { storyRouter } from "../../story_router";
 
-export const router = Router();
+export const router = storyRouter("planet-parade");
 
 export function setup(_app: Express, db: Sequelize) {
   initializeModels(db);
