@@ -3,12 +3,14 @@ import { enc, SHA256 } from "crypto-js";
 import { v5 } from "uuid";
 
 import * as S from "@effect/schema/Schema";
-import { Model } from "sequelize";
+import { CreationAttributes, Model } from "sequelize";
 
 import { ParsedQs } from "qs";
 import { Request } from "express";
 import { Response } from "express-serve-static-core";
 import { Class } from "./models";
+
+export type Action = "read" | "write" | "delete";
 
 export const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(",") : [];
 
@@ -31,6 +33,16 @@ export type Either<T, U> = Only<T,U> | Only<U,T>;
 
 export type Mutable<T> = {
   -readonly [P in keyof T]: T[P];
+}
+
+// Only keep keys that aren't optional/have undefined a a possible value
+export type KeysOfType<T, U> = { [K in keyof T]: T[K] extends U ? K : never }[keyof T];
+export type RequiredKeys<T> = Exclude<KeysOfType<T, Exclude<T[keyof T], undefined>>, undefined>
+export type ExcludeOptionalProperties<T> = Pick<T, RequiredKeys<T>>
+
+// Only keeps keys that aren't optional
+export type RequiredFieldsOnly<T> = {
+    [K in keyof T as T[K] extends Required<T>[K] ? K : never]: T[K]
 }
 
 function pairType<T>(type: S.Schema<T,T,never>): S.Schema<[T, T], [T, T], never> {
@@ -107,17 +119,17 @@ export async function createClassCode(length: number = 6): Promise<string> {
 }
 
 
-// eslint-disable-next-line  @typescript-eslint/no-explicit-any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function isArrayThatSatisfies<T extends Array<any>>(array: any, condition: (t: Array<any>) => boolean): array is T {
   return Array.isArray(array) && condition(array);
 }
 
-// eslint-disable-next-line  @typescript-eslint/no-explicit-any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function isNumberArray(arr: any): arr is number[] {
   return Array.isArray(arr) && arr.every(x => typeof x === "number");
 }
 
-// eslint-disable-next-line  @typescript-eslint/no-explicit-any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function isStringArray(arr: any): arr is string[] {
   return Array.isArray(arr) && arr.every(x => typeof x === "string");
 }
@@ -125,3 +137,14 @@ export function isStringArray(arr: any): arr is string[] {
 export function mySqlDatetime(dt: Date): string {
   return `${String(dt.getUTCFullYear()).padStart(4, "0")}-${String(dt.getUTCMonth()+1).padStart(2, "0")}-${String(dt.getUTCDay()).padStart(2, "0")} ${String(dt.getUTCHours()).padStart(2, "0")}:${String(dt.getUTCMinutes()).padStart(2, "0")}:${String(dt.getUTCSeconds()).padStart(2, "0")}`;
 }
+
+export function creationToUpdateAttributes<M extends Model>(info: CreationAttributes<M>): UpdateAttributes<M> {
+  const update: Partial<CreationAttributes<M>> = {};
+  for (const [key, value] of Object.entries(info)) {
+    if (value !== undefined) {
+      update[key as keyof CreationAttributes<M>] = value;
+    }
+  }
+  return update;
+}
+

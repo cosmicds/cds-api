@@ -1,3 +1,4 @@
+import { APIKeyRole, initializeAPIKeyRoleModel } from "./api_key_role";
 import { Class, initializeClassModel } from "./class";
 import { DashboardClassGroup, initializeDashboardClassGroupModel } from "./dashboard_class_group";
 import { DummyClass, initializeDummyClassModel } from "./dummy_class";
@@ -6,6 +7,9 @@ import { IgnoreClass, initializeIgnoreClassModel } from "./ignore_class";
 import { IgnoreStudent, initializeIgnoreStudentModel } from "./ignore_student";
 import { ClassStories, initializeClassStoryModel } from "./story_class";
 import { CosmicDSSession, initializeSessionModel } from "./session";
+import { Permission, initializePermissionModel } from "./permission";
+import { Role, initializeRoleModel } from "./role";
+import { RolePermission, initializeRolePermissionModel } from "./role_permission";
 import { Stage, initializeStageModel } from "./stage";
 import { StageState, initializeStageStateModel } from "./stage_state";
 import { Story, initializeStoryModel } from "./story";
@@ -17,8 +21,10 @@ import { Sequelize } from "sequelize/types";
 import { initializeStudentOptionsModel } from "./student_options";
 import { initializeQuestionModel } from "./question";
 import { initializeAPIKeyModel } from "./api_key";
+import { initializeUserExperienceRatingModel } from "./user_experience";
 
 export {
+  APIKeyRole,
   Class,
   ClassStories,
   CosmicDSSession,
@@ -27,6 +33,9 @@ export {
   Educator,
   IgnoreClass,
   IgnoreStudent,
+  Permission,
+  Role,
+  RolePermission,
   Stage,
   StageState,
   Story,
@@ -37,6 +46,10 @@ export {
 };
 export function initializeModels(db: Sequelize) {
   initializeAPIKeyModel(db);
+  initializeRoleModel(db);
+  initializePermissionModel(db);
+  initializeRolePermissionModel(db);
+  initializeAPIKeyRoleModel(db);
   initializeSessionModel(db);
   initializeEducatorModel(db);
   initializeClassModel(db);
@@ -54,4 +67,5 @@ export function initializeModels(db: Sequelize) {
   initializeQuestionModel(db);
   initializeDashboardClassGroupModel(db);
   initializeStoryVisitInfoModel(db);
+  initializeUserExperienceRatingModel(db);
 }

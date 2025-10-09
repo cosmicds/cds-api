@@ -51,6 +51,8 @@ import {
   findStudentByIdOrUsername,
   addVisitForStory,
   patchStoryState,
+  getUserExperienceForStory,
+  setExperienceInfoForStory,
 } from "./database";
 
 import {
@@ -60,7 +62,7 @@ import {
   VerificationResult,
 } from "./request_results";
 
-import { CosmicDSSession, StudentsClasses, Class, IgnoreStudent, StoryVisitInfo } from "./models";
+import { CosmicDSSession, StudentsClasses, Class, IgnoreStudent } from "./models";
 
 import { ParsedQs } from "qs";
 import express, { Express, Request, Response as ExpressResponse } from "express";
@@ -69,12 +71,14 @@ import session from "express-session";
 import jwt from "jsonwebtoken";
 
 import { isStudentOption } from "./models/student_options";
+import { ExperienceRating } from "./models/user_experience";
 
 import * as S from "@effect/schema/Schema";
 import * as Either from "effect/Either";
+import { JSONSchema } from "@effect/schema";
 
 import { setupApp } from "./app";
-import { getAPIKey } from "./authorization";
+import { getAPIKey, hasPermission } from "./authorization";
 import { Sequelize } from "sequelize";
 import { sendEmail } from "./email";
 import { logger } from "./logger";
@@ -85,6 +89,8 @@ import { logger } from "./logger";
 export type GenericRequest = Request<{}, any, any, ParsedQs, Record<string, any>>;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type GenericResponse = Response<any, Record<string, any>, number>;
+
+
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type VerificationRequest = Request<{ verificationCode: string }, any, any, ParsedQs, Record<string, any>>;
@@ -141,6 +147,44 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
       message += " You'll need to include a valid API key with your requests in order to access other endpoints.";
     }
     res.json({ message: message });
+  });
+
+  app.get("/permission", async (req, res) => {
+    const key = req.query.api_key;
+    const action = req.query.action;
+    const path = req.query.path;
+    const schema = S.struct({
+      key: S.string,
+      action: S.literal("read", "write", "delete"),
+      path: S.string,
+    });
+    const maybe = S.decodeUnknownEither(schema)({ key, action, path });
+    if (Either.isLeft(maybe)) {
+      res.status(400).json({
+        permission: false,
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-expect-error The generated schema has a properties field
+        error: `Invalid request parameters, should have the following schema: ${JSON.stringify(JSONSchema.make(schema).properties)}`,
+      });
+      return;
+    }
+
+    const apiKey = await getAPIKey(maybe.right.key);
+    if (apiKey === null) {
+      res.json({
+        permission: false,
+        message: "The provided API key does not exist",
+      });
+      return;
+    }
+    const permission = await hasPermission({
+      key: apiKey,
+      action: maybe.right.action,
+      resourcePath: maybe.right.path,
+    });
+
+    res.json({ permission });
+
   });
 
   // Educator sign-up
@@ -1198,6 +1242,71 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
       });
     }
     
+  });
+
+  app.put("/stories/user-experience/:storyName", async (req, res) => {
+    const storyName = req.params.storyName as string;
+    const schema = S.struct({
+      story_name: S.string,
+      comments: S.optional(S.string),
+      uuid: S.string,
+      question: S.string,
+      rating: S.optional(S.enums(ExperienceRating)),
+    });
+    const body = {
+      ...req.body,
+      story_name: storyName,
+    };
+    const maybe = S.decodeUnknownEither(schema)(body);
+    if (Either.isLeft(maybe)) {
+      res.status(400).json({
+        success: false,
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-expect-error The generated schema has a properties field
+        error: `Invalid request body; should have the following schema: ${JSON.stringify(JSONSchema.make(schema).properties)}`,
+      });
+      return;
+    }
+
+    const data = maybe.right;
+    const experienceInfo = await setExperienceInfoForStory(data);
+    if (experienceInfo !== null) {
+      res.json({
+        success: true,
+        rating: experienceInfo.toJSON(),
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: "Error creating user experience info",
+      });
+    }
+  });
+
+  app.get("/stories/user-experience/:storyName/:uuid", async (req, res) => {
+    const uuid = req.params.uuid as string;
+    const storyName = req.params.storyName as string;
+    const ratings = await getUserExperienceForStory(uuid, storyName)
+      .catch(error => {
+        logger.error(error);
+        return null;
+      });
+
+    if (ratings === null) {
+      res.status(500).json({
+        error: `There was an error creating a user experience rating for used ${uuid}, story ${storyName}`,
+      });
+      return;
+    }
+
+    if (ratings.length === 0) {
+      res.status(404).json({
+        error: `User ${uuid} does not have any user experience ratings for story ${storyName}`,
+      });
+      return;
+    }
+
+    res.json({ ratings });
   });
 
   return app;

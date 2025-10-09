@@ -1,4 +1,4 @@
-import { BaseError, Options, Model, Op, QueryTypes, Sequelize, UniqueConstraintError, WhereOptions } from "sequelize";
+import { BaseError, Options, Model, Op, QueryTypes, Sequelize, UniqueConstraintError, WhereOptions, CreationAttributes } from "sequelize";
 import dotenv from "dotenv";
 import { createNamespace } from "cls-hooked";
 
@@ -25,6 +25,7 @@ import {
   isNumberArray,
   Either,
   Mutable,
+  creationToUpdateAttributes,
 } from "./utils";
 
 
@@ -44,6 +45,7 @@ import { Question } from "./models/question";
 import { logger } from "./logger";
 import { Stage } from "./models/stage";
 import { classSetupRegistry } from "./registries";
+import { UserExperienceRating } from "./models/user_experience";
 
 export type LoginResponse = {
   type: "none" | "student" | "educator" | "admin",
@@ -1036,5 +1038,39 @@ export async function addVisitForStory(storyName: string, info: object): Promise
   }).catch(error => {
     logger.error(error);
     return null;
+  });
+}
+
+export async function setExperienceInfoForStory(info: CreationAttributes<UserExperienceRating>): Promise<UserExperienceRating | null> {
+  const rating = await UserExperienceRating.findOne({
+    where: {
+      uuid: info.uuid,
+      story_name: info.story_name,
+      question: info.question,
+    }
+  });
+  if (rating === null) {
+    return UserExperienceRating.create(info)
+      .catch(error => {
+        logger.error(error);
+        return null;
+    });
+  } else {
+    const update = creationToUpdateAttributes(info);
+    rating.update(update)
+      .catch(error => {
+        logger.error(error);
+        return null;
+      });
+    return rating;
+  }
+}
+
+export async function getUserExperienceForStory(uuid: string, storyName: string): Promise<UserExperienceRating[]> {
+  return UserExperienceRating.findAll({
+    where: {
+      uuid,
+      story_name: storyName,
+    }
   });
 }
