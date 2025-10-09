@@ -118,7 +118,7 @@ export async function addAdminAPIKey(): Promise<APIKey | void> {
 
   const globalPermissions: Permission[] = [globalRead, globalWrite, globalDelete];
   for (const permission of globalPermissions) {
-    RolePermission.create({
+    await RolePermission.create({
       role_id: admin.id,
       permission_id: permission.id,
     });
