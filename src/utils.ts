@@ -10,6 +10,8 @@ import { Request } from "express";
 import { Response } from "express-serve-static-core";
 import { Class } from "./models";
 
+export type Action = "read" | "write" | "delete";
+
 export const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(",") : [];
 
 // TODO: Clean up these type definitions
@@ -145,3 +147,4 @@ export function creationToUpdateAttributes<M extends Model>(info: CreationAttrib
   }
   return update;
 }
+

@@ -77,7 +77,7 @@ import * as Either from "effect/Either";
 import { JSONSchema } from "@effect/schema";
 
 import { setupApp } from "./app";
-import { getAPIKey } from "./authorization";
+import { getAPIKey, hasPermission } from "./authorization";
 import { Sequelize } from "sequelize";
 import { sendEmail } from "./email";
 import { logger } from "./logger";
@@ -88,6 +88,8 @@ import { logger } from "./logger";
 export type GenericRequest = Request<{}, any, any, ParsedQs, Record<string, any>>;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type GenericResponse = Response<any, Record<string, any>, number>;
+
+
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type VerificationRequest = Request<{ verificationCode: string }, any, any, ParsedQs, Record<string, any>>;
@@ -144,6 +146,44 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
       message += " You'll need to include a valid API key with your requests in order to access other endpoints.";
     }
     res.json({ message: message });
+  });
+
+  app.get("/permission", async (req, res) => {
+    const key = req.query.api_key;
+    const action = req.query.action;
+    const path = req.query.path;
+    const schema = S.struct({
+      key: S.string,
+      action: S.literal("read", "write", "delete"),
+      path: S.string,
+    });
+    const maybe = S.decodeUnknownEither(schema)({ key, action, path });
+    if (Either.isLeft(maybe)) {
+      res.status(400).json({
+        permission: false,
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-expect-error The generated schema has a properties field
+        error: `Invalid request parameters, should have the following schema: ${JSON.stringify(JSONSchema.make(schema).properties)}`,
+      });
+      return;
+    }
+
+    const apiKey = await getAPIKey(maybe.right.key);
+    if (apiKey === null) {
+      res.json({
+        permission: false,
+        message: "The provided API key does not exist",
+      });
+      return;
+    }
+    const permission = await hasPermission({
+      key: apiKey,
+      action: maybe.right.action,
+      resourcePath: maybe.right.path,
+    });
+
+    res.json({ permission });
+
   });
 
   // Educator sign-up

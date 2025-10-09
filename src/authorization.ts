@@ -1,10 +1,21 @@
-import { Request } from "express";
 import SHA3 from "sha3";
 import { APIKey } from "./models/api_key";
+import { Permission, Role } from "./models";
+import { logger } from "./logger";
+import type { Action, GenericRequest } from "./utils";
+import { literal, Op } from "sequelize";
 
 const HASHER = new SHA3(256);
 
 const validKeys = new Map<string, APIKey>();
+
+const methodsToActions = new Map<string, Action>([
+  ["GET", "read"],
+  ["PATCH", "write"],
+  ["POST", "write"],
+  ["PUT", "write"],
+  ["DELETE", "delete"],
+]);
 
 export function hashAPIKey(key: string): string {
   HASHER.reset();
@@ -28,11 +39,59 @@ export async function getAPIKey(key: string): Promise<APIKey | null> {
   return apiKey;
 }
 
-// TODO: Is there a better way to set this system up?
-export function hasPermission(key: APIKey, req: Request): boolean {
-  const relativeURL = req.originalUrl;
-  const permissionsRoot = key.permissions_root;
-  const routePermission = permissionsRoot === null || relativeURL.startsWith(permissionsRoot);
-  const methodPermission = key.allowed_methods === null || key.allowed_methods.includes(req.method);
-  return routePermission && methodPermission;
+interface PermissionInfo {
+  key: APIKey;
+  action: Action;
+  resourcePath: string;
+}
+export async function hasPermission(info: PermissionInfo): Promise<boolean> {
+  console.log(info);
+  return Permission.findOne({
+    include: [
+      {
+        model: Role,
+        required: true,
+        include: [
+          {
+            model: APIKey,
+            required: true,
+            where: { id: info.key.id },
+          }
+        ]
+      },
+    ],
+    where: {
+      [Op.and]: [
+        { action: info.action },
+        literal(`"${info.resourcePath}" LIKE CONCAT(resource_pattern, "%")`),
+      ],
+    }
+  })
+  .then(permission => permission != null)
+  .catch(error => {
+    logger.error(error);
+    return false;
+  });
+}
+
+export async function requestHasPermission(req: GenericRequest): Promise<{ permission: boolean, validKey: boolean }> {
+  const key = req.get("Authorization");
+  const apiKey = key ? await getAPIKey(key) : null;
+  if (apiKey == null) {
+    return { permission: false, validKey: false };
+  }
+  const action = methodsToActions.get(req.method);
+  if (action == undefined) {
+    return { permission: false, validKey: true };
+  }
+  const resourcePath = req.path; 
+  const permission = await hasPermission({
+    key: apiKey,
+    action,
+    resourcePath,
+  });
+  return {
+    permission,
+    validKey: true,
+  };
 }
