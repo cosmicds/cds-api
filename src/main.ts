@@ -2,6 +2,7 @@ import { promises } from "fs";
 import { join } from "path";
 import { createApp } from "./server";
 import { getDatabaseConnection } from "./database";
+import { storyRouter } from "./story_router";
 
 
 const STORIES_DIR = join(__dirname, "stories");
@@ -24,6 +25,15 @@ promises.readdir(STORIES_DIR, { withFileTypes: true }).then(entries => {
 .catch(error => {
   console.error(error);
   throw new Error("Error setting up sub-routers!");
+});
+
+const stories = [
+  "blaze-star-nova", "radwave-in-motion", "radwave-in-motion-deutsch",
+  "jwst-brick", "pinwheel-supernova", "green-comet",
+];
+stories.forEach(story => {
+  const router = storyRouter(story);
+  app.use(`/${story}`, router);
 });
 
 // set port, listen for requests
