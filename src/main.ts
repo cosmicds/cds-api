@@ -28,8 +28,9 @@ promises.readdir(STORIES_DIR, { withFileTypes: true }).then(entries => {
 });
 
 const stories = [
-  "blaze-star-nova", "radwave-in-motion", "radwave-in-motion-deutsch",
-  "jwst-brick", "pinwheel-supernova", "green-comet",
+  "carina", "blaze-star-nova", "radwave-in-motion",
+  "radwave-in-motion-deutsch", "jwst-brick",
+  "pinwheel-supernova", "green-comet",
 ];
 stories.forEach(story => {
   const router = storyRouter(story);
