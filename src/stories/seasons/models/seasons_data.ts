@@ -8,6 +8,7 @@ export class SeasonsData extends Model<InferAttributes<SeasonsData>, InferCreati
   declare user_selected_locations: CreationOptional<string[]>;
   declare user_selected_locations_count: CreationOptional<number>;
   declare response: CreationOptional<string>;
+  declare last_updated: CreationOptional<Date>;
 }
 
 export function initializeSeasonsDataModel(sequelize: Sequelize) {
@@ -41,7 +42,12 @@ export function initializeSeasonsDataModel(sequelize: Sequelize) {
     },
     response: {
       type: DataTypes.TEXT,
-      
+      defaultValue: null,
+    },
+    last_updated: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: Sequelize.literal("CURRENT_TIMESTAMP"),
     },
   }, {
     sequelize,
