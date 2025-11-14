@@ -98,7 +98,9 @@ export async function updateSeasonsData(userUUID: string, update: SeasonsEntryT)
   if (update.app_time_ms) {
     dbUpdate.app_time_ms = data.app_time_ms + update.app_time_ms;
   }
-
+  //
+  // See comment above about skipping the update logic
+  // if deltas are either null/undefined or zero
   const numberEntryKeys = [
     "wwt_play_pause_count",
     "wwt_time_reset_count",
@@ -115,21 +117,6 @@ export async function updateSeasonsData(userUUID: string, update: SeasonsEntryT)
 
   if (update.aha_moment_response) {
     dbUpdate.aha_moment_response = update.aha_moment_response;
-  }
-
-  // WWT usage tracking
-  // See comment above about skipping the update logic
-  // if deltas are either null/undefined or zero
-  if (update.wwt_time_reset_count) {
-    dbUpdate.wwt_time_reset_count = data.wwt_time_reset_count + update.wwt_time_reset_count;
-  }
-
-  if (update.wwt_reverse_count) {
-    dbUpdate.wwt_reverse_count = data.wwt_reverse_count + update.wwt_reverse_count;
-  }
-
-  if (update.wwt_play_pause_count) {
-    dbUpdate.wwt_play_pause_count = data.wwt_play_pause_count + update.wwt_play_pause_count;
   }
 
   if (update.wwt_speedups) {
