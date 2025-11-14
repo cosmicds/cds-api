@@ -4,6 +4,7 @@ import { Express, Router } from "express";
 import { Sequelize } from "sequelize";
 
 import { initializeModels } from "./models";
+import { addVisitForStory } from "../../database";
 import { SeasonsEntry, SeasonsUpdate, getSeasonsData, submitSeasonsData, updateSeasonsData } from "./database";
 
 export const router = Router();
@@ -65,4 +66,32 @@ router.patch("/data/:uuid", async (req, res) => {
     return;
   }
   res.json({ response });
+});
+
+router.post("/visit", async (req, res) => {
+  const schema = S.struct({
+    info: S.object,
+  });
+  const body = req.body;
+  const maybe = S.decodeUnknownEither(schema)(body);
+  if (Either.isLeft(maybe)) {
+    res.status(400).json({
+      success: false,
+      error: "Invalid request body; should have form { info: { venue: <string> } }",
+    });
+    return;
+  }
+
+  const data = maybe.right;
+  const storyVisitInfo = await addVisitForStory("seasons", data.info);
+  if (storyVisitInfo !== null) {
+    res.json({
+      success: true,
+    });
+  } else {
+    res.status(500).json({
+      success: false,
+      error: "Error creating story visit info entry",
+    });
+  }
 });
