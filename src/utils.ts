@@ -45,15 +45,15 @@ export type RequiredFieldsOnly<T> = {
     [K in keyof T as T[K] extends Required<T>[K] ? K : never]: T[K]
 }
 
-function pairType<T>(type: S.Schema<T,T,never>): S.Schema<[T, T], [T, T], never> {
+export function pairType<T>(type: S.Schema<T,T,never>): S.Schema<[T, T], [T, T], never> {
   return S.mutable(S.tuple(type, type));
 }
 
-function arrayType<T>(type: S.Schema<T,T,never>) {
+export function arrayType<T>(type: S.Schema<T,T,never>) {
   return S.mutable(S.array(S.mutable(type)));
 }
 
-function pairArrayType<T>(type: S.Schema<T,T,never>): S.Schema<[T, T][], [T, T][], never> {
+export function pairArrayType<T>(type: S.Schema<T,T,never>): S.Schema<[T, T][], [T, T][], never> {
   return S.mutable(S.array(pairType(type)));
 }
 

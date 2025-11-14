@@ -5,7 +5,10 @@ CREATE TABLE SeasonsData (
     user_selected_dates_count int(11) UNSIGNED NOT NULL DEFAULT 0,
     user_selected_locations JSON NOT NULL DEFAULT (JSON_ARRAY()),
     user_selected_locations_count int(11) UNSIGNED NOT NULL DEFAULT 0,
-    response TEXT DEFAULT NULL,
+    play_clicked_count int(11) UNSIGNED NOT NULL DEFAULT 0,
+    time_slider_user_count int(11) UNSIGNED NOT NULL DEFAULT 0,
+    events JSON NOT NULL DEFAULT (JSON_ARRAY()),
+    aha_moment_response TEXT DEFAULT NULL,
     last_updated TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     PRIMARY KEY(id),

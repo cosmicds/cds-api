@@ -2,21 +2,33 @@ import * as S from "@effect/schema/Schema";
 
 import { SeasonsData } from "./models";
 import { logger } from "../../logger";
-import { OptionalInt, OptionalIntArray, OptionalString, OptionalStringArray, UpdateAttributes } from "../../utils";
+import { OptionalInt, OptionalString, OptionalStringArray, UpdateAttributes } from "../../utils";
 import { CreationAttributes } from "sequelize";
 
 type SeasonsDataUpdateAttributes = UpdateAttributes<SeasonsData>;
 
-export const SeasonsEntry = S.struct({
+export const BaseSeasonsEntry = S.struct({
   user_uuid: S.string,
-  user_selected_dates: OptionalIntArray,
+  user_selected_dates: OptionalStringArray,
   user_selected_dates_count: OptionalInt,
   user_selected_locations: OptionalStringArray,
   user_selected_locations_count: OptionalInt,
-  response: OptionalString,
+  aha_moment_response: OptionalString,
+  events: OptionalStringArray,
 });
 
+export const SeasonsEntry = S.extend(BaseSeasonsEntry, S.struct({
+  play_clicked_count: OptionalInt,
+  time_slider_used_count: OptionalInt,
+}));
+
+export const SeasonsUpdate = S.extend(BaseSeasonsEntry, S.struct({
+  delta_play_clicked_count: OptionalInt,
+  delta_time_slider_used_count: OptionalInt,
+}));
+
 export type SeasonsEntryT = S.Schema.To<typeof SeasonsEntry>;
+export type SeasonsUpdateT = S.Schema.To<typeof SeasonsUpdate>;
 
 export async function submitSeasonsData(data: SeasonsEntryT): Promise<SeasonsData | null> {
   logger.verbose(`Attempting to submit Seasons data for user ${data.user_uuid}`);
@@ -40,7 +52,7 @@ export async function getSeasonsData(userUUID: string): Promise<SeasonsData | nu
   });
 }
 
-export async function updateSeasonsData(userUUID: string, update: SeasonsEntryT): Promise<SeasonsData | null> {
+export async function updateSeasonsData(userUUID: string, update: SeasonsUpdateT): Promise<SeasonsData | null> {
   const data = await SeasonsData.findOne({ where: { user_uuid: userUUID } });
 
   if (data === null) {
@@ -50,7 +62,9 @@ export async function updateSeasonsData(userUUID: string, update: SeasonsEntryT)
       user_selected_dates_count: update.user_selected_dates?.length ?? 0,
       user_selected_locations: update.user_selected_locations ?? [],
       user_selected_locations_count: update.user_selected_locations?.length ?? 0,
-      response: update.response,
+      aha_moment_response: update.aha_moment_response,
+      play_clicked_count: update.delta_play_clicked_count ?? 0,
+      time_slider_used_count: update.delta_time_slider_used_count ?? 0,
     });
     return created;
   }
@@ -69,6 +83,15 @@ export async function updateSeasonsData(userUUID: string, update: SeasonsEntryT)
     const selected = data.user_selected_dates.concat(update.user_selected_dates);
     dbUpdate.user_selected_dates = selected;
     dbUpdate.user_selected_dates_count = selected.length;
+  }
+
+  const numberEntryKeys = ["play_clicked_count", "time_slider_used_count"] as const;
+  for (const key of numberEntryKeys) {
+    const updateKey: keyof SeasonsUpdateT = `delta_${key}`;
+    const updateValue = update[updateKey];
+    if (updateValue) {
+      dbUpdate[key] = data[key] + updateValue;
+    }
   }
 
   const result = await data.update(dbUpdate).catch(_err => null);
