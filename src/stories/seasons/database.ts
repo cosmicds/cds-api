@@ -2,33 +2,30 @@ import * as S from "@effect/schema/Schema";
 
 import { SeasonsData } from "./models";
 import { logger } from "../../logger";
-import { OptionalInt, OptionalString, OptionalStringArray, UpdateAttributes } from "../../utils";
+import { OptionalInt, OptionalNumberArray, OptionalNumberPair, OptionalString, OptionalStringArray, UpdateAttributes } from "../../utils";
 import { CreationAttributes } from "sequelize";
 
 type SeasonsDataUpdateAttributes = UpdateAttributes<SeasonsData>;
 
-export const BaseSeasonsEntry = S.struct({
+export const SeasonsEntry = S.struct({
   user_uuid: S.string,
   user_selected_dates: OptionalStringArray,
   user_selected_dates_count: OptionalInt,
   user_selected_locations: OptionalStringArray,
   user_selected_locations_count: OptionalInt,
+  wwt_rate_selections: OptionalNumberArray,
+  wwt_start_stop_times: OptionalNumberPair,
+  wwt_time_reset_count: OptionalInt,
+  wwt_reverse_count: OptionalInt,
+  wwt_play_pause_count: OptionalInt,
+  wwt_speedups: OptionalNumberArray,
+  wwt_slowdowns: OptionalNumberArray,
+  time_slider_used_count: OptionalInt,
   aha_moment_response: OptionalString,
   events: OptionalStringArray,
 });
 
-export const SeasonsEntry = S.extend(BaseSeasonsEntry, S.struct({
-  play_clicked_count: OptionalInt,
-  time_slider_used_count: OptionalInt,
-}));
-
-export const SeasonsUpdate = S.extend(BaseSeasonsEntry, S.struct({
-  delta_play_clicked_count: OptionalInt,
-  delta_time_slider_used_count: OptionalInt,
-}));
-
 export type SeasonsEntryT = S.Schema.To<typeof SeasonsEntry>;
-export type SeasonsUpdateT = S.Schema.To<typeof SeasonsUpdate>;
 
 export async function submitSeasonsData(data: SeasonsEntryT): Promise<SeasonsData | null> {
   logger.verbose(`Attempting to submit Seasons data for user ${data.user_uuid}`);
@@ -52,7 +49,7 @@ export async function getSeasonsData(userUUID: string): Promise<SeasonsData | nu
   });
 }
 
-export async function updateSeasonsData(userUUID: string, update: SeasonsUpdateT): Promise<SeasonsData | null> {
+export async function updateSeasonsData(userUUID: string, update: SeasonsEntryT): Promise<SeasonsData | null> {
   const data = await SeasonsData.findOne({ where: { user_uuid: userUUID } });
 
   if (data === null) {
@@ -63,8 +60,8 @@ export async function updateSeasonsData(userUUID: string, update: SeasonsUpdateT
       user_selected_locations: update.user_selected_locations ?? [],
       user_selected_locations_count: update.user_selected_locations?.length ?? 0,
       aha_moment_response: update.aha_moment_response,
-      play_clicked_count: update.delta_play_clicked_count ?? 0,
-      time_slider_used_count: update.delta_time_slider_used_count ?? 0,
+      play_clicked_count: update.wwt_play_pause_count ?? 0,
+      time_slider_used_count: update.time_slider_used_count ?? 0,
     });
     return created;
   }
@@ -87,10 +84,11 @@ export async function updateSeasonsData(userUUID: string, update: SeasonsUpdateT
 
   const numberEntryKeys = ["play_clicked_count", "time_slider_used_count"] as const;
   for (const key of numberEntryKeys) {
-    const updateKey: keyof SeasonsUpdateT = `delta_${key}`;
-    const updateValue = update[updateKey];
+    const updateKey = key as keyof SeasonsEntryT;
+    const updateValue = update[updateKey] as number;
     if (updateValue) {
-      dbUpdate[key] = data[key] + updateValue;
+      const currentValue = data[key] as number;
+      dbUpdate[key] = currentValue + updateValue;
     }
   }
 

@@ -9,8 +9,16 @@ export class SeasonsData extends Model<InferAttributes<SeasonsData>, InferCreati
   declare user_selected_locations_count: CreationOptional<number>;
   declare aha_moment_response: CreationOptional<string>;
   declare last_updated: CreationOptional<Date>;
-  declare play_clicked_count: CreationOptional<number>;
+  declare app_time_ms: CreationOptional<number>;
+  declare wwt_time_reset_count: CreationOptional<number>;
+  declare wwt_reverse_count: CreationOptional<number>;
+  declare wwt_play_pause_count: CreationOptional<number>;
+  declare wwt_speedups: CreationOptional<number[]>;
+  declare wwt_slowdowns: CreationOptional<number[]>;
+  declare wwt_rate_selections: CreationOptional<number[]>;
+  declare wwt_start_stop_times: CreationOptional<[number, number][]>;
   declare time_slider_used_count: CreationOptional<number>;
+  declare created: CreationOptional<Date>;
   declare events: CreationOptional<string[]>;
 }
 
@@ -26,6 +34,11 @@ export function initializeSeasonsDataModel(sequelize: Sequelize) {
       type: DataTypes.STRING,
       unique: true,
       allowNull: false
+    },
+    app_time_ms: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0
     },
     user_selected_dates: {
       type: DataTypes.JSON,
@@ -47,20 +60,55 @@ export function initializeSeasonsDataModel(sequelize: Sequelize) {
       type: DataTypes.TEXT,
       defaultValue: null,
     },
-    play_clicked_count: {
-      type: DataTypes.INTEGER.UNSIGNED,
-      defaultValue: 0,
-      allowNull: false,
-    },
     time_slider_used_count: {
       type: DataTypes.INTEGER.UNSIGNED,
       defaultValue: 0,
       allowNull: false,
     },
+    wwt_time_reset_count: {
+      type: DataTypes.INTEGER.UNSIGNED,
+      allowNull: false,
+      defaultValue: 0,
+    },
+    wwt_reverse_count: {
+      type: DataTypes.INTEGER.UNSIGNED,
+      allowNull: false,
+      defaultValue: 0,
+    },
+    wwt_play_pause_count: {
+      type: DataTypes.INTEGER.UNSIGNED,
+      allowNull: false,
+      defaultValue: 0,
+    },
+    wwt_speedups: {
+      type: DataTypes.JSON,
+      allowNull: false,
+      defaultValue: "[]",
+    },
+    wwt_slowdowns: {
+      type: DataTypes.JSON,
+      allowNull: false,
+      defaultValue: "[]",
+    },
+    wwt_rate_selections: {
+      type: DataTypes.JSON,
+      allowNull: false,
+      defaultValue: "[]",
+    },
+    wwt_start_stop_times: {
+      type: DataTypes.JSON,
+      allowNull: false,
+      defaultValue: "[]",
+    },
     events: {
       type: DataTypes.JSON,
       defaultValue: [],
       allowNull: false,
+    },
+    created: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: Sequelize.literal("CURRENT_TIMESTAMP")
     },
     last_updated: {
       type: DataTypes.DATE,
