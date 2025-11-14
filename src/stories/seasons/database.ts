@@ -94,6 +94,10 @@ export async function updateSeasonsData(userUUID: string, update: SeasonsUpdateT
     }
   }
 
+  if (update.aha_moment_response) {
+    dbUpdate.aha_moment_response = update.aha_moment_response;
+  }
+
   const result = await data.update(dbUpdate).catch(_err => null);
   return result;
 }
