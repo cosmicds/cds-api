@@ -5,7 +5,7 @@ import { Sequelize } from "sequelize";
 
 import { initializeModels } from "./models";
 import { addVisitForStory } from "../../database";
-import { SeasonsEntry, getSeasonsData, submitSeasonsData, updateSeasonsData } from "./database";
+import { SeasonsEntry, SeasonsUpdate, getSeasonsData, submitSeasonsData, updateSeasonsData } from "./database";
 
 export const router = Router();
 
@@ -47,8 +47,9 @@ router.get("/data/:uuid", async (req, res) => {
 router.patch("/data/:uuid", async (req, res) => {
   const data = req.body;
 
-  const maybe = S.decodeUnknownEither(SeasonsEntry)(data);
+  const maybe = S.decodeUnknownEither(SeasonsUpdate)(data);
   if (Either.isLeft(maybe)) {
+    console.log(maybe.left.error);
     res.status(400).json({ error: "Malformed update submission" });
     return;
   }

@@ -7,8 +7,7 @@ import { CreationAttributes } from "sequelize";
 
 type SeasonsDataUpdateAttributes = UpdateAttributes<SeasonsData>;
 
-export const SeasonsEntry = S.struct({
-  user_uuid: S.string,
+export const SeasonsUpdate = S.struct({
   app_time_ms: OptionalInt,
   user_selected_dates: OptionalStringArray,
   user_selected_dates_count: OptionalInt,
@@ -26,6 +25,9 @@ export const SeasonsEntry = S.struct({
   events: OptionalStringArray,
 });
 
+export const SeasonsEntry = S.extend(SeasonsUpdate, S.struct({ user_uuid: S.string }));
+
+export type SeasonsUpdateT = S.Schema.To<typeof SeasonsUpdate>;
 export type SeasonsEntryT = S.Schema.To<typeof SeasonsEntry>;
 
 export async function submitSeasonsData(data: SeasonsEntryT): Promise<SeasonsData | null> {
@@ -52,7 +54,7 @@ export async function getSeasonsData(userUUID: string): Promise<SeasonsData | nu
   });
 }
 
-export async function updateSeasonsData(userUUID: string, update: SeasonsEntryT): Promise<SeasonsData | null> {
+export async function updateSeasonsData(userUUID: string, update: SeasonsUpdateT): Promise<SeasonsData | null> {
   const data = await SeasonsData.findOne({ where: { user_uuid: userUUID } });
 
   if (data === null) {
@@ -107,7 +109,7 @@ export async function updateSeasonsData(userUUID: string, update: SeasonsEntryT)
     "wwt_reverse_count",
   ] as const;
   for (const key of numberEntryKeys) {
-    const updateKey = key as keyof SeasonsEntryT;
+    const updateKey = key as keyof SeasonsUpdateT;
     const updateValue = update[updateKey] as number;
     if (updateValue) {
       const currentValue = data[key] as number;
