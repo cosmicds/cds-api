@@ -45,15 +45,15 @@ export type RequiredFieldsOnly<T> = {
     [K in keyof T as T[K] extends Required<T>[K] ? K : never]: T[K]
 }
 
-function pairType<T>(type: S.Schema<T,T,never>): S.Schema<[T, T], [T, T], never> {
+export function pairType<T>(type: S.Schema<T,T,never>): S.Schema<[T, T], [T, T], never> {
   return S.mutable(S.tuple(type, type));
 }
 
-function arrayType<T>(type: S.Schema<T,T,never>) {
+export function arrayType<T>(type: S.Schema<T,T,never>) {
   return S.mutable(S.array(S.mutable(type)));
 }
 
-function pairArrayType<T>(type: S.Schema<T,T,never>): S.Schema<[T, T][], [T, T][], never> {
+export function pairArrayType<T>(type: S.Schema<T,T,never>): S.Schema<[T, T][], [T, T][], never> {
   return S.mutable(S.array(pairType(type)));
 }
 
@@ -68,6 +68,7 @@ export const StringPair = pairType(S.string);
 export const StringPairArray = pairArrayType(S.string);
 export const OptionalInt = S.optional(S.number.pipe(S.int()), { exact: true });
 export const OptionalBoolean = S.optional(S.boolean, { exact: true });
+export const OptionalString = S.optional(S.string, { exact: true });
 export const OptionalLatLonArray = S.optional(LatLonArray, { exact: true });
 export const OptionalIntArray = S.optional(IntArray, { exact: true });
 export const OptionalNumberPair = S.optional(NumberPair, { exact: true });
