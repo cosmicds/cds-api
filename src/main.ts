@@ -31,6 +31,7 @@ const stories = [
   "carina", "blaze-star-nova", "radwave-in-motion",
   "radwave-in-motion-deutsch", "jwst-brick",
   "pinwheel-supernova", "green-comet",
+  "rubin-first-look", "tempo-lab",
 ];
 stories.forEach(story => {
   const router = storyRouter(story);
