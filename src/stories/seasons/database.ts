@@ -104,6 +104,7 @@ export async function updateSeasonsData(userUUID: string, update: SeasonsUpdateT
   // See comment above about skipping the update logic
   // if deltas are either null/undefined or zero
   const numberEntryKeys = [
+    "time_slider_used_count",
     "wwt_play_pause_count",
     "wwt_time_reset_count",
     "wwt_reverse_count",
