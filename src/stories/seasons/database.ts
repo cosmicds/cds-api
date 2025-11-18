@@ -13,7 +13,6 @@ export const SeasonsUpdate = S.struct({
   user_selected_dates_count: OptionalInt,
   user_selected_locations: OptionalNumberPairArray,
   user_selected_locations_count: OptionalInt,
-  wwt_rate_selections: OptionalNumberArray,
   wwt_start_stop_times: OptionalNumberPair,
   wwt_time_reset_count: OptionalInt,
   wwt_reverse_count: OptionalInt,
@@ -73,7 +72,6 @@ export async function updateSeasonsData(userUUID: string, update: SeasonsUpdateT
       wwt_reverse_count: update.wwt_reverse_count ?? 0,
       wwt_speedups: update.wwt_speedups ?? [],
       wwt_slowdowns: update.wwt_slowdowns ?? [],
-      wwt_rate_selections: update.wwt_rate_selections ?? [],
       wwt_start_stop_times: startStopTimes,
     });
     return created;
@@ -128,10 +126,6 @@ export async function updateSeasonsData(userUUID: string, update: SeasonsUpdateT
 
   if (update.wwt_slowdowns) {
     dbUpdate.wwt_slowdowns = data.wwt_slowdowns.concat(update.wwt_slowdowns);
-  }
-
-  if (update.wwt_rate_selections) {
-    dbUpdate.wwt_rate_selections = data.wwt_rate_selections.concat(update.wwt_rate_selections);
   }
 
   if (update.wwt_start_stop_times) {

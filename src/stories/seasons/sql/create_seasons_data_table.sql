@@ -14,7 +14,6 @@ CREATE TABLE SeasonsData (
     wwt_play_pause_count int(11) UNSIGNED NOT NULL DEFAULT 0,
     wwt_speedups JSON NOT NULL DEFAULT (JSON_ARRAY()),
     wwt_slowdowns JSON NOT NULL DEFAULT (JSON_ARRAY()),
-    wwt_rate_selections JSON NOT NULL DEFAULT (JSON_ARRAY()),
     wwt_start_stop_times JSON NOT NULL DEFAULT (JSON_ARRAY()),
     created TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     last_updated TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,

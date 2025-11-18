@@ -83,22 +83,22 @@ export function initializeSeasonsDataModel(sequelize: Sequelize) {
     wwt_speedups: {
       type: DataTypes.JSON,
       allowNull: false,
-      defaultValue: "[]",
+      defaultValue: [],
     },
     wwt_slowdowns: {
       type: DataTypes.JSON,
       allowNull: false,
-      defaultValue: "[]",
+      defaultValue: [],
     },
     wwt_rate_selections: {
       type: DataTypes.JSON,
       allowNull: false,
-      defaultValue: "[]",
+      defaultValue: [],
     },
     wwt_start_stop_times: {
       type: DataTypes.JSON,
       allowNull: false,
-      defaultValue: "[]",
+      defaultValue: [],
     },
     events: {
       type: DataTypes.JSON,
