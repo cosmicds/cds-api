@@ -5,7 +5,7 @@ export class SeasonsData extends Model<InferAttributes<SeasonsData>, InferCreati
   declare user_uuid: string;
   declare user_selected_dates: CreationOptional<string[]>;
   declare user_selected_dates_count: CreationOptional<number>;
-  declare user_selected_locations: CreationOptional<string[]>;
+  declare user_selected_locations: CreationOptional<[number, number][]>;
   declare user_selected_locations_count: CreationOptional<number>;
   declare aha_moment_response: CreationOptional<string>;
   declare last_updated: CreationOptional<Date>;

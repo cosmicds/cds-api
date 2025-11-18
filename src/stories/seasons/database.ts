@@ -2,7 +2,7 @@ import * as S from "@effect/schema/Schema";
 
 import { SeasonsData } from "./models";
 import { logger } from "../../logger";
-import { OptionalInt, OptionalNumberArray, OptionalNumberPair, OptionalString, OptionalStringArray, UpdateAttributes } from "../../utils";
+import { OptionalInt, OptionalNumberArray, OptionalNumberPair, OptionalNumberPairArray, OptionalString, OptionalStringArray, UpdateAttributes } from "../../utils";
 import { CreationAttributes } from "sequelize";
 
 type SeasonsDataUpdateAttributes = UpdateAttributes<SeasonsData>;
@@ -11,7 +11,7 @@ export const SeasonsUpdate = S.struct({
   app_time_ms: OptionalInt,
   user_selected_dates: OptionalStringArray,
   user_selected_dates_count: OptionalInt,
-  user_selected_locations: OptionalStringArray,
+  user_selected_locations: OptionalNumberPairArray,
   user_selected_locations_count: OptionalInt,
   wwt_rate_selections: OptionalNumberArray,
   wwt_start_stop_times: OptionalNumberPair,
