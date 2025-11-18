@@ -15,7 +15,6 @@ export class SeasonsData extends Model<InferAttributes<SeasonsData>, InferCreati
   declare wwt_play_pause_count: CreationOptional<number>;
   declare wwt_speedups: CreationOptional<number[]>;
   declare wwt_slowdowns: CreationOptional<number[]>;
-  declare wwt_rate_selections: CreationOptional<number[]>;
   declare wwt_start_stop_times: CreationOptional<[number, number][]>;
   declare time_slider_used_count: CreationOptional<number>;
   declare created: CreationOptional<Date>;
@@ -86,11 +85,6 @@ export function initializeSeasonsDataModel(sequelize: Sequelize) {
       defaultValue: [],
     },
     wwt_slowdowns: {
-      type: DataTypes.JSON,
-      allowNull: false,
-      defaultValue: [],
-    },
-    wwt_rate_selections: {
       type: DataTypes.JSON,
       allowNull: false,
       defaultValue: [],
