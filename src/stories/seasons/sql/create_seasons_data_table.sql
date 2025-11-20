@@ -8,7 +8,7 @@ CREATE TABLE SeasonsData (
     user_selected_locations_count int(11) UNSIGNED NOT NULL DEFAULT 0,
     time_slider_used_count int(11) UNSIGNED NOT NULL DEFAULT 0,
     events JSON NOT NULL DEFAULT (JSON_ARRAY()),
-    aha_moment_response TEXT DEFAULT NULL,
+    aha_moment_responses JSON NOT NULL DEFAULT (JSON_ARRAY()),
     wwt_time_reset_count int(11) UNSIGNED NOT NULL DEFAULT 0,
     wwt_reverse_count int(11) UNSIGNED NOT NULL DEFAULT 0,
     wwt_play_pause_count int(11) UNSIGNED NOT NULL DEFAULT 0,
