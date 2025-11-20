@@ -2,7 +2,7 @@ import * as S from "@effect/schema/Schema";
 
 import { SeasonsData } from "./models";
 import { logger } from "../../logger";
-import { OptionalInt, OptionalNumberArray, OptionalNumberPair, OptionalNumberPairArray, OptionalString, OptionalStringArray, UpdateAttributes } from "../../utils";
+import { OptionalInt, OptionalNumberArray, OptionalNumberPair, OptionalNumberPairArray, OptionalStringArray, StringArray, UpdateAttributes, arrayType } from "../../utils";
 import { CreationAttributes } from "sequelize";
 
 type SeasonsDataUpdateAttributes = UpdateAttributes<SeasonsData>;
@@ -20,7 +20,7 @@ export const SeasonsUpdate = S.struct({
   wwt_speedups: OptionalNumberArray,
   wwt_slowdowns: OptionalNumberArray,
   time_slider_used_count: OptionalInt,
-  aha_moment_response: OptionalString,
+  aha_moment_response: S.optional(S.union(S.string, StringArray)),
   events: OptionalStringArray,
 });
 
@@ -56,16 +56,17 @@ export async function getSeasonsData(userUUID: string): Promise<SeasonsData | nu
 export async function updateSeasonsData(userUUID: string, update: SeasonsUpdateT): Promise<SeasonsData | null> {
   const data = await SeasonsData.findOne({ where: { user_uuid: userUUID } });
 
+  const responses = typeof update.aha_moment_response === "string" ? [update.aha_moment_response] : update.aha_moment_response;
+
   if (data === null) {
     const startStopTimes = update.wwt_start_stop_times ? [update.wwt_start_stop_times] : [];
-    const created = await SeasonsData.create({
+    const creationData: CreationAttributes<SeasonsData> = {
       user_uuid: userUUID,
       app_time_ms: update.app_time_ms ?? 0,
       user_selected_dates: update.user_selected_dates ?? [],
       user_selected_dates_count: update.user_selected_dates?.length ?? 0,
       user_selected_locations: update.user_selected_locations ?? [],
       user_selected_locations_count: update.user_selected_locations?.length ?? 0,
-      aha_moment_response: update.aha_moment_response,
       time_slider_used_count: update.time_slider_used_count ?? 0,
       wwt_play_pause_count: update.wwt_play_pause_count ?? 0,
       wwt_time_reset_count: update.wwt_time_reset_count ?? 0,
@@ -73,8 +74,11 @@ export async function updateSeasonsData(userUUID: string, update: SeasonsUpdateT
       wwt_speedups: update.wwt_speedups ?? [],
       wwt_slowdowns: update.wwt_slowdowns ?? [],
       wwt_start_stop_times: startStopTimes,
-    });
-    return created;
+    };
+    if (responses) {
+      creationData.aha_moment_responses = responses;
+    }
+    return SeasonsData.create(creationData);
   }
 
   const dbUpdate: SeasonsDataUpdateAttributes = {
@@ -116,8 +120,8 @@ export async function updateSeasonsData(userUUID: string, update: SeasonsUpdateT
     }
   }
 
-  if (update.aha_moment_response) {
-    dbUpdate.aha_moment_response = update.aha_moment_response;
+  if (responses) {
+    dbUpdate.aha_moment_responses = data.aha_moment_responses.concat(responses);
   }
 
   if (update.wwt_speedups) {
@@ -132,6 +136,5 @@ export async function updateSeasonsData(userUUID: string, update: SeasonsUpdateT
     dbUpdate.wwt_start_stop_times = data.wwt_start_stop_times.concat([update.wwt_start_stop_times]);
   }
 
-  const result = await data.update(dbUpdate).catch(_err => null);
-  return result;
+  return data.update(dbUpdate).catch(_err => null);
 }
