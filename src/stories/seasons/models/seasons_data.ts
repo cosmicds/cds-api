@@ -55,9 +55,10 @@ export function initializeSeasonsDataModel(sequelize: Sequelize) {
       type: DataTypes.INTEGER.UNSIGNED,
       defaultValue: 0,
     },
-    aha_moment_response: {
-      type: DataTypes.TEXT,
-      defaultValue: null,
+    aha_moment_responses: {
+      type: DataTypes.JSON,
+      allowNull: false,
+      defaultValue: [],
     },
     time_slider_used_count: {
       type: DataTypes.INTEGER.UNSIGNED,
