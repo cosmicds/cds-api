@@ -7,6 +7,7 @@ import { HubbleStudentData } from "./models/hubble_student_data";
 import { HubbleClassData } from "./models/hubble_class_data";
 import { IgnoreClass, IgnoreStudent } from "../../models";
 import { logger } from "../../logger";
+import type { ClassSetupParams } from "../../registries";
 import { HubbleClassMergeGroup } from "./models/hubble_class_merge_group";
 import { mySqlDatetime } from "../../utils";
 
@@ -1147,9 +1148,9 @@ export async function removeWaitingRoomOverride(classID: number): Promise<number
 }
 
 export async function hubbleClassSetup(
-  cls: Class,
-  _storyName: string,
+  params: ClassSetupParams
 ) {
+  const cls = params.cls;
   if (cls) {
     if (cls.asynchronous || cls.small_class) {
       await addClassToMergeGroup(cls.id);

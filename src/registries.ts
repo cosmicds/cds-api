@@ -1,6 +1,12 @@
 import { Class } from "./models";
 
-type ClassSetupFunction = (cls: Class, storyName: string) => Promise<void>;
+export interface ClassSetupParams {
+  cls: Class;
+  storyName: string;
+  options?: Record<string, unknown>;
+}
+
+type ClassSetupFunction = (params: ClassSetupParams) => Promise<void>;
 
 class ClassSetupRegistry {
 
