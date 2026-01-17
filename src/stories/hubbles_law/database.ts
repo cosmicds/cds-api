@@ -1,4 +1,4 @@
-import { Attributes, FindOptions, Op, QueryTypes, Sequelize, WhereAttributeHash, WhereOptions, col, fn, literal } from "sequelize";
+import { Attributes, FindOptions, Op, QueryTypes, Sequelize, WhereAttributeHash, WhereOptions, col, fn, literal, sql } from "sequelize";
 import { AsyncMergedHubbleStudentClasses, Galaxy, HubbleMeasurement, HubbleWaitingRoomOverride, SampleHubbleMeasurement, SyncMergedHubbleClasses } from "./models";
 import { findClassById, findStudentById } from "../../database";
 import { RemoveHubbleMeasurementResult, SubmitHubbleMeasurementResult } from "./request_results";
@@ -10,6 +10,7 @@ import { logger } from "../../logger";
 import type { ClassSetupParams } from "../../registries";
 import { HubbleClassMergeGroup } from "./models/hubble_class_merge_group";
 import { mySqlDatetime } from "../../utils";
+import { HubbleClassStudentMerge } from "./models/hubble_class_student_merges";
 
 const galaxyAttributes = ["id", "ra", "decl", "z", "type", "name", "element"];
 
@@ -1147,13 +1148,60 @@ export async function removeWaitingRoomOverride(classID: number): Promise<number
   .catch(_error => NaN);
 }
 
+async function getStudentsForPadding(count: number): Promise<Student[]> {
+  const database = Student.sequelize;
+  if (database == null) {
+    return [];
+  }
+  const sqlQuery = sql`
+    SELECT
+        id, COUNT(*) AS count
+    FROM
+        HubbleMeasurements
+            INNER JOIN
+        Students ON HubbleMeasurements.student_id = Students.id
+    WHERE
+        (seed = 1 OR dummy = 0)
+            AND rest_wave_value IS NOT NULL
+            AND obs_wave_value IS NOT NULL
+            AND est_dist_value IS NOT NULL
+            AND velocity_value IS NOT NULL
+            AND ang_size_value IS NOT NULL
+    GROUP BY student_id
+    HAVING count >= 5
+    ORDER BY RAND()
+    LIMIT ${count};
+  `;
+
+  return database.query(sqlQuery, {
+    type: QueryTypes.SELECT,
+    model: Student,
+  });
+}
+
 export async function hubbleClassSetup(
   params: ClassSetupParams
 ) {
+  
+  const PAD_TO = 15;
+
   const cls = params.cls;
   if (cls) {
-    if (cls.asynchronous || cls.small_class) {
-      await addClassToMergeGroup(cls.id);
+    const options = params.options;
+    const pad = options?.pad ?? true;
+    if (pad) {
+      const expectedSize = Math.round(Number(options?.expectedSize ?? 0) || 0);
+      const studentsNeeded = Math.max(PAD_TO - expectedSize, 0);
+      if (studentsNeeded > 0) {
+        const students = await getStudentsForPadding(studentsNeeded);
+        const creationIDPairs = students.map(student => {
+          return {
+            class_id: cls.id,
+            student_id: student.id,
+          };
+        });
+        await HubbleClassStudentMerge.bulkCreate(creationIDPairs);
+      }
     }
   }
 }
