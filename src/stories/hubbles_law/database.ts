@@ -696,29 +696,72 @@ export async function getAllHubbleStudentData(includeClasses: number[] = [], min
 
   const finalAttributes = minimal ? MINIMAL_STUDENT_DATA_FIELDS : "HubbleStudentData.*";
   const haveClasses = includeClasses.length > 0;
-  const clsJoin = haveClasses ? "\nINNER JOIN StudentsClasses ON StudentsClasses.student_id = HubbleStudentData.student_id\n" : "";
-  const clsAnd = haveClasses ? `AND class_id in (${includeClasses.join(", ")})` : "";
 
-  const sqlQuery = 
-    sql`
-    SELECT ${finalAttributes}
-    FROM
-    	HubbleStudentData
-    		INNER JOIN
-    	Students
-    	ON HubbleStudentData.student_id = Students.id
-    		INNER JOIN
-        HubbleMeasurements ON HubbleMeasurements.student_id = HubbleStudentData.student_id
-        ${clsJoin}
-    WHERE
-        (seed = 1 OR dummy = 0)
-            AND rest_wave_value IS NOT NULL
-            AND obs_wave_value IS NOT NULL
-            AND est_dist_value IS NOT NULL
-            AND velocity_value IS NOT NULL
-            AND ang_size_value IS NOT NULL
-            ${clsAnd};
-  ` ;
+  let sqlQuery = "";
+
+  if (haveClasses) {
+    const classesString = includeClasses.join(", ");
+    sqlQuery = sql`
+      SELECT
+        ${finalAttributes}
+      FROM
+      	HubbleStudentData
+      INNER JOIN 
+      (
+      	SELECT
+      		id,
+      		seed,
+      		dummy
+      	FROM
+      		Students
+      	INNER JOIN StudentsClasses ON
+      		Students.id = StudentsClasses.student_id
+      	WHERE
+      		StudentsClasses.class_id IN (${classesString})
+      UNION ALL
+      	SELECT
+      		id,
+      		seed,
+      		dummy
+      	FROM
+      		Students
+      	INNER JOIN HubbleClassStudentMerges ON
+      		Students.id = HubbleClassStudentMerges.student_id
+      	WHERE
+      		HubbleClassStudentMerges.class_id IN (${classesString})) s
+      	ON
+      	s.id = HubbleStudentData.student_id
+      INNER JOIN HubbleMeasurements ON
+      	HubbleMeasurements.student_id = HubbleStudentData.student_id
+      WHERE
+      	(seed = 1
+      		OR dummy = 0)
+      	AND rest_wave_value IS NOT NULL
+      	AND obs_wave_value IS NOT NULL
+      	AND est_dist_value IS NOT NULL
+      	AND velocity_value IS NOT NULL
+      	AND ang_size_value IS NOT NULL;
+    `;
+  } else {
+    sqlQuery = 
+      sql`
+      SELECT ${finalAttributes}
+      FROM
+      	HubbleStudentData
+      		INNER JOIN
+      	Students
+      	ON HubbleStudentData.student_id = Students.id
+      		INNER JOIN
+          HubbleMeasurements ON HubbleMeasurements.student_id = HubbleStudentData.student_id
+      WHERE
+          (seed = 1 OR dummy = 0)
+              AND rest_wave_value IS NOT NULL
+              AND obs_wave_value IS NOT NULL
+              AND est_dist_value IS NOT NULL
+              AND velocity_value IS NOT NULL
+              AND ang_size_value IS NOT NULL;
+    ` ;
+  }
 
   return database.query(sqlQuery, {
     type: QueryTypes.SELECT,
