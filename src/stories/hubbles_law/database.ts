@@ -1,4 +1,4 @@
-import { Attributes, FindOptions, Op, QueryTypes, Sequelize, WhereAttributeHash, WhereOptions, col, fn, literal, sql } from "sequelize";
+import { Attributes, FindOptions, Op, QueryTypes, Sequelize, WhereAttributeHash, WhereOptions, col, fn, literal } from "sequelize";
 import { AsyncMergedHubbleStudentClasses, Galaxy, HubbleMeasurement, HubbleWaitingRoomOverride, SampleHubbleMeasurement, SyncMergedHubbleClasses } from "./models";
 import { findClassById, findStudentById } from "../../database";
 import { RemoveHubbleMeasurementResult, SubmitHubbleMeasurementResult } from "./request_results";
@@ -612,7 +612,7 @@ export async function getAllHubbleStudentData(includeClasses: number[] = [], min
 
   if (haveClasses) {
     const classesString = includeClasses.join(", ");
-    sqlQuery = sql`
+    sqlQuery = `
       SELECT
         ${finalAttributes}
       FROM
@@ -666,7 +666,7 @@ export async function getAllHubbleStudentData(includeClasses: number[] = [], min
     `;
   } else {
     sqlQuery = 
-      sql`
+      `
       SELECT ${finalAttributes}
       FROM
       	HubbleStudentData
@@ -732,7 +732,7 @@ export async function getAllHubbleClassData(before: Date | null = null, minimal=
   const lastUpdate = before !== null ? `AND HubbleClassData.last_data_update < '${mySqlDatetime(before)}'` : "";
   const attributes = minimal ? MINIMAL_CLASS_DATA_FIELDS.map(field => `HubbleClassData.${field}`).join(", ") : "HubbleClassData.*";
   const classAnd = classID !== null ? `AND HubbleClassData.class_id != ${classID}` : "";
-  const sqlQuery = sql`
+  const sqlQuery = `
     SELECT
       ${attributes}
     FROM
@@ -986,7 +986,7 @@ async function getStudentsForPadding(count: number): Promise<Student[]> {
   if (database == null) {
     return [];
   }
-  const sqlQuery = sql`
+  const sqlQuery = `
     SELECT
         id, COUNT(*) AS count
     FROM
