@@ -733,6 +733,16 @@ export async function getAllHubbleStudentData(includeClasses: number[] = [], min
       	s.id = HubbleStudentData.student_id
       INNER JOIN HubbleMeasurements ON
       	HubbleMeasurements.student_id = HubbleStudentData.student_id
+      LEFT OUTER JOIN
+	      (
+	      SELECT
+	      	student_id
+	      FROM
+	      	IgnoreStudents
+	      WHERE
+	      	story_name IS NULL
+	      	OR story_name = 'hubbles_law') ignore_students ON
+	      ignore_students.student_id = HubbleMeasurements.student_id
       WHERE
       	(seed = 1
       		OR dummy = 0)
@@ -740,7 +750,8 @@ export async function getAllHubbleStudentData(includeClasses: number[] = [], min
       	AND obs_wave_value IS NOT NULL
       	AND est_dist_value IS NOT NULL
       	AND velocity_value IS NOT NULL
-      	AND ang_size_value IS NOT NULL;
+      	AND ang_size_value IS NOT NULL
+        AND ignore_students.student_id IS NULL;
     `;
   } else {
     sqlQuery = 
@@ -752,14 +763,25 @@ export async function getAllHubbleStudentData(includeClasses: number[] = [], min
       	Students
       	ON HubbleStudentData.student_id = Students.id
       		INNER JOIN
-          HubbleMeasurements ON HubbleMeasurements.student_id = HubbleStudentData.student_id
+        HubbleMeasurements ON HubbleMeasurements.student_id = HubbleStudentData.student_id
+          LEFT OUTER JOIN
+	          (
+	          SELECT
+	          	student_id
+	          FROM
+	          	IgnoreStudents
+	          WHERE
+	          	story_name IS NULL
+	          	OR story_name = 'hubbles_law') ignore_students ON
+	        ignore_students.student_id = HubbleMeasurements.student_id
       WHERE
           (seed = 1 OR dummy = 0)
               AND rest_wave_value IS NOT NULL
               AND obs_wave_value IS NOT NULL
               AND est_dist_value IS NOT NULL
               AND velocity_value IS NOT NULL
-              AND ang_size_value IS NOT NULL;
+              AND ang_size_value IS NOT NULL
+              AND ignore_students.student_id IS NULL;
     ` ;
   }
 
@@ -1250,6 +1272,16 @@ async function getStudentsForPadding(count: number): Promise<Student[]> {
         HubbleMeasurements
             INNER JOIN
         Students ON HubbleMeasurements.student_id = Students.id
+          LEFT OUTER JOIN
+	        (
+	        SELECT
+	        	student_id
+	        FROM
+	        	IgnoreStudents
+	        WHERE
+	        	story_name IS NULL
+	        	OR story_name = 'hubbles_law') ignore_students ON
+	        ignore_students.student_id = HubbleMeasurements.student_id
     WHERE
         (seed = 1 OR dummy = 0)
             AND rest_wave_value IS NOT NULL
@@ -1257,6 +1289,7 @@ async function getStudentsForPadding(count: number): Promise<Student[]> {
             AND est_dist_value IS NOT NULL
             AND velocity_value IS NOT NULL
             AND ang_size_value IS NOT NULL
+            AND ignore_students.student_id IS NULL
     GROUP BY student_id
     HAVING count >= 5
     ORDER BY RAND()
