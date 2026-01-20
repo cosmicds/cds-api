@@ -39,7 +39,6 @@ import {
   getClassMeasurementCountForStudent,
   getStudentsWithCompleteMeasurementsCount,
   getMergedIDsForClass,
-  addClassToMergeGroup,
   setWaitingRoomOverride,
   removeWaitingRoomOverride,
   getWaitingRoomOverride,
@@ -447,43 +446,6 @@ router.get("/merged-classes/:classID", async (req, res) => {
   });
 });
 
-const MergeClassInfo = S.struct({
-  class_id: S.number.pipe(S.int()),
-});
-router.put("/merge-class", async (req, res) => {
-  const body = req.body;
-  const maybe = S.decodeUnknownEither(MergeClassInfo)(body);
-
-  if (Either.isLeft(maybe)) {
-    res.status(400).json({
-      message: `Expected class ID to be an integer, got ${body.class_id}`,
-    });
-    return;
-  }
-
-  const data = maybe.right;
-  const cls = await findClassById(data.class_id);
-  if (cls === null) {
-    res.status(404).json({
-      message: `No class found with ID ${data.class_id}`,
-    });
-    return;
-  }
-
-  const groupID = await addClassToMergeGroup(data.class_id);
-  if (groupID === null) {
-    res.status(500).json({
-      message: `There was an error while adding class ${data.class_id} to a merge group`,
-    });
-    return;
-  }
-
-  res.json({
-    class_id: data.class_id,
-    group_id: groupID,
-  });
-});
-
 router.get("/all-data", async (req, res) => {
   const minimal = (req.query?.minimal as string)?.toLowerCase() === "true";
   let classID: number | null = parseInt(req.query.class_id as string);
@@ -494,19 +456,6 @@ router.get("/all-data", async (req, res) => {
   const before = isNaN(beforeMs) ? null : new Date(beforeMs);
   const classData = await getAllHubbleClassData(before, minimal, classID);
   const classIDs = new Set(classData.map(data => data.class_id));
-  for (const id of classIDs) {
-    const mergedIDs = await getMergedIDsForClass(id, true);
-    mergedIDs.forEach(mid => {
-      if (!classIDs.has(mid)) {
-        classIDs.add(mid);
-      }
-    });
-  }
-
-  if (classID !== null) {
-    const merged = await getMergedIDsForClass(classID, true);
-    merged.forEach(mid => classIDs.delete(mid));
-  }
 
   const [measurements, studentData] =
     await Promise.all([

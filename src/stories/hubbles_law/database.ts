@@ -290,17 +290,11 @@ async function getHubbleMeasurementsForStudentClass(studentID: number,
 }
 
 export async function getClassMeasurements(classID: number,
-                                           includeMergedClasses: boolean = true,
+                                           _includeMergedClasses: boolean = true,
                                            excludeWithNull: boolean = false
 ): Promise<HubbleMeasurement[]> {
 
-  const classWhereConditions: WhereOptions<Class> = [];
-  if (includeMergedClasses) {
-    const classIDs = await getMergedIDsForClass(classID);
-    classWhereConditions.push({ id: { [Op.in]: classIDs } });
-  } else {
-    classWhereConditions.push({ id: classID });
-  }
+  const classWhereConditions: WhereOptions<Class> = [{ id: classID }];
 
   const measurementWhereConditions: WhereOptions<HubbleMeasurement> = [];
   if (excludeWithNull) {
@@ -587,39 +581,7 @@ export async function getAllHubbleMeasurements(before: Date | null = null,
     }]
   }) as (HubbleMeasurement & { class_id: number })[];
 
-  const classIDs = new Set<number>();
-  measurements.forEach(measurement => classIDs.add(measurement.class_id));
-  const mergeGroupData = await HubbleClassMergeGroup.findAll({
-    attributes: [
-      "class_id",
-      "group_id",
-      // We use a RANK rather than the merge order because we don't know what the highest merge order value will be
-      // But the best rank will always be 1
-      [Sequelize.literal("RANK() OVER(PARTITION BY group_id ORDER BY merge_order DESC)"), "rk"],
-    ],
-    order: [["rk", "ASC"]],
-  }) as (HubbleClassMergeGroup & { rk: number })[];
-
-  const mergeIDsToUse: Record<number, number> = {};
-  const groupIDs: Record<number, number | undefined> = {};
-  mergeGroupData.forEach(data => {
-    // Because this is a column constructed inside the query,
-    // it doesn't work to do `data.rk`, or `data.getDataValue("rk")`
-    const rank = data.get("rk");
-    if (rank === 1) {
-      mergeIDsToUse[data.class_id] = data.class_id;
-      groupIDs[data.group_id] = data.class_id;
-    } else {
-      mergeIDsToUse[data.class_id] = groupIDs[data.group_id] ?? data.class_id;
-    }
-  });
-
-  measurements.forEach(measurement => {
-    measurement.class_id = mergeIDsToUse[measurement.class_id] ?? measurement.class_id;
-  });
-
   return measurements;
-
 }
 
 export async function getAllHubbleStudentMergeCounts() {
@@ -637,71 +599,6 @@ export async function getAllHubbleStudentMergeCounts() {
 }
 
 const MINIMAL_STUDENT_DATA_FIELDS = ["student_id", "age_value", "class_id"];
-export async function getAllHubbleStudentDataOld(includeClasses: number[] = [], minimal=false): Promise<HubbleStudentData[]> {
-
-  const database = HubbleStudentData.sequelize;
-  if (database == null) {
-    return [];
-  }
-
-  // TODO: This is a mess, clean it up
-  const finalAttributes = minimal ? MINIMAL_STUDENT_DATA_FIELDS.map(field => `B.${field}`).join(",\n") : "B.*";
-  const aAttributes = minimal ? 
-    "HubbleStudentData.student_id, HubbleStudentData.age_value, class_id" :
-    "HubbleStudentData.*, class_id";
-  const bAttributes = minimal ? "A.student_id, A.age_value, COALESCE(Z.merged_cid, A.class_id) AS class_id" : "A.student_id, A.age_value, A.hubble_fit_value, COALESCE(Z.merged_cid, A.class_id) AS class_id";
-  const yAttributes = minimal ? "Y.student_id, Y.merged_cid, Y.class_id, age_value" : "Y.*, age_value";
-  const having = includeClasses.length ? `\nHAVING class_id IN (${includeClasses.join(", ")})` : "";
-
-  const sql = `
-    SELECT ${finalAttributes} FROM (SELECT 
-        ${bAttributes}
-    FROM
-        (SELECT ${aAttributes}
-        FROM
-            StudentsClasses
-        INNER JOIN HubbleStudentData ON StudentsClasses.student_id = HubbleStudentData.student_id) A
-            LEFT OUTER JOIN
-        (SELECT 
-          ${yAttributes}
-        FROM
-            HubbleStudentData
-        INNER JOIN Students ON HubbleStudentData.student_id = Students.id
-            AND (Students.seed = 1 OR Students.dummy = 0)
-        LEFT OUTER JOIN (SELECT 
-            student_id, merged_cid, X.class_id
-        FROM
-            StudentsClasses
-        INNER JOIN (SELECT 
-            class_id, merged_cid
-        FROM
-            HubbleClassMergeGroups L
-        INNER JOIN (SELECT 
-            group_id, class_id AS merged_cid
-        FROM
-            HubbleClassMergeGroups G
-        WHERE
-            G.merge_order = (SELECT 
-                    MAX(H.merge_order)
-                FROM
-                    HubbleClassMergeGroups H
-                WHERE
-                    H.group_id = G.group_id)) K ON K.group_id = L.group_id) X ON X.class_id = StudentsClasses.class_id) Y ON Y.student_id = HubbleStudentData.student_id
-    ) Z ON Z.student_id = A.student_id) B
-    	LEFT OUTER JOIN
-    IgnoreStudents ON IgnoreStudents.student_id = B.student_id
-    	LEFT OUTER JOIN
-    IgnoreClasses ON IgnoreClasses.class_id = B.class_id
-    WHERE IgnoreClasses.class_id IS NULL AND IgnoreStudents.student_id IS NULL
-    GROUP BY B.student_id ${having}
-  `;
-
-  return database.query(sql, {
-    type: QueryTypes.SELECT,
-    model: HubbleStudentData,
-  });
-}
-
 export async function getAllHubbleStudentData(includeClasses: number[] = [], minimal=false): Promise<HubbleStudentData[]> {
   const database = HubbleStudentData.sequelize;
   if (database == null) {
@@ -824,103 +721,6 @@ export async function getAllHubbleStudentData(includeClasses: number[] = [], min
   return results;
 
 }
-
-export async function getAllHubbleClassDataOld(before: Date | null = null, minimal=false, classID: number | null = null): Promise<HubbleClassData[]> {
-  const database = HubbleClassData.sequelize;
-  if (database == null) {
-    return [];
-  }
-  const lastUpdate = before !== null ? `AND HubbleClassData.last_data_update < '${mySqlDatetime(before)}'` : "";
-  const attributes = minimal ? ["HubbleClassData.class_id", "HubbleClassData.age_value"].join(", ") : "*";
-  let classIDString: string;
-  if (classID !== null) {
-    const classIDs = await getMergedIDsForClass(classID, true);
-    classIDString = `\nAND SC.class_id NOT IN (${classIDs.join(", ")})`;
-  } else {
-    classIDString = "";
-  }
-  const sql = `
-    SELECT 
-      ${attributes}
-    FROM
-        HubbleClassData
-            INNER JOIN
-        (
-		SELECT 
-			student_id, COALESCE(merged_cid, StudentsClasses.class_id) AS class_id
-		FROM
-			StudentsClasses
-				LEFT OUTER JOIN
-			(SELECT 
-				class_id, merged_cid
-			FROM
-				HubbleClassMergeGroups L
-			INNER JOIN (SELECT 
-				group_id, class_id AS merged_cid
-			FROM
-				HubbleClassMergeGroups G
-			WHERE
-				G.merge_order = (SELECT 
-						MAX(H.merge_order)
-					FROM
-						HubbleClassMergeGroups H
-					WHERE
-						H.group_id = G.group_id)) K ON K.group_id = L.group_id) X ON X.class_id = StudentsClasses.class_id
-        ) SC ON HubbleClassData.class_id = SC.class_id ${classIDString}
-            LEFT OUTER JOIN
-        HubbleMeasurements ON HubbleMeasurements.student_id = SC.student_id
-            AND HubbleMeasurements.rest_wave_value IS NOT NULL
-            AND HubbleMeasurements.obs_wave_value IS NOT NULL
-            AND HubbleMeasurements.est_dist_value IS NOT NULL
-            AND HubbleMeasurements.velocity_value IS NOT NULL
-            AND HubbleMeasurements.ang_size_value IS NOT NULL
-            LEFT OUTER JOIN
-        Classes ON HubbleClassData.class_id = Classes.id
-            LEFT OUTER JOIN
-      (SELECT class_id AS cid, story_name FROM IgnoreClasses) ignore_classes ON ignore_classes.cid = Classes.id
-            AND ignore_classes.story_name = 'hubbles_law'
-            LEFT OUTER JOIN
-      (
-    			SELECT 
-    			id, COUNT(id) as count
-    		FROM
-    			Students
-    				INNER JOIN
-    			HubbleMeasurements ON Students.id = HubbleMeasurements.student_id
-    				LEFT OUTER JOIN
-    			(
-    				SELECT 
-    					*
-    				FROM
-    					IgnoreStudents
-    				WHERE
-    					(story_name IS NULL
-    						OR story_name = 'hubbles_law')
-    			)
-    			ignore_students ON ignore_students.student_id = HubbleMeasurements.student_id
-    		WHERE
-    			HubbleMeasurements.obs_wave_value IS NOT NULL
-    				AND HubbleMeasurements.rest_wave_value IS NOT NULL
-    				AND HubbleMeasurements.est_dist_value IS NOT NULL
-    				AND HubbleMeasurements.ang_size_value IS NOT NULL
-    				AND HubbleMeasurements.velocity_value IS NOT NULL
-    				AND ignore_students.student_id IS NULL
-    
-    		GROUP BY id
-    		HAVING count >= 5
-      ) students ON students.id = SC.student_id
-    WHERE
-        (ignore_classes.cid IS NULL) ${lastUpdate}
-    GROUP BY HubbleClassData.class_id
-    HAVING COUNT(HubbleClassData.class_id) >= 75;
-  `;
-
-  return database.query(sql, {
-    type: QueryTypes.SELECT,
-    model: HubbleClassData,
-  });
-}
-
 
 const MINIMAL_CLASS_DATA_FIELDS = ["class_id", "age_value"];
 export async function getAllHubbleClassData(before: Date | null = null, minimal=false, classID: number | null = null): Promise<HubbleClassData[]> {
@@ -1157,110 +957,6 @@ export async function getGalaxiesForDataGeneration(types=["Sp"]): Promise<Galaxy
   return noMeasurements.concat(measurements);
 }
 
-export async function getMergeDataForClass(classID: number): Promise<SyncMergedHubbleClasses | null> {
-  return SyncMergedHubbleClasses.findOne({ where: { class_id: classID } });
-}
-
-type GroupData = {
-  unique_gid: string;
-  is_group: boolean;
-  merged_count: number;
-};
-export async function findClassForMerge(database: Sequelize, classID: number): Promise<Class & GroupData> {
-  // The SQL is complicated enough here; doing this with the ORM
-  // will probably be unreadable
-  const result = await database.query(
-    `
-    SELECT 
-        id,
-        COUNT(*) AS group_count,
-        IFNULL(group_id, UUID()) AS unique_gid,
-        (group_id IS NOT NULL) AS is_group,
-        MAX(merge_order) AS merged_count
-    FROM
-        Classes
-            LEFT OUTER JOIN
-        (SELECT 
-            *
-        FROM
-            IgnoreClasses
-        WHERE
-            (story_name IS NULL
-                OR story_name = 'hubbles_law')) ignore_classes ON ignore_classes.class_id = Classes.id
-            LEFT OUTER JOIN
-        (SELECT 
-            *
-        FROM
-            HubbleClassMergeGroups
-        ORDER BY merge_order DESC) G ON Classes.id = G.class_id
-            INNER JOIN
-        (SELECT 
-            class_id, COUNT(*) AS count
-        FROM
-            StudentsClasses
-            		INNER JOIN
-		        HubbleMeasurements ON StudentsClasses.student_id = HubbleMeasurements.student_id
-        WHERE est_dist_value IS NOT NULL AND velocity_value IS NOT NULL
-        GROUP BY class_id
-        HAVING count >= 60) C ON Classes.id = C.class_id
-    WHERE
-        id != ${classID}
-        AND ignore_classes.class_id IS NULL
-        AND test = 0
-    GROUP BY unique_gid
-    ORDER BY is_group ASC , group_count ASC , merged_count DESC
-    LIMIT 1;
-        `,
-    { type: QueryTypes.SELECT }
-  ) as (Class & GroupData)[];
-  return result[0];
-}
-
-async function nextMergeGroupID(): Promise<number> {
-  const max = (await HubbleClassMergeGroup.findAll({
-    attributes: [
-      [Sequelize.fn("MAX", Sequelize.col("group_id")), "group_id"]
-    ]
-  })) as (HubbleClassMergeGroup & { group_id: number })[];
-  return (max[0].group_id + 1) as number;
-}
-
-
-export async function addClassToMergeGroup(classID: number): Promise<number | null> {
-
-  // Sanity check
-  const existingGroup = await HubbleClassMergeGroup.findOne({ where: { class_id: classID } });
-  if (existingGroup !== null) {
-    return existingGroup.group_id;
-  }
-
-  const database = Class.sequelize;
-  if (database === undefined) {
-    return null;
-  }
-
-  const clsToMerge = await findClassForMerge(database, classID);
-  let mergeGroup;
-  if (clsToMerge.is_group) {
-    mergeGroup = await HubbleClassMergeGroup.create({ class_id: classID, group_id: Number(clsToMerge.unique_gid), merge_order: clsToMerge.merged_count + 1 });
-  } else {
-    const newGroupID = await nextMergeGroupID();
-    await HubbleClassMergeGroup.create({ class_id: clsToMerge.id, group_id: newGroupID, merge_order: 1 });
-    mergeGroup = await HubbleClassMergeGroup.create({ class_id: classID, group_id: newGroupID, merge_order: 2 });
-  }
-
-  return mergeGroup.group_id;
-
-}
-
-export async function removeClassFromMergeGroup(classID: number): Promise<number> {
-  return HubbleClassMergeGroup.destroy({
-    where: {
-      class_id: classID,
-    }
-  });
-}
-
 export async function getWaitingRoomOverride(classID: number): Promise<HubbleWaitingRoomOverride | null> {
   return HubbleWaitingRoomOverride.findOne({
     where: {
@@ -1270,7 +966,7 @@ export async function getWaitingRoomOverride(classID: number): Promise<HubbleWai
 }
 
 export async function setWaitingRoomOverride(classID: number): Promise<boolean | Error> {
-  let successOrError = await HubbleWaitingRoomOverride.findOrCreate({
+  const successOrError = await HubbleWaitingRoomOverride.findOrCreate({
     where: {
       class_id: classID,
     }
@@ -1278,42 +974,11 @@ export async function setWaitingRoomOverride(classID: number): Promise<boolean |
   .then(result => result[1])
   .catch((error: Error) => error);
 
-  // Once we've set the override, that means that we need to add this class to a merge group
-  const mergeGroup = await addClassToMergeGroup(classID);
-  if (mergeGroup === null) {
-    successOrError = new Error(`Error adding class ${classID} to a merge group`);
-  }
-
   return successOrError;
 }
 
-export async function removeWaitingRoomOverride(classID: number): Promise<number> {
-
-  const classFindOptions: FindOptions<HubbleClassMergeGroup> = { where: { class_id: classID } };
-  const mergeGroup = await HubbleClassMergeGroup.findOne(classFindOptions);
-  return HubbleWaitingRoomOverride.destroy(classFindOptions)
-  .then(async (count) => {
-    const cls = await findClassById(classID);
-    if (mergeGroup !== null && cls !== null) {
-
-    // This condition should always be satisfied, since we should only be doing overrides
-    // for non-small classes anyways (if the class is small, there shouldn't be any need 
-    // to want an override to begin with)
-      if (cls.small_class) {
-        await removeClassFromMergeGroup(classID);
-      }
-
-      // If the merge group now only has one member, delete it
-      const groupFindOptions: FindOptions = { where: { group_id: mergeGroup.group_id } };
-      const mergeMembers = await HubbleClassMergeGroup.findAll(groupFindOptions);
-      if (mergeMembers.length === 1) {
-        await HubbleClassMergeGroup.destroy(groupFindOptions);
-      }
-    }
-
-    return count;
-  })
-  .catch(_error => NaN);
+export async function removeWaitingRoomOverride(_classID: number): Promise<number> {
+  return 0;
 }
 
 async function getStudentsForPadding(count: number): Promise<Student[]> {
