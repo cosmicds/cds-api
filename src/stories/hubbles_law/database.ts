@@ -623,7 +623,7 @@ export async function getAllHubbleMeasurements(before: Date | null = null,
 }
 
 const MINIMAL_STUDENT_DATA_FIELDS = ["student_id", "age_value", "class_id"];
-export async function getAllHubbleStudentData(includeClasses: number[] = [], minimal=false,): Promise<HubbleStudentData[]> {
+export async function getAllHubbleStudentDataOld(includeClasses: number[] = [], minimal=false): Promise<HubbleStudentData[]> {
 
   const database = HubbleStudentData.sequelize;
   if (database == null) {
@@ -686,6 +686,22 @@ export async function getAllHubbleStudentData(includeClasses: number[] = [], min
     type: QueryTypes.SELECT,
     model: HubbleStudentData,
   });
+}
+
+export async function getAllHubbleStudentData(includeClasses: number[] = [], minimal=false): Promise<HubbleStudentData[]> {
+  const database = HubbleStudentData.sequelize;
+  if (database == null) {
+    return [];
+  }
+
+  const finalAttributes = minimal ? MINIMAL_STUDENT_DATA_FIELDS : "*";
+
+  const sqlQuery = sql`
+    SELECT ${finalAttributes}
+    FROM
+      HubbleStudentData
+
+  `;
 }
 
 export async function getAllHubbleClassData(before: Date | null = null, minimal=false, classID: number | null = null): Promise<HubbleClassData[]> {
