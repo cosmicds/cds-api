@@ -694,17 +694,39 @@ export async function getAllHubbleStudentData(includeClasses: number[] = [], min
     return [];
   }
 
-  const finalAttributes = minimal ? MINIMAL_STUDENT_DATA_FIELDS : "*";
+  const finalAttributes = minimal ? MINIMAL_STUDENT_DATA_FIELDS : "HubbleStudentData.*";
+  const haveClasses = includeClasses.length > 0;
+  const clsJoin = haveClasses ? "\nINNER JOIN StudentsClasses ON StudentsClasses.student_id = HubbleStudentData.student_id\n" : "";
+  const clsAnd = haveClasses ? `AND class_id in (${includeClasses.join(", ")})` : "";
 
-  const sqlQuery = sql`
+  const sqlQuery = 
+    sql`
     SELECT ${finalAttributes}
     FROM
-      HubbleStudentData
+    	HubbleStudentData
+    		INNER JOIN
+    	Students
+    	ON HubbleStudentData.student_id = Students.id
+    		INNER JOIN
+        HubbleMeasurements ON HubbleMeasurements.student_id = HubbleStudentData.student_id
+        ${clsJoin}
+    WHERE
+        (seed = 1 OR dummy = 0)
+            AND rest_wave_value IS NOT NULL
+            AND obs_wave_value IS NOT NULL
+            AND est_dist_value IS NOT NULL
+            AND velocity_value IS NOT NULL
+            AND ang_size_value IS NOT NULL
+            ${clsAnd};
+  ` ;
 
-  `;
+  return database.query(sqlQuery, {
+    type: QueryTypes.SELECT,
+    model: HubbleStudentData,
+  });
 }
 
-export async function getAllHubbleClassData(before: Date | null = null, minimal=false, classID: number | null = null): Promise<HubbleClassData[]> {
+export async function getAllHubbleClassDataOld(before: Date | null = null, minimal=false, classID: number | null = null): Promise<HubbleClassData[]> {
   const database = HubbleClassData.sequelize;
   if (database == null) {
     return [];
@@ -798,6 +820,15 @@ export async function getAllHubbleClassData(before: Date | null = null, minimal=
     type: QueryTypes.SELECT,
     model: HubbleClassData,
   });
+}
+
+export async function getAllHubbleClassData(before: Date | null = null, minimal=false, classID: number | null = null): Promise<HubbleClassData[]> {
+  const database = HubbleClassData.sequelize;
+  if (database == null) {
+    return [];
+  }
+
+
 }
 
 export async function removeHubbleMeasurement(studentID: number, galaxyID: number): Promise<RemoveHubbleMeasurementResult> {
