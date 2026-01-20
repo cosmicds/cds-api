@@ -622,6 +622,20 @@ export async function getAllHubbleMeasurements(before: Date | null = null,
 
 }
 
+export async function getAllHubbleStudentMergeCounts() {
+  const results = await HubbleClassStudentMerge.findAll({
+    attributes: ["student_id", [Sequelize.fn("COUNT", "student_id"), "merge_count"]],
+    group: "student_id",
+  }) as (HubbleClassStudentMerge & { merge_count: number })[];
+
+  const counts: Record<number, number> = {};
+  results.forEach(entry => {
+    counts[entry.student_id] = entry.merge_count;
+  });
+
+  return counts;
+}
+
 const MINIMAL_STUDENT_DATA_FIELDS = ["student_id", "age_value", "class_id"];
 export async function getAllHubbleStudentDataOld(includeClasses: number[] = [], minimal=false): Promise<HubbleStudentData[]> {
 
@@ -785,10 +799,30 @@ export async function getAllHubbleStudentData(includeClasses: number[] = [], min
     ` ;
   }
 
-  return database.query(sqlQuery, {
+  const results = await database.query(sqlQuery, {
     type: QueryTypes.SELECT,
     model: HubbleStudentData,
   });
+  const studentIDs = new Set(results.map(res => res.student_id));
+
+  const resultsById: Record<number, HubbleStudentData> = {};
+  results.forEach(result => {
+    resultsById[result.student_id] = result;
+  });
+
+  const mergeQuery: FindOptions<HubbleClassStudentMerge> = {};
+  if (includeClasses.length > 0) {
+    mergeQuery.where = { class_id: { [Op.in]: includeClasses } };
+  }
+
+  const merges = await HubbleClassStudentMerge.findAll(mergeQuery);
+  for (const merge of merges) {
+    if (studentIDs.has(merge.student_id)) {
+      results.push(resultsById[merge.student_id]);
+    }
+  }
+  return results;
+
 }
 
 export async function getAllHubbleClassDataOld(before: Date | null = null, minimal=false, classID: number | null = null): Promise<HubbleClassData[]> {
