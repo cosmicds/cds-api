@@ -887,12 +887,34 @@ export async function getAllHubbleClassDataOld(before: Date | null = null, minim
   });
 }
 
+
+const MINIMAL_CLASS_DATA_FIELDS = ["class_id", "age_value"];
 export async function getAllHubbleClassData(before: Date | null = null, minimal=false, classID: number | null = null): Promise<HubbleClassData[]> {
   const database = HubbleClassData.sequelize;
   if (database == null) {
     return [];
   }
 
+  const lastUpdate = before !== null ? `AND HubbleClassData.last_data_update < '${mySqlDatetime(before)}'` : "";
+  const attributes = minimal ? MINIMAL_CLASS_DATA_FIELDS.map(field => `HubbleClassData.${field}`).join(", ") : "HubbleClassData.*";
+  const classAnd = classID !== null ? `AND HubbleClassData.class_id != ${classID}` : "";
+  const sqlQuery = sql`
+    SELECT
+      ${attributes}
+    FROM
+      HubbleClassData
+    LEFT OUTER JOIN
+      IgnoreClasses ON HubbleClassData.class_id = IgnoreClasses.class_id
+    WHERE
+      IgnoreClasses.student_id IS NULL
+      ${lastUpdate}
+      ${classAnd};
+  `;
+
+  return database.query(sqlQuery, {
+    type: QueryTypes.SELECT,
+    model: HubbleClassData,
+  });
 
 }
 
