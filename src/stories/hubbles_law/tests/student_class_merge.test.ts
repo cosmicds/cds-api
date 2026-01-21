@@ -47,9 +47,10 @@ describe("Test student/class merge functionality", () => {
       const arr = merge ? mergedStudents : nonMergedStudents;
       arr.push(student);
       if (merge) {
-        await mergeStudentIntoClass(student.id, cls.id).catch(error => console.log(error));
+        await mergeStudentIntoClass(student.id, cls.id);
       }
     }
+    console.log((await HubbleClassStudentMerge.findAll()).length);
 
     const nGalaxies = 30;
     const galaxies = await createRandomGalaxies(nGalaxies);
@@ -76,8 +77,7 @@ describe("Test student/class merge functionality", () => {
       .then((res) => {
         const body = res.body;
         const measurements = body.measurements as HubbleMeasurement[];
-        console.log(body);
-        expect(measurements.length).toEqual(studentCount + mergedCount);
+        expect(measurements.length).toEqual(5 * (studentCount + mergedCount));
 
         const includedStudents = students.concat(mergedStudents);
         const includedIDs = new Set(includedStudents.map(s => s.id));
