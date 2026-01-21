@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-floating-promises */
 
+import fs from "fs";
+import { join } from "path";
 import type { Express } from "express";
 import type { Server } from "http";
 import type { Test } from "supertest";
@@ -9,6 +11,7 @@ import { setUpAssociations } from "../src/associations";
 import {
   APIKeyRole,
   Educator,
+  IgnoreClass,
   IgnoreStudent,
   Permission,
   Role,
@@ -73,7 +76,6 @@ export async function setupTestDatabase(): Promise<Sequelize> {
   // and https://stackoverflow.com/a/45114507
   // db.sync({ force: true, match: /test/ }).finally(() => db.close());
   await syncTables(true);
-  await addTestData();
 
   return db;
 }
@@ -98,6 +100,7 @@ export async function syncTables(force=false): Promise<void> {
   await StoryState.sync(options);
   await StageState.sync(options);
   await IgnoreStudent.sync(options);
+  await IgnoreClass.sync(options);
 }
 
 export async function addAdminAPIKey(): Promise<APIKey | void> {
@@ -139,6 +142,25 @@ export async function addTestData() {
 export function createTestApp(db: Sequelize): Express {
   const app = createApp(db, { sendEmails : false });
   setupApp(app, db);
+
+  const storiesDir = join(__dirname, "..", "src", "stories");
+  const entries = fs.readdirSync(storiesDir, { withFileTypes: true });
+  entries.forEach(entry => {
+    if (entry.isDirectory()) {
+      const file = join(storiesDir, entry.name, "main.ts");
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const data = require(file);
+      data.setup(app, db);
+      app.use(data.path, data.router);
+    }
+  });
+
+  const syncOptions = { force: true };
+  for (const model of Object.values(db.models)) {
+    model.sync(syncOptions);
+  }
+  addTestData();
+
   return app;
 }
 

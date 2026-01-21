@@ -740,7 +740,7 @@ export async function getAllHubbleClassData(before: Date | null = null, minimal=
     LEFT OUTER JOIN
       IgnoreClasses ON HubbleClassData.class_id = IgnoreClasses.class_id
     WHERE
-      IgnoreClasses.student_id IS NULL
+      IgnoreClasses.class_id IS NULL
       ${lastUpdate}
       ${classAnd};
   `;

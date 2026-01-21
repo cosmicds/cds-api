@@ -1,11 +1,14 @@
 import { Galaxy, HubbleMeasurement, HubbleStudentData } from "../models";
-import { path } from "../main";
 import { randomBetween } from "../../../../tests/utils";
+import hubblesLaw = require("../main");
 
 import { v4 } from "uuid";
 
 export function globalRoutePath(route: string): string {
-  return `${path}/${route}`;
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-expect-error `path` is defined on the export from main
+  const prefix = hubblesLaw.path as string;
+  return `${prefix}${route}`;
 }
 
 export async function createRandomGalaxy() {
@@ -16,6 +19,14 @@ export async function createRandomGalaxy() {
     decl: randomBetween(-90, 90),
     z: randomBetween(0.01, 0.05),
     element: "Mg-I",
+    marked_bad: 0,
+    is_bad: 0,
+    spec_checked: 0,
+    spec_is_bad: 0,
+    spec_marked_bad: 0,
+    spec_is_good: 0,
+    tileload_marked_bad: 0,
+    is_sample: 0,
   });
 }
 
