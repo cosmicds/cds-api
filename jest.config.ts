@@ -5,6 +5,10 @@ const config: Config = {
   silent: false,
   preset: "ts-jest",
   testEnvironment: "node",
+  testMatch: [
+    "tests/**.test.ts",
+    "src/stories/**/tests/**.test.ts",
+  ],
   coveragePathIgnorePatterns: [
     "./node_modules/",
     "./dist/",
