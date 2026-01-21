@@ -219,6 +219,22 @@ export async function setupStudentInClasses() {
   return { student, educator, class1, class2, sc1, sc2, cleanup };
 }
 
+export async function createRandomClassWithStudents(count: number, educator: Educator | null = null) {
+  const nStudents = Math.round(count);
+
+  const edu = educator ?? await randomEducator();
+  const cls = await randomClassForEducator(edu.id);
+
+  const students: Student[] = [];
+  for (let i = 0; i < nStudents; i++) {
+    const student = await randomStudent();
+    students.push(student);
+    await StudentsClasses.create({ class_id: cls.id, student_id: student.id });
+  }
+
+  return { educator, students, class: cls };
+}
+
 type ModelKey<T extends Model> = (keyof InferAttributes<T>)[];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -233,4 +249,18 @@ export function expectToMatchModel<T extends Model>(object: any, expected: T, ex
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
   expect(object).toMatchObject(json);
+}
+
+export function randomBetween(low: number, high: number) {
+  return low + Math.random() * (high - low);
+}
+
+export function setIntersection<T>(setA: Set<T>, setB: Set<T>): Set<T> {
+  const result = new Set<T>();
+  for (const element of setA) {
+    if (setB.has(element)) {
+      result.add(element);
+    }
+  }
+  return result;
 }
