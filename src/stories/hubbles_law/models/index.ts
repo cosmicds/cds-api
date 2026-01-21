@@ -4,10 +4,11 @@ import { SampleHubbleMeasurement, initializeSampleHubbleMeasurementModel } from 
 import { AsyncMergedHubbleStudentClasses, initializeAsyncMergedHubbleStudentClassesModel } from "./async_merged_student_classes";
 import { SyncMergedHubbleClasses, initializeSyncMergedHubbleClassesModel } from "./sync_merged_classes";
 import { Sequelize } from "sequelize";
-import { initializeHubbleStudentDataModel } from "./hubble_student_data";
-import { initializeHubbleClassDataModel } from "./hubble_class_data";
-import { initializeHubbleClassMergeGroupModel } from "./hubble_class_merge_group";
-import { initializeHubbleWaitingRoomOverrideModel, HubbleWaitingRoomOverride } from "./hubble_waiting_room_override";
+import { HubbleStudentData, initializeHubbleStudentDataModel } from "./hubble_student_data";
+import { HubbleClassData, initializeHubbleClassDataModel } from "./hubble_class_data";
+import { HubbleClassMergeGroup, initializeHubbleClassMergeGroupModel } from "./hubble_class_merge_group";
+import { HubbleWaitingRoomOverride, initializeHubbleWaitingRoomOverrideModel } from "./hubble_waiting_room_override";
+import { HubbleClassStudentMerge, initialHubbleClassStudentMergeModel } from "./hubble_class_student_merges";
 
 export {
   Galaxy,
@@ -15,7 +16,11 @@ export {
   SampleHubbleMeasurement,
   AsyncMergedHubbleStudentClasses,
   SyncMergedHubbleClasses,
-  HubbleWaitingRoomOverride
+  HubbleWaitingRoomOverride,
+  HubbleStudentData,
+  HubbleClassData,
+  HubbleClassMergeGroup,
+  HubbleClassStudentMerge,
 };
 
 export function initializeModels(db: Sequelize) {
@@ -28,4 +33,5 @@ export function initializeModels(db: Sequelize) {
   initializeHubbleClassDataModel(db);
   initializeHubbleClassMergeGroupModel(db);
   initializeHubbleWaitingRoomOverrideModel(db);
+  initialHubbleClassStudentMergeModel(db);
 }
