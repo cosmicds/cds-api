@@ -32,6 +32,7 @@ describe("Test student/class merge functionality", () => {
   
   afterAll(async () => {
     console.log("afterAll");
+    await testDB.close();
   });
 
   const nGalaxies = 30;
