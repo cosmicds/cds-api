@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-floating-promises */
 
-import { beforeAll, afterAll, describe, it, expect, jest } from "@jest/globals";
+import { beforeAll, afterAll, beforeEach, describe, it, expect, jest } from "@jest/globals";
 import request from "supertest";
 import type { Express } from "express";
 import type { Sequelize } from "sequelize";
@@ -32,15 +32,20 @@ describe("Test student/class merge functionality", () => {
     testDB.close();
   });
 
-  it("Add description", async () => {
+  const nGalaxies = 30;
+  const studentCount = 20;
+  const mergedCount = 5;
+  const nonMergedCount = 3;
+  let students: Student[];
+  let mergedStudents: Student[];
+  let nonMergedStudents: Student[];
 
-    const studentCount = 20;
-    const { educator, students, class: cls } = await createRandomClassWithStudents(studentCount);
+  beforeEach(async () => {
+    const { educator, students: createdStudents, class: cls } = await createRandomClassWithStudents(studentCount);
+    students = createdStudents;
 
-    const mergedCount = 5;
-    const nonMergedCount = 3;
-    const mergedStudents: Student[] = [];
-    const nonMergedStudents: Student[] = [];
+    mergedStudents = [];
+    nonMergedStudents = [];
     for (let i = 0; i < mergedCount + nonMergedCount; i++) {
       const student = await randomStudent();
       const merge = i < mergedCount;
@@ -52,7 +57,6 @@ describe("Test student/class merge functionality", () => {
     }
     console.log((await HubbleClassStudentMerge.findAll()).length);
 
-    const nGalaxies = 30;
     const galaxies = await createRandomGalaxies(nGalaxies);
 
     for (const arr of [students, mergedStudents, nonMergedStudents]) {
@@ -69,7 +73,9 @@ describe("Test student/class merge functionality", () => {
         await createRandomHubbleDataForStudent(student.id);
       }
     }
+  });
 
+  it("Add description", async () => {
     const route = globalRoutePath("/all-data");
     await authorize(request(testApp).get(route))
       .expect(200)
