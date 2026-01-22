@@ -1,4 +1,4 @@
-import { Attributes, FindOptions, Op, QueryTypes, Sequelize, WhereAttributeHash, WhereOptions, col, fn, literal } from "sequelize";
+import { Attributes, FindOptions, Op, QueryTypes, Sequelize, WhereAttributeHash, WhereOptions, col, fn, literal, where } from "sequelize";
 import { AsyncMergedHubbleStudentClasses, Galaxy, HubbleMeasurement, HubbleWaitingRoomOverride, SampleHubbleMeasurement, SyncMergedHubbleClasses } from "./models";
 import { findClassById, findStudentById } from "../../database";
 import { RemoveHubbleMeasurementResult, SubmitHubbleMeasurementResult } from "./request_results";
@@ -264,68 +264,6 @@ async function getStudentIDsForClass(classID: number): Promise<number[]> {
   return students.map(student => student.id);
 }
 
-async function getHubbleMeasurementsForStudentClassOld(studentID: number,
-                                                    classID: number,
-                                                    excludeWithNull: boolean = false,
-                                                    excludeStudent: boolean = false,
-): Promise<HubbleMeasurement[]> {
-
-  const classIDs = await getMergedIDsForClass(classID);
-
-  const studentWhereConditions: WhereOptions = [];
-  const classDataStudentIDs = await getClassDataIDsForStudent(studentID);
-  if (classDataStudentIDs.length > 0) {
-    classDataStudentIDs.push(studentID);
-    studentWhereConditions.push({
-      id: {
-        [Op.in]: classDataStudentIDs
-      }
-    });
-  }
-
-  const measurementWhereConditions: WhereOptions<HubbleMeasurement> = [];
-  if (excludeStudent) {
-    measurementWhereConditions.push({ student_id: { [Op.ne]: studentID } });
-  }
-  if (excludeWithNull) {
-    measurementWhereConditions.push(EXCLUDE_MEASUREMENTS_WITH_NULL_CONDITION);
-  }
-
-  return HubbleMeasurement.findAll({
-    where: measurementWhereConditions,
-    include: [{
-      model: Student,
-      attributes: ["id"],
-      as: "student",
-      required: true,
-      where: studentWhereConditions,
-      include: [{
-        model: Class,
-        attributes: ["id"],
-        where: {
-          id: {
-            [Op.in]: classIDs
-          }
-        }
-      },
-      {
-        model: IgnoreStudent,
-        required: false,
-        attributes: [],
-        where: {
-          story_name: "hubbles_law"
-        }
-      }],
-    },
-    {
-      model: Galaxy,
-      attributes: galaxyAttributes,
-      as: "galaxy",
-      required: true
-    }]
-  });
-}
-
 export async function getHubbleMeasurementsForStudentClass(
   studentID: number,
   classID: number,
@@ -350,7 +288,7 @@ export async function getHubbleMeasurementsForStudentClass(
     });
   }
 
-  const measurementWhereConditions: WhereOptions<HubbleMeasurement> = [];
+  const measurementWhereConditions: WhereOptions = [where(col("student->IgnoreStudents.student_id"), { [Op.is]: null })];
   if (excludeStudent) {
     measurementWhereConditions.push({ student_id: { [Op.ne]: studentID } });
   }
@@ -368,16 +306,17 @@ export async function getHubbleMeasurementsForStudentClass(
         where: studentWhereConditions,
         attributes: ["id"],
         as: "student",
+        include: [
+          {
+            model: IgnoreStudent,
+            required: false,
+            attributes: [],
+            where: {
+              story_name: "hubbles_law",
+            }
+          }
+        ],
       },
-      {
-        model: IgnoreStudent,
-        required: false,
-        attributes: [],
-        where: {
-          story_name: "hubbles_law",
-          student_id: null,
-        }
-      }
     ]
   });
 }

@@ -2,7 +2,6 @@ import { Class, Student, StudentsClasses } from "../../models";
 import { Galaxy, HubbleMeasurement, SampleHubbleMeasurement, SyncMergedHubbleClasses } from "./models";
 import { AsyncMergedHubbleStudentClasses } from "./models/async_merged_student_classes";
 import { HubbleClassData } from "./models/hubble_class_data";
-import { HubbleClassStudentMerge } from "./models/hubble_class_student_merges";
 import { HubbleStudentData } from "./models/hubble_student_data";
 
 export function setUpHubbleAssociations() {
