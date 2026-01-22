@@ -694,7 +694,9 @@ export async function getAllHubbleStudentData(includeClasses: number[] = [], min
       	AND est_dist_value IS NOT NULL
       	AND velocity_value IS NOT NULL
       	AND ang_size_value IS NOT NULL
-        AND ignore_students.student_id IS NULL;
+        AND ignore_students.student_id IS NULL
+      GROUP BY student_id
+      HAVING COUNT(HubbleStudentData.student_id) >= 5;
     `;
   } else {
     sqlQuery = 
@@ -724,7 +726,9 @@ export async function getAllHubbleStudentData(includeClasses: number[] = [], min
               AND est_dist_value IS NOT NULL
               AND velocity_value IS NOT NULL
               AND ang_size_value IS NOT NULL
-              AND ignore_students.student_id IS NULL;
+              AND ignore_students.student_id IS NULL
+      GROUP BY student_id
+      HAVING COUNT(HubbleStudentData.student_id) >= 5;
     ` ;
   }
 
@@ -744,10 +748,17 @@ export async function getAllHubbleStudentData(includeClasses: number[] = [], min
     mergeQuery.where = { class_id: { [Op.in]: includeClasses } };
   }
 
+  for (const data of results) {
+    console.log(data);
+  }
+  console.log(results.length);
+
   const merges = await HubbleClassStudentMerge.findAll(mergeQuery);
   for (const merge of merges) {
     if (studentIDs.has(merge.student_id)) {
+      console.log(merge.student_id);
       results.push(resultsById[merge.student_id]);
+      console.log(results.length);
     }
   }
   return results;

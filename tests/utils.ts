@@ -82,6 +82,7 @@ export async function setupTestDatabase(): Promise<Sequelize> {
 
 export async function teardownTestDatabase(): Promise<void> {
   const connection = await createTestMySQLConnection();
+  console.log("Dropped");
   await connection.query("DROP DATABASE test;");
 }
 
@@ -254,7 +255,7 @@ export async function createRandomClassWithStudents(count: number, educator: Edu
     await StudentsClasses.create({ class_id: cls.id, student_id: student.id });
   }
 
-  return { educator, students, class: cls };
+  return { educator: edu, students, class: cls };
 }
 
 type ModelKey<T extends Model> = (keyof InferAttributes<T>)[];

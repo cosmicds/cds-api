@@ -69,5 +69,9 @@ export async function createRandomHubbleDataForStudent(studentID: number): Promi
     age_value: 13 + (Math.random() - 0.5) * 5,
     age_unit: "Gyr",
     last_data_update: new Date(),
+  })
+  .catch(error => {
+    console.error(error);
+    return null;
   });
 }

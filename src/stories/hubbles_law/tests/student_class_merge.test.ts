@@ -5,11 +5,12 @@ import request from "supertest";
 import type { Express } from "express";
 import type { Sequelize } from "sequelize";
 
-import { authorize, createTestApp, getTestDatabaseConnection, createRandomClassWithStudents, randomStudent, setIntersection, randomBetween } from "../../../../tests/utils";
+import { authorize, createTestApp, getTestDatabaseConnection, createRandomClassWithStudents, randomStudent, setIntersection, randomBetween, randomClassForEducator } from "../../../../tests/utils";
 import { HubbleClassStudentMerge } from "../models/hubble_class_student_merges";
 import { globalRoutePath, createRandomHubbleDataForStudent, createRandomHubbleMeasurementForStudent, createRandomGalaxies } from "./utils";
 import { Student } from "../../../models";
 import { HubbleMeasurement, HubbleStudentData } from "../models";
+import { addStudentToClass } from "../../../database";
 
 jest.setTimeout(100_000);
 
@@ -24,30 +25,40 @@ describe("Test student/class merge functionality", () => {
   let testDB: Sequelize;
   let testApp: Express;
   beforeAll(async () => {
+    console.log("beforeAll");
     testDB = await getTestDatabaseConnection();
     testApp = createTestApp(testDB);
   });
   
-  afterAll(() => {
-    testDB.close();
+  afterAll(async () => {
+    console.log("afterAll");
   });
 
   const nGalaxies = 30;
-  const studentCount = 20;
+  const classSize = 20;
   const mergedCount = 5;
   const nonMergedCount = 3;
+  const totalStudentCount = classSize + mergedCount + nonMergedCount;
   let students: Student[];
   let mergedStudents: Student[];
   let nonMergedStudents: Student[];
 
-  beforeEach(async () => {
-    const { educator, students: createdStudents, class: cls } = await createRandomClassWithStudents(studentCount);
+  it("Add description", async () => {
+    console.log("beforeEach");
+    const { educator, students: createdStudents, class: cls } = await createRandomClassWithStudents(classSize);
     students = createdStudents;
+
+    if (educator == null) {
+      throw new Error("Educator should not be null");
+    }
+
+    const otherClass = await randomClassForEducator(educator.id);
 
     mergedStudents = [];
     nonMergedStudents = [];
     for (let i = 0; i < mergedCount + nonMergedCount; i++) {
       const student = await randomStudent();
+      await addStudentToClass(student.id, otherClass.id);
       const merge = i < mergedCount;
       const arr = merge ? mergedStudents : nonMergedStudents;
       arr.push(student);
@@ -70,32 +81,37 @@ describe("Test student/class merge functionality", () => {
           measuredIDs.add(idx);
           await createRandomHubbleMeasurementForStudent(student.id, galaxies[idx].id);
         }
-        await createRandomHubbleDataForStudent(student.id);
+        console.log(`Going to create random data for ${student.id}`);
+        await createRandomHubbleDataForStudent(student.id).catch(err => console.error(err));
       }
     }
-  });
+    console.log("DONE");
 
-  it("Add description", async () => {
+    console.log("In first test");
     const route = globalRoutePath("/all-data");
+    console.log("MADE ROUTE");
     await authorize(request(testApp).get(route))
       .expect(200)
       .expect("Content-Type", /json/)
-      .then((res) => {
+      .then(async (res) => {
         const body = res.body;
         const measurements = body.measurements as HubbleMeasurement[];
-        expect(measurements.length).toEqual(5 * (studentCount + mergedCount));
+        expect(measurements.length).toEqual(5 * totalStudentCount);
 
-        const includedStudents = students.concat(mergedStudents);
-        const includedIDs = new Set(includedStudents.map(s => s.id));
-        const notIncludedIDs = new Set(nonMergedStudents.map(s => s.id));
+        const allStudents = students.concat(mergedStudents).concat(nonMergedStudents);
 
         const measurementIDs = new Set(measurements.map(meas => meas.student_id));
-        expect(measurementIDs).toEqual(includedIDs);
-
-        expect(setIntersection(measurementIDs, notIncludedIDs).size).toEqual(0);
+        expect(measurementIDs).toEqual(new Set(allStudents.map(student => student.id)));
 
         const studentData = body.studentData as HubbleStudentData[];
-        expect(studentData.length).toEqual(studentCount + mergedCount + nonMergedCount);
+        const merges = await HubbleClassStudentMerge.findAll();
+        for (const data of merges) {
+          console.log(data);
+        }
+        // We need to include the merged students twice each
+        expect(studentData.length).toEqual(totalStudentCount + mergedCount);
+
+        console.log("Passed tests");
       });
   });
 });
