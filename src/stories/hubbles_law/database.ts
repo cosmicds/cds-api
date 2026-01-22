@@ -227,7 +227,44 @@ export async function getStudentHubbleMeasurements(studentID: number): Promise<H
   });
 }
 
-async function getHubbleMeasurementsForStudentClass(studentID: number,
+async function getStudentIDsForClass(classID: number): Promise<number[]> {
+
+  const database = Student.sequelize;
+  if (database == null) {
+    return [];
+  }
+
+  const sql = `
+  SELECT
+  	id
+  FROM
+  	Students
+  INNER JOIN StudentsClasses ON
+  	Students.id = StudentsClasses.student_id
+  WHERE
+  	StudentsClasses.class_id = ${classID}
+
+  UNION ALL
+
+  SELECT
+	  id
+  FROM
+  	Students
+  INNER JOIN HubbleClassStudentMerges ON
+  	Students.id = HubbleClassStudentMerges.student_id
+  WHERE
+  HubbleClassStudentMerges.class_id = ${classID}
+  `;
+
+  const students = await database.query(sql, {
+    type: QueryTypes.SELECT,
+    model: Student,
+  });
+
+  return students.map(student => student.id);
+}
+
+async function getHubbleMeasurementsForStudentClassOld(studentID: number,
                                                     classID: number,
                                                     excludeWithNull: boolean = false,
                                                     excludeStudent: boolean = false,
@@ -286,6 +323,62 @@ async function getHubbleMeasurementsForStudentClass(studentID: number,
       as: "galaxy",
       required: true
     }]
+  });
+}
+
+export async function getHubbleMeasurementsForStudentClass(
+  studentID: number,
+  classID: number,
+  excludeWithNull: boolean = false,
+  excludeStudent: boolean = false,
+): Promise<HubbleMeasurement[]> {
+  const studentWhereConditions: WhereOptions = [];
+  const classDataStudentIDs = await getClassDataIDsForStudent(studentID);
+  if (classDataStudentIDs.length > 0) {
+    classDataStudentIDs.push(studentID);
+    studentWhereConditions.push({
+      id: {
+        [Op.in]: classDataStudentIDs
+      }
+    });
+  } else {
+    const studentIDs = await getStudentIDsForClass(classID);
+    studentWhereConditions.push({
+      id: {
+        [Op.in]: studentIDs,
+      }
+    });
+  }
+
+  const measurementWhereConditions: WhereOptions<HubbleMeasurement> = [];
+  if (excludeStudent) {
+    measurementWhereConditions.push({ student_id: { [Op.ne]: studentID } });
+  }
+  if (excludeWithNull) {
+    measurementWhereConditions.push(EXCLUDE_MEASUREMENTS_WITH_NULL_CONDITION);
+  }
+  
+
+  return HubbleMeasurement.findAll({
+    where: measurementWhereConditions,
+    include: [
+      {
+        model: Student,
+        required: true,
+        where: studentWhereConditions,
+        attributes: ["id"],
+        as: "student",
+      },
+      {
+        model: IgnoreStudent,
+        required: false,
+        attributes: [],
+        where: {
+          story_name: "hubbles_law",
+          student_id: null,
+        }
+      }
+    ]
   });
 }
 
