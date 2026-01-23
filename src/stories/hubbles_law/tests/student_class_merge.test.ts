@@ -21,20 +21,10 @@ async function mergeStudentIntoClass(studentID: number, classID: number): Promis
   });
 }
 
+
 describe("Test student/class merge functionality", () => {
   let testDB: Sequelize;
   let testApp: Express;
-  beforeAll(async () => {
-    console.log("beforeAll");
-    testDB = await getTestDatabaseConnection();
-    testApp = createTestApp(testDB);
-  });
-  
-  afterAll(async () => {
-    console.log("afterAll");
-    await testDB.close();
-  });
-
   const nGalaxies = 30;
   const classSize = 20;
   const mergedCount = 5;
@@ -43,6 +33,19 @@ describe("Test student/class merge functionality", () => {
   let students: Student[];
   let mergedStudents: Student[];
   let nonMergedStudents: Student[];
+
+  beforeAll(async () => {
+    testDB = await getTestDatabaseConnection();
+    testApp = await createTestApp(testDB);
+    for (const model of Object.values(testDB.models)) {
+      await model.sync();
+    }
+  });
+  
+  afterAll(async () => {
+    console.log("afterAll");
+  });
+
 
   it("Add description", async () => {
     console.log("beforeEach");
