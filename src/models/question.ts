@@ -40,7 +40,7 @@ export function initializeQuestionModel(sequelize: Sequelize) {
       allowNull: false,
       references: {
         model: Story,
-        key: "id"
+        key: "name"
       }
     },
     version: {
