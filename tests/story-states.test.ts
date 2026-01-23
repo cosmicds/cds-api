@@ -74,7 +74,7 @@ describe("Test story state routes", () => {
   let testApp: Express;
   beforeAll(async () => {
     testDB = await getTestDatabaseConnection();
-    testApp = createTestApp(testDB);
+    testApp = await createTestApp(testDB);
   });
   
   afterAll(async () => {

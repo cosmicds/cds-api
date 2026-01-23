@@ -140,7 +140,7 @@ export async function addTestData() {
   await addAdminAPIKey();
 }
 
-export function createTestApp(db: Sequelize): Express {
+export async function createTestApp(db: Sequelize): Promise<Express> {
   const app = createApp(db, { sendEmails : false });
   setupApp(app, db);
 
@@ -156,11 +156,10 @@ export function createTestApp(db: Sequelize): Express {
     }
   });
 
-  const syncOptions = { force: true };
   for (const model of Object.values(db.models)) {
-    model.sync(syncOptions);
+    await model.sync();
   }
-  addTestData();
+  await addTestData();
 
   return app;
 }
