@@ -12,7 +12,6 @@ import { Student } from "../../../models";
 import { HubbleMeasurement, HubbleStudentData } from "../models";
 import { addStudentToClass } from "../../../database";
 
-jest.setTimeout(100_000);
 
 async function mergeStudentIntoClass(studentID: number, classID: number): Promise<HubbleClassStudentMerge> {
   return HubbleClassStudentMerge.create({
@@ -43,11 +42,11 @@ describe("Test student/class merge functionality", () => {
   });
   
   afterAll(async () => {
-    console.log("afterAll");
+    await testDB.close();
   });
 
 
-  it("Add description", async () => {
+  beforeEach(async () => {
     console.log("beforeEach");
     const { educator, students: createdStudents, class: cls } = await createRandomClassWithStudents(classSize);
     students = createdStudents;
@@ -90,7 +89,9 @@ describe("Test student/class merge functionality", () => {
       }
     }
     console.log("DONE");
+  });
 
+  it("Add description", async () => {
     console.log("In first test");
     const route = globalRoutePath("/all-data");
     console.log("MADE ROUTE");
