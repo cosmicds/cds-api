@@ -155,7 +155,7 @@ export async function getSampleHubbleMeasurements(studentID: number): Promise<Sa
       required: true
     }]
   }).catch(error => {
-    console.log(error);
+    console.error(error);
     return [];
   });
 }
@@ -170,7 +170,7 @@ export async function getSampleHubbleMeasurement(studentID: number, measurementN
       required: true
     }]
   }).catch(error => {
-    console.log(error);
+    console.error(error);
     return null;
   });
 }
@@ -222,7 +222,7 @@ export async function getStudentHubbleMeasurements(studentID: number): Promise<H
     }]
   })
   .catch(error => {
-    console.log(error);
+    console.error(error);
     return null;
   });
 }
@@ -748,17 +748,10 @@ export async function getAllHubbleStudentData(includeClasses: number[] = [], min
     mergeQuery.where = { class_id: { [Op.in]: includeClasses } };
   }
 
-  for (const data of results) {
-    console.log(data);
-  }
-  console.log(results.length);
-
   const merges = await HubbleClassStudentMerge.findAll(mergeQuery);
   for (const merge of merges) {
     if (studentIDs.has(merge.student_id)) {
-      console.log(merge.student_id);
       results.push(resultsById[merge.student_id]);
-      console.log(results.length);
     }
   }
   return results;
