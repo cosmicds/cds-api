@@ -5,7 +5,7 @@ import { join } from "path";
 import type { Express } from "express";
 import type { Server } from "http";
 import type { Test } from "supertest";
-import type { InferAttributes, CreationAttributes, Model, Sequelize } from "sequelize";
+import { InferAttributes, CreationAttributes, Model, Sequelize, UniqueConstraintError } from "sequelize";
 
 import { setUpAssociations } from "../src/associations";
 import {
@@ -75,19 +75,18 @@ export async function setupTestDatabase(): Promise<Sequelize> {
   // See https://github.com/sequelize/sequelize/issues/7953
   // and https://stackoverflow.com/a/45114507
   // db.sync({ force: true, match: /test/ }).finally(() => db.close());
-  await syncTables(true);
+  await syncTables();
 
   return db;
 }
 
 export async function teardownTestDatabase(): Promise<void> {
   const connection = await createTestMySQLConnection();
-  console.log("Dropped");
   await connection.query("DROP DATABASE test;");
 }
 
 export async function syncTables(force=false): Promise<void> {
-  const options = { force };
+  const options = { force, alter: false };
   await APIKey.sync(options);
   await Student.sync(options);
   await Educator.sync(options);
@@ -137,7 +136,13 @@ export async function addAdminAPIKey(): Promise<APIKey | void> {
 }
 
 export async function addTestData() {
-  await addAdminAPIKey();
+  try {
+    await addAdminAPIKey();
+  } catch (error) {
+    if (!(error instanceof UniqueConstraintError)) {
+      console.error(error);
+    }
+  }
 }
 
 export async function createTestApp(db: Sequelize): Promise<Express> {
@@ -157,9 +162,12 @@ export async function createTestApp(db: Sequelize): Promise<Express> {
   });
 
   for (const model of Object.values(db.models)) {
-    await model.sync();
+    try {
+      await model.sync();
+    } catch (error) {
+      console.error(error);
+    }
   }
-  await addTestData();
 
   return app;
 }
