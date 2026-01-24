@@ -136,6 +136,8 @@ export async function addAdminAPIKey(): Promise<APIKey | void> {
 }
 
 export async function addTestData() {
+  // In case multiple processes somehow try to add the same API key,
+  // we don't want to throw an error
   try {
     await addAdminAPIKey();
   } catch (error) {
@@ -162,6 +164,7 @@ export async function createTestApp(db: Sequelize): Promise<Express> {
   });
 
   for (const model of Object.values(db.models)) {
+    // Avoid issues like https://github.com/sequelize/sequelize/issues/12889
     try {
       await model.sync();
     } catch (error) {
