@@ -220,8 +220,8 @@ router.get("/measurements/classes/:classID", async (req, res) => {
   }
 
   const completeOnly = (req.query.complete_only as string)?.toLowerCase() === "true";
-  const excludeMergedClasses = (req.query.exclude_merge as string)?.toLowerCase() === "true";
-  const measurements = await getClassMeasurements(classID, !excludeMergedClasses, completeOnly);
+  const excludeMergedStudents = (req.query.exclude_merge as string)?.toLowerCase() === "true";
+  const measurements = await getClassMeasurements(classID, !excludeMergedStudents, completeOnly);
   res.status(200).json({
     class_id: classID,
     measurements,

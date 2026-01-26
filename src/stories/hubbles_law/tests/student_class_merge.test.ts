@@ -91,7 +91,7 @@ describe("Test student/class merge functionality", () => {
     }
   });
 
-  it("Should test the student data from 'all data'", async () => {
+  it("Should test the 'all data' results", async () => {
     const route = globalRoutePath("/all-data");
     await authorize(request(testApp).get(route))
       .expect(200)

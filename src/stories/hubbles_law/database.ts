@@ -46,9 +46,9 @@ export async function submitHubbleMeasurement(data: {
       ]
     }
   })
-  .catch((_error) => {
-    logger.verbose("Measurement not found");
-  });
+    .catch((_error) => {
+      logger.verbose("Measurement not found");
+    });
 
   logger.verbose(`Measurement data is ${JSON.stringify(data)}`);
 
@@ -61,10 +61,10 @@ export async function submitHubbleMeasurement(data: {
         ]
       }
     })
-    .catch((error) => {
-      logger.error("Error updating measurement!");
-      logger.error(error);
-    });
+      .catch((error) => {
+        logger.error("Error updating measurement!");
+        logger.error(error);
+      });
     logger.verbose("Updated measurement");
     return SubmitHubbleMeasurementResult.MeasurementUpdated;
   } else {
@@ -105,7 +105,7 @@ export async function submitSampleHubbleMeasurement(data: {
       ]
     }
   })
-  .catch(console.log);
+    .catch(console.log);
 
   if (measurement) {
     measurement.update(data, {
@@ -117,7 +117,7 @@ export async function submitSampleHubbleMeasurement(data: {
         ]
       }
     })
-    .catch(console.log);
+      .catch(console.log);
     return SubmitHubbleMeasurementResult.MeasurementUpdated;
   } else {
     SampleHubbleMeasurement.create(data).catch(console.log);
@@ -192,7 +192,7 @@ export async function getStudentsWithCompleteMeasurements(): Promise<Student[]> 
       model: HubbleMeasurement,
       where: EXCLUDE_MEASUREMENTS_WITH_NULL_CONDITION,
     }],
-    
+
     group: ["id"],
     having: Sequelize.where(Sequelize.fn("count", Sequelize.col("count")), { [Op.gte]: 5 })
   });
@@ -221,10 +221,10 @@ export async function getStudentHubbleMeasurements(studentID: number): Promise<H
       required: true
     }]
   })
-  .catch(error => {
-    console.error(error);
-    return null;
-  });
+    .catch(error => {
+      console.error(error);
+      return null;
+    });
 }
 
 async function getStudentIDsForClass(classID: number): Promise<number[]> {
@@ -288,8 +288,6 @@ export async function getHubbleMeasurementsForStudentClass(
     });
   }
 
-  console.log("GETTING CLASS MEASUREMENTS");
-
   const measurementWhereConditions: WhereOptions = [where(col("student->IgnoreStudents.student_id"), { [Op.is]: null })];
   if (excludeStudent) {
     measurementWhereConditions.push({ student_id: { [Op.ne]: studentID } });
@@ -297,7 +295,7 @@ export async function getHubbleMeasurementsForStudentClass(
   if (excludeWithNull) {
     measurementWhereConditions.push(EXCLUDE_MEASUREMENTS_WITH_NULL_CONDITION);
   }
-  
+
 
   return HubbleMeasurement.findAll({
     where: measurementWhereConditions,
@@ -323,16 +321,27 @@ export async function getHubbleMeasurementsForStudentClass(
   });
 }
 
-export async function getClassMeasurements(classID: number,
-                                           _includeMergedClasses: boolean = true,
-                                           excludeWithNull: boolean = false
+export async function getClassMeasurements(
+  classID: number,
+  includeMergedStudents: boolean = true,
+  excludeWithNull: boolean = false
 ): Promise<HubbleMeasurement[]> {
 
   const classWhereConditions: WhereOptions<Class> = [{ id: classID }];
 
-  const measurementWhereConditions: WhereOptions<HubbleMeasurement> = [];
+  const measurementWhereConditions: WhereOptions = [where(col("student->IgnoreStudents.student_id"), { [Op.is]: null })];
   if (excludeWithNull) {
     measurementWhereConditions.push(EXCLUDE_MEASUREMENTS_WITH_NULL_CONDITION);
+  }
+
+  const studentWhereConditions: WhereOptions<Student> = [];
+  if (includeMergedStudents) {
+    const studentIDs = await getStudentIDsForClass(classID);
+    studentWhereConditions.push({
+      id: {
+        [Op.in]: studentIDs,
+      }
+    });
   }
 
   return HubbleMeasurement.findAll({
@@ -342,6 +351,7 @@ export async function getClassMeasurements(classID: number,
       attributes: ["id"],
       as: "student",
       required: true,
+      where: studentWhereConditions,
       include: [{
         model: Class,
         attributes: ["id"],
@@ -353,7 +363,6 @@ export async function getClassMeasurements(classID: number,
         attributes: [],
         where: {
           story_name: "hubbles_law",
-          student_id: { [Op.is]: null },
         }
       }],
     },
@@ -431,7 +440,7 @@ async function getClassIDsForSyncClass(classID: number): Promise<number[]> {
   return classIDs;
 }
 
-export async function getMergedIDsForClass(classID: number, ignoreMergeOrder=false): Promise<number[]> {
+export async function getMergedIDsForClass(classID: number, ignoreMergeOrder = false): Promise<number[]> {
   // TODO: Currently this uses two queries:
   // The first to get the merge group (if there is one)
   // Then a second to get all of the classes in the merge group
@@ -470,10 +479,10 @@ export async function getClassDataIDsForStudent(studentID: number): Promise<numb
 }
 
 export async function getClassMeasurementsForStudent(studentID: number,
-                                                     classID: number,
-                                                     lastChecked: number | null = null,
-                                                     excludeWithNull: boolean = false,
-                                                     excludeStudent: boolean = false,
+  classID: number,
+  lastChecked: number | null = null,
+  excludeWithNull: boolean = false,
+  excludeStudent: boolean = false,
 ): Promise<HubbleMeasurement[]> {
   let data = await getHubbleMeasurementsForStudentClass(studentID, classID, excludeWithNull, excludeStudent);
   if (data.length > 0 && lastChecked != null) {
@@ -489,8 +498,8 @@ export async function getClassMeasurementsForStudent(studentID: number,
 // since we aren't sending the data itself.
 // This is intended to be used with cases where we need to frequently check the number of measurements
 export async function getClassMeasurementCountForStudent(studentID: number,
-                                                         classID: number,
-                                                         excludeWithNull: boolean = false,
+  classID: number,
+  excludeWithNull: boolean = false,
 ): Promise<number> {
   const data = await getClassMeasurementsForStudent(studentID, classID, null, excludeWithNull);
   return data?.length ?? 0;
@@ -499,7 +508,7 @@ export async function getClassMeasurementCountForStudent(studentID: number,
 // Similar to the function above, this is intended for cases where we need to frequently check
 // how many students have completed their measurements, such as the beginning of Stage 4 in the Hubble story
 export async function getStudentsWithCompleteMeasurementsCount(studentID: number,
-                                                               classID: number,
+  classID: number,
 ): Promise<number> {
   const data = await getHubbleMeasurementsForStudentClass(studentID, classID, true);
   const counts: Record<number, number> = {};
@@ -544,12 +553,12 @@ export async function _getStageThreeStudentData(studentID: number, classID: numb
 const MINIMAL_MEASUREMENT_FIELDS = ["student_id", "galaxy_id", "velocity_value", "est_dist_value", "class_id"];
 
 export async function getAllHubbleMeasurements(before: Date | null = null,
-                                               minimal=false,
-                                               classID: number | null = null,
-                                               excludeWithNull=true): Promise<HubbleMeasurement[]> {
+  minimal = false,
+  classID: number | null = null,
+  excludeWithNull = true): Promise<HubbleMeasurement[]> {
   const whereOptions: WhereOptions = [
-     { "$student.IgnoreStudents.student_id$": null },
-     { "$student.Classes.IgnoreClasses.class_id$": null },
+    { "$student.IgnoreStudents.student_id$": null },
+    { "$student.Classes.IgnoreClasses.class_id$": null },
   ];
   if (before !== null) {
     whereOptions.push({ last_modified: { [Op.lt]: before } });
@@ -634,7 +643,7 @@ export async function getAllHubbleStudentMergeCounts() {
 
 type HubbleStudentDataLike = HubbleStudentData | InferAttributes<HubbleStudentData & { class_id: number; }, { omit: never }>;
 const MINIMAL_STUDENT_DATA_FIELDS = ["student_id", "age_value", "class_id"];
-export async function getAllHubbleStudentData(includeClasses: number[] = [], minimal=false): Promise<HubbleStudentDataLike[]> {
+export async function getAllHubbleStudentData(includeClasses: number[] = [], minimal = false): Promise<HubbleStudentDataLike[]> {
   const database = HubbleStudentData.sequelize;
   if (database == null) {
     return [];
@@ -704,7 +713,7 @@ export async function getAllHubbleStudentData(includeClasses: number[] = [], min
       HAVING COUNT(HubbleStudentData.student_id) >= 5;
     `;
   } else {
-    sqlQuery = 
+    sqlQuery =
       `
       SELECT ${finalAttributes}
       FROM
@@ -766,7 +775,7 @@ export async function getAllHubbleStudentData(includeClasses: number[] = [], min
 }
 
 const MINIMAL_CLASS_DATA_FIELDS = ["class_id", "age_value"];
-export async function getAllHubbleClassData(before: Date | null = null, minimal=false, classID: number | null = null): Promise<HubbleClassData[]> {
+export async function getAllHubbleClassData(before: Date | null = null, minimal = false, classID: number | null = null): Promise<HubbleClassData[]> {
   const database = HubbleClassData.sequelize;
   if (database == null) {
     return [];
@@ -815,7 +824,7 @@ export async function removeSampleHubbleMeasurement(studentID: number, measureme
   return count > 0 ? RemoveHubbleMeasurementResult.MeasurementDeleted : RemoveHubbleMeasurementResult.NoSuchMeasurement;
 }
 
-export async function getGalaxiesForTypes(types: string[], flags=false): Promise<Galaxy[]> {
+export async function getGalaxiesForTypes(types: string[], flags = false): Promise<Galaxy[]> {
   const query: FindOptions<Attributes<Galaxy>> = {
     where: {
       is_bad: 0,
@@ -832,7 +841,7 @@ export async function getGalaxiesForTypes(types: string[], flags=false): Promise
   return Galaxy.findAll(query);
 }
 
-export async function getAllGalaxies(flags=false): Promise<Galaxy[]> {
+export async function getAllGalaxies(flags = false): Promise<Galaxy[]> {
   const query: FindOptions<Attributes<Galaxy>> = {
     where: {
       is_bad: 0,
@@ -957,7 +966,7 @@ export async function getNewGalaxies(): Promise<Galaxy[]> {
  * GROUP BY Galaxies.id
  * ORDER BY COUNT(Galaxies.id), Galaxy.id DESC
  */
-export async function getGalaxiesForDataGeneration(types=["Sp"]): Promise<Galaxy[]> {
+export async function getGalaxiesForDataGeneration(types = ["Sp"]): Promise<Galaxy[]> {
   const measurements = await Galaxy.findAll({
     where: {
       is_bad: 0,
@@ -1014,8 +1023,8 @@ export async function setWaitingRoomOverride(classID: number): Promise<boolean |
       class_id: classID,
     }
   })
-  .then(result => result[1])
-  .catch((error: Error) => error);
+    .then(result => result[1])
+    .catch((error: Error) => error);
 
   return successOrError;
 }
@@ -1069,7 +1078,7 @@ async function getStudentsForPadding(count: number): Promise<Student[]> {
 export async function hubbleClassSetup(
   params: ClassSetupParams
 ) {
-  
+
   const PAD_TO = 15;
 
   const cls = params.cls;
