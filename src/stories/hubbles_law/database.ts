@@ -1,4 +1,4 @@
-import { Attributes, FindOptions, Op, QueryTypes, Sequelize, WhereAttributeHash, WhereOptions, col, fn, literal, where } from "sequelize";
+import { Attributes, FindOptions, InferAttributes, Op, QueryTypes, Sequelize, WhereAttributeHash, WhereOptions, col, fn, literal, where } from "sequelize";
 import { AsyncMergedHubbleStudentClasses, Galaxy, HubbleMeasurement, HubbleWaitingRoomOverride, SampleHubbleMeasurement, SyncMergedHubbleClasses } from "./models";
 import { findClassById, findStudentById } from "../../database";
 import { RemoveHubbleMeasurementResult, SubmitHubbleMeasurementResult } from "./request_results";
@@ -632,14 +632,15 @@ export async function getAllHubbleStudentMergeCounts() {
   return counts;
 }
 
+type HubbleStudentDataLike = HubbleStudentData | InferAttributes<HubbleStudentData & { class_id: number; }, { omit: never }>;
 const MINIMAL_STUDENT_DATA_FIELDS = ["student_id", "age_value", "class_id"];
-export async function getAllHubbleStudentData(includeClasses: number[] = [], minimal=false): Promise<HubbleStudentData[]> {
+export async function getAllHubbleStudentData(includeClasses: number[] = [], minimal=false): Promise<HubbleStudentDataLike[]> {
   const database = HubbleStudentData.sequelize;
   if (database == null) {
     return [];
   }
 
-  const finalAttributes = minimal ? MINIMAL_STUDENT_DATA_FIELDS : "HubbleStudentData.*";
+  const finalAttributes = minimal ? MINIMAL_STUDENT_DATA_FIELDS : "HubbleStudentData.*, class_id";
   const haveClasses = includeClasses.length > 0;
 
   let sqlQuery = "";
@@ -656,7 +657,8 @@ export async function getAllHubbleStudentData(includeClasses: number[] = [], min
       	SELECT
       		id,
       		seed,
-      		dummy
+      		dummy,
+          class_id
       	FROM
       		Students
       	INNER JOIN StudentsClasses ON
@@ -667,7 +669,8 @@ export async function getAllHubbleStudentData(includeClasses: number[] = [], min
       	SELECT
       		id,
       		seed,
-      		dummy
+      		dummy,
+          class_id
       	FROM
       		Students
       	INNER JOIN HubbleClassStudentMerges ON
@@ -750,13 +753,15 @@ export async function getAllHubbleStudentData(includeClasses: number[] = [], min
     mergeQuery.where = { class_id: { [Op.in]: includeClasses } };
   }
 
+  const finalResults = results as HubbleStudentDataLike[];
   const merges = await HubbleClassStudentMerge.findAll(mergeQuery);
   for (const merge of merges) {
     if (studentIDs.has(merge.student_id)) {
-      results.push(resultsById[merge.student_id]);
+      const newStudentData = { ...resultsById[merge.student_id].toJSON(), class_id: merge.class_id };
+      finalResults.push(newStudentData);
     }
   }
-  return results;
+  return finalResults;
 
 }
 
