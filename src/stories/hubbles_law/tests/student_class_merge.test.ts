@@ -13,9 +13,6 @@ import { HubbleMeasurement, HubbleStudentData } from "../models";
 import { addStudentToClass } from "../../../database";
 
 
-jest.setTimeout(100_000);
-
-
 async function mergeStudentIntoClass(studentID: number, classID: number): Promise<HubbleClassStudentMerge> {
   return HubbleClassStudentMerge.create({
     student_id: studentID,
@@ -101,6 +98,7 @@ describe("Test student/class merge functionality", () => {
       .expect("Content-Type", /json/)
       .then(async (res) => {
         const body = res.body;
+
         const measurements = body.measurements as HubbleMeasurement[];
         expect(measurements.length).toEqual(5 * totalStudentCount);
 
