@@ -16,6 +16,7 @@ export function initializeHubbleStudentDataModel(sequelize: Sequelize) {
       type: DataTypes.INTEGER.UNSIGNED,
       allowNull: false,
       primaryKey: true,
+      unique: true,
       references: {
         model: Student,
         key: "id"
@@ -43,6 +44,6 @@ export function initializeHubbleStudentDataModel(sequelize: Sequelize) {
     }
   }, {
     sequelize,
-    freezeTableName: true
+    freezeTableName: true,
   });
 }

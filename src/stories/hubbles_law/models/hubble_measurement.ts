@@ -82,5 +82,13 @@ export function initializeHubbleMeasurementModel(sequelize: Sequelize) {
     }
   }, {
     sequelize,
+    indexes: [
+      {
+        fields: ["student_id"],
+      },
+      {
+        fields: ["galaxy_id"],
+      },
+    ]
   });
 }

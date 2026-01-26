@@ -29,5 +29,13 @@ export function initializeIgnoreStudentModel(sequelize: Sequelize) {
     }
   }, {
     sequelize,
+    indexes: [
+      {
+        fields: ["student_id"],
+      },
+      {
+        fields: ["story_name"],
+      },
+    ]
   });
 }
