@@ -288,6 +288,8 @@ export async function getHubbleMeasurementsForStudentClass(
     });
   }
 
+  console.log("GETTING CLASS MEASUREMENTS");
+
   const measurementWhereConditions: WhereOptions = [where(col("student->IgnoreStudents.student_id"), { [Op.is]: null })];
   if (excludeStudent) {
     measurementWhereConditions.push({ student_id: { [Op.ne]: studentID } });

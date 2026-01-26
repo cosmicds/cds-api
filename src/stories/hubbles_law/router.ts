@@ -55,12 +55,18 @@ import { Sequelize, ForeignKeyConstraintError, UniqueConstraintError } from "seq
 import { classForStudentStory, findClassById, findStudentById } from "../../database";
 import { initializeModels } from "./models";
 import { setUpHubbleAssociations } from "./associations";
+import { Story } from "../../models";
 
 export const router = Router();
 
 export function setup(_app: Express, db: Sequelize) {
   initializeModels(db);
   setUpHubbleAssociations();
+
+  Story.upsert({
+    name: "hubbles_law",
+    display_name: "Hubble's Law",
+  }).catch(error => console.error(error));
 }
 
 router.put("/submit-measurement", async (req, res) => {

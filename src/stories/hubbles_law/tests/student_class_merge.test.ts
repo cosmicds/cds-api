@@ -5,10 +5,10 @@ import request from "supertest";
 import type { Express } from "express";
 import type { Sequelize } from "sequelize";
 
-import { authorize, createTestApp, getTestDatabaseConnection, createRandomClassWithStudents, randomStudent, setIntersection, randomBetween, randomClassForEducator } from "../../../../tests/utils";
+import { authorize, createTestApp, getTestDatabaseConnection, createRandomClassWithStudents, randomStudent, setIntersection, randomBetween, randomClassForEducator, expectToMatchModel } from "../../../../tests/utils";
 import { HubbleClassStudentMerge } from "../models/hubble_class_student_merges";
 import { globalRoutePath, createRandomHubbleDataForStudent, createRandomHubbleMeasurementForStudent, createRandomGalaxies } from "./utils";
-import { Student } from "../../../models";
+import { Class, Educator, IgnoreStudent, Student } from "../../../models";
 import { HubbleMeasurement, HubbleStudentData } from "../models";
 import { addStudentToClass } from "../../../database";
 
@@ -32,6 +32,8 @@ describe("Test student/class merge functionality", () => {
   let students: Student[];
   let mergedStudents: Student[];
   let nonMergedStudents: Student[];
+  let cls: Class;
+  let educator: Educator;
 
   beforeAll(async () => {
     testDB = await getTestDatabaseConnection();
@@ -47,8 +49,11 @@ describe("Test student/class merge functionality", () => {
 
 
   beforeEach(async () => {
-    const { educator, students: createdStudents, class: cls } = await createRandomClassWithStudents(classSize);
-    students = createdStudents;
+    // const { educator, students: createdStudents, class: cls } = await createRandomClassWithStudents(classSize);
+    const results = await createRandomClassWithStudents(classSize);
+    students = results.students;
+    educator = results.educator;
+    cls = results.class;
 
     if (educator == null) {
       throw new Error("Educator should not be null");
@@ -86,7 +91,7 @@ describe("Test student/class merge functionality", () => {
     }
   });
 
-  it("Add description", async () => {
+  it("Should test the student data from 'all data'", async () => {
     const route = globalRoutePath("/all-data");
     await authorize(request(testApp).get(route))
       .expect(200)
@@ -108,5 +113,35 @@ describe("Test student/class merge functionality", () => {
 
         console.log("Passed tests");
       });
+  });
+
+  it("Should test a student's class measurements", async () => {
+    const student = students[0];
+    const ignore = await IgnoreStudent.create({
+      student_id: student.id,
+      story_name: "hubbles_law",
+    });
+    const route = globalRoutePath(`/class-measurements/${student.id}/${cls.id}`);
+    await authorize(request(testApp).get(route))
+      .expect(200)
+      .expect("Content-Type", /json/)
+      .then(async (res) => {
+        const body = res.body;
+        expect(body.class_id).toEqual(cls.id);
+
+        const measurements = body.measurements as HubbleMeasurement[];
+        expect(measurements.length).toEqual(5 * (mergedCount + classSize - 1));
+
+        const measurementIDs = new Set(measurements.map(meas => meas.student_id));
+
+        const expectedStudents = students.concat(mergedStudents);
+        const index = expectedStudents.findIndex(stu => stu.id == student.id);
+        expect(index).toBeGreaterThan(-1);
+        expectedStudents.splice(index, 1);
+        const expectedIDs = new Set(expectedStudents.map(student => student.id));
+        expect(measurementIDs).toEqual(expectedIDs);
+      });
+
+    ignore.destroy();
   });
 });
