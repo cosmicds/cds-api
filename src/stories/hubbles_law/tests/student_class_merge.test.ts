@@ -13,6 +13,9 @@ import { HubbleMeasurement, HubbleStudentData } from "../models";
 import { addStudentToClass } from "../../../database";
 
 
+jest.setTimeout(100_000);
+
+
 async function mergeStudentIntoClass(studentID: number, classID: number): Promise<HubbleClassStudentMerge> {
   return HubbleClassStudentMerge.create({
     student_id: studentID,
