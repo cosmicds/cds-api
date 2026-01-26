@@ -1079,25 +1079,19 @@ export async function hubbleClassSetup(
   params: ClassSetupParams
 ) {
 
-  const PAD_TO = 15;
-
   const cls = params.cls;
   if (cls) {
     const options = params.options;
     const pad = options?.pad ?? true;
     if (pad) {
-      const expectedSize = Math.round(Number(options?.expectedSize ?? 0) || 0);
-      const studentsNeeded = Math.max(PAD_TO - expectedSize, 0);
-      if (studentsNeeded > 0) {
-        const students = await getStudentsForPadding(studentsNeeded);
-        const creationIDPairs = students.map(student => {
-          return {
-            class_id: cls.id,
-            student_id: student.id,
-          };
-        });
-        await HubbleClassStudentMerge.bulkCreate(creationIDPairs);
-      }
+      const students = await getStudentsForPadding(12);
+      const creationIDPairs = students.map(student => {
+        return {
+          class_id: cls.id,
+          student_id: student.id,
+        };
+      });
+      await HubbleClassStudentMerge.bulkCreate(creationIDPairs);
     }
   }
 }
