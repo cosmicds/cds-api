@@ -641,15 +641,16 @@ export async function getAllHubbleStudentMergeCounts() {
   return counts;
 }
 
+// We're taking the MAX of class_id to avoid GROUP BY issues - see https://stackoverflow.com/a/41887524
 type HubbleStudentDataLike = HubbleStudentData | InferAttributes<HubbleStudentData & { class_id: number; }, { omit: never }>;
-const MINIMAL_STUDENT_DATA_FIELDS = ["student_id", "age_value", "class_id"];
+const MINIMAL_STUDENT_DATA_FIELDS = ["student_id", "age_value", "MAX(class_id) as class_id"];
 export async function getAllHubbleStudentData(includeClasses: number[] = [], minimal = false): Promise<HubbleStudentDataLike[]> {
   const database = HubbleStudentData.sequelize;
   if (database == null) {
     return [];
   }
 
-  const finalAttributes = minimal ? MINIMAL_STUDENT_DATA_FIELDS : "HubbleStudentData.*, class_id";
+  const finalAttributes = minimal ? MINIMAL_STUDENT_DATA_FIELDS : "HubbleStudentData.*, MAX(class_id) as class_id";
   const haveClasses = includeClasses.length > 0;
 
   let sqlQuery = "";
@@ -699,7 +700,7 @@ export async function getAllHubbleStudentData(includeClasses: number[] = [], min
 	      WHERE
 	      	story_name IS NULL
 	      	OR story_name = 'hubbles_law') ignore_students ON
-	      ignore_students.student_id = HubbleMeasurements.student_id
+	      ignore_students.student_id = HubbleStudentData.student_id
       WHERE
       	(seed = 1
       		OR dummy = 0)
@@ -719,10 +720,11 @@ export async function getAllHubbleStudentData(includeClasses: number[] = [], min
       FROM
       	HubbleStudentData
       		INNER JOIN
-      	Students
-      	ON HubbleStudentData.student_id = Students.id
+      	Students ON HubbleStudentData.student_id = Students.id
       		INNER JOIN
         HubbleMeasurements ON HubbleMeasurements.student_id = HubbleStudentData.student_id
+      	  INNER JOIN
+        StudentsClasses ON HubbleStudentData.student_id = StudentsClasses.student_id
           LEFT OUTER JOIN
 	          (
 	          SELECT
@@ -746,10 +748,12 @@ export async function getAllHubbleStudentData(includeClasses: number[] = [], min
     ` ;
   }
 
+  console.log(sqlQuery);
   const results = await database.query(sqlQuery, {
     type: QueryTypes.SELECT,
     model: HubbleStudentData,
   });
+  console.log("GOT THE RESULTS!");
   const studentIDs = new Set(results.map(res => res.student_id));
 
   const resultsById: Record<number, HubbleStudentData> = {};
