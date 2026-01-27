@@ -172,9 +172,9 @@ describe("Test student/class merge functionality", () => {
           expect(body.success).toEqual(true),
           expect(body.status).toEqual(CreateClassResult.Ok);
 
-          const classInfo = body.classInfo;
-          expect(classInfo.pad).toEqual(pad);
-          expect(classInfo.code).toBe("string");
+          const classInfo = body.class_info;
+          expect(classInfo.options.pad).toEqual(pad);
+          expect(typeof classInfo.code).toBe("string");
           
           classCode = classInfo.code;
         });
