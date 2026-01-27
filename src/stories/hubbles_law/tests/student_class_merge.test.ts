@@ -10,7 +10,8 @@ import { HubbleClassStudentMerge } from "../models/hubble_class_student_merges";
 import { globalRoutePath, createRandomHubbleDataForStudent, createRandomHubbleMeasurementForStudent, createRandomGalaxies } from "./utils";
 import { Class, Educator, IgnoreStudent, Student } from "../../../models";
 import { HubbleMeasurement, HubbleStudentData } from "../models";
-import { addStudentToClass } from "../../../database";
+import { addStudentToClass, findClassById, findClassByIdOrCode } from "../../../database";
+import { CreateClassResult } from "../../../request_results";
 
 
 async function mergeStudentIntoClass(studentID: number, classID: number): Promise<HubbleClassStudentMerge> {
@@ -26,12 +27,12 @@ describe("Test student/class merge functionality", () => {
   let testApp: Express;
   const nGalaxies = 30;
   const classSize = 20;
-  const mergedCount = 5;
+  const mergedCount = 12;
   const nonMergedCount = 3;
   const totalStudentCount = classSize + mergedCount + nonMergedCount;
   let students: Student[];
-  let mergedStudents: Student[];
-  let nonMergedStudents: Student[];
+  let studentsToMerge: Student[];
+  let studentsToNotMerge: Student[];
   let cls: Class;
   let educator: Educator;
 
@@ -61,13 +62,13 @@ describe("Test student/class merge functionality", () => {
 
     const otherClass = await randomClassForEducator(educator.id);
 
-    mergedStudents = [];
-    nonMergedStudents = [];
+    studentsToMerge = [];
+    studentsToNotMerge = [];
     for (let i = 0; i < mergedCount + nonMergedCount; i++) {
       const student = await randomStudent();
       await addStudentToClass(student.id, otherClass.id);
       const merge = i < mergedCount;
-      const arr = merge ? mergedStudents : nonMergedStudents;
+      const arr = merge ? studentsToMerge : studentsToNotMerge;
       arr.push(student);
       if (merge) {
         await mergeStudentIntoClass(student.id, cls.id);
@@ -75,7 +76,7 @@ describe("Test student/class merge functionality", () => {
     }
     const galaxies = await createRandomGalaxies(nGalaxies);
 
-    for (const arr of [students, mergedStudents, nonMergedStudents]) {
+    for (const arr of [students, studentsToMerge, studentsToNotMerge]) {
       for (const student of arr) {
         const measuredIDs = new Set<number>();
         for (let i = 0; i < 5; i++) {
@@ -102,7 +103,7 @@ describe("Test student/class merge functionality", () => {
         const measurements = body.measurements as HubbleMeasurement[];
         expect(measurements.length).toEqual(5 * totalStudentCount);
 
-        const allStudents = students.concat(mergedStudents).concat(nonMergedStudents);
+        const allStudents = students.concat(studentsToMerge).concat(studentsToNotMerge);
 
         const measurementIDs = new Set(measurements.map(meas => meas.student_id));
         expect(measurementIDs).toEqual(new Set(allStudents.map(student => student.id)));
@@ -135,7 +136,7 @@ describe("Test student/class merge functionality", () => {
 
         const measurementIDs = new Set(measurements.map(meas => meas.student_id));
 
-        const expectedStudents = students.concat(mergedStudents);
+        const expectedStudents = students.concat(studentsToMerge);
         const index = expectedStudents.findIndex(stu => stu.id == student.id);
         expect(index).toBeGreaterThan(-1);
         expectedStudents.splice(index, 1);
@@ -144,5 +145,46 @@ describe("Test student/class merge functionality", () => {
       });
 
     ignore.destroy();
+  });
+
+  it("Should correctly set up a class for Hubble, with and without padding", async () => {
+    const route = "/classes/create";
+
+    const baseClassData = {
+      educator_id: educator.id,
+      name: "Hubble Setup Test Class",
+      expected_size: 10,
+      asynchronous: false,
+      story_name: "hubbles_law",
+      options: { pad: true },
+    };
+
+    for (const pad of [true, false]) {
+      const classData = { ...baseClassData, options: { pad } };
+
+      let classCode: string = "";
+      await authorize(request(testApp).post(route))
+        .send(classData)
+        .expect(200)
+        .expect("Content-Type", /json/)
+        .then(async (res) => {
+          const body = res.body;
+          expect(body.success).toEqual(true),
+          expect(body.status).toEqual(CreateClassResult.Ok);
+
+          const classInfo = body.classInfo;
+          expect(classInfo.pad).toEqual(pad);
+          expect(classInfo.code).toBe("string");
+          
+          classCode = classInfo.code;
+        });
+
+      const testClass = await findClassByIdOrCode(classCode);
+      expect(testClass).not.toBeNull();
+
+      const mergedStudentsForClass = await HubbleClassStudentMerge.findAll({ where: { class_id: testClass!.id } }); 
+      const expectedCount = pad ? 12 : 0;
+      expect(mergedStudentsForClass.length).toEqual(expectedCount);
+    }
   });
 });
