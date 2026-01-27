@@ -1086,6 +1086,8 @@ export async function hubbleClassSetup(
   const cls = params.cls;
   if (cls) {
     const options = params.options;
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
     const pad = options?.pad ?? true;
     if (pad) {
       const students = await getStudentsForPadding(12);

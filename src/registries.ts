@@ -3,7 +3,7 @@ import { Class } from "./models";
 export interface ClassSetupParams {
   cls: Class;
   storyName: string;
-  options?: Record<string, unknown>;
+  options?: object;
 }
 
 type ClassSetupFunction = (params: ClassSetupParams) => Promise<void>;
