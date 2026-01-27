@@ -643,7 +643,7 @@ export async function getAllHubbleStudentMergeCounts() {
 
 // We're taking the MAX of class_id to avoid GROUP BY issues - see https://stackoverflow.com/a/41887524
 type HubbleStudentDataLike = HubbleStudentData | InferAttributes<HubbleStudentData & { class_id: number; }, { omit: never }>;
-const MINIMAL_STUDENT_DATA_FIELDS = ["student_id", "age_value", "MAX(class_id) as class_id"];
+const MINIMAL_STUDENT_DATA_FIELDS = ["HubbleStudentData.student_id", "age_value", "MAX(class_id) as class_id"];
 export async function getAllHubbleStudentData(includeClasses: number[] = [], minimal = false): Promise<HubbleStudentDataLike[]> {
   const database = HubbleStudentData.sequelize;
   if (database == null) {
@@ -710,7 +710,7 @@ export async function getAllHubbleStudentData(includeClasses: number[] = [], min
       	AND velocity_value IS NOT NULL
       	AND ang_size_value IS NOT NULL
         AND ignore_students.student_id IS NULL
-      GROUP BY student_id
+      GROUP BY HubbleStudentData.student_id
       HAVING COUNT(HubbleStudentData.student_id) >= 5;
     `;
   } else {
@@ -743,7 +743,7 @@ export async function getAllHubbleStudentData(includeClasses: number[] = [], min
               AND velocity_value IS NOT NULL
               AND ang_size_value IS NOT NULL
               AND ignore_students.student_id IS NULL
-      GROUP BY student_id
+      GROUP BY HubbleStudentData.student_id
       HAVING COUNT(HubbleStudentData.student_id) >= 5;
     ` ;
   }
