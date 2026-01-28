@@ -201,7 +201,16 @@ describe("Test student/class merge functionality", () => {
       .expect(200)
       .expect("Content-Type", /json/);
 
-    const updatedMergeCount = await HubbleClassStudentMerge.count({ where: { class_id: cls.id } });
+    let updatedMergeCount = await HubbleClassStudentMerge.count({ where: { class_id: cls.id } });
+    expect(updatedMergeCount).toBe(desiredMergeCount);
+
+    // If we do this again, things should remain the same
+    await authorize(request(testApp).put(route))
+      .send(data)
+      .expect(200)
+      .expect("Content-Type", /json/);
+
+    updatedMergeCount = await HubbleClassStudentMerge.count({ where: { class_id: cls.id } });
     expect(updatedMergeCount).toBe(desiredMergeCount);
 
     await HubbleClassStudentMerge.destroy({ where: { student_id: { [Op.in]: studentIDs } } });
