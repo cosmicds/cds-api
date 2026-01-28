@@ -436,6 +436,20 @@ router.get(["/class-measurements/:studentID", "stage-3-measurements/:studentID"]
   });
 });
 
+router.put("/merge-students", async (req, res) => {
+  const body = req.body;
+  const schema = S.struct({
+    class_id: S.number.pipe(S.int()),
+    count: S.number.pipe(S.int()),
+  });
+  const maybe = S.decodeUnknownEither(schema)(body);
+
+  if (Either.isLeft(maybe)) {
+
+  }
+
+});
+
 router.get("/merged-classes/:classID", async (req, res) => {
   const classID = Number(req.params.classID);
   const ignoreMergeOrder = (req.query?.ignore_merge_order as string)?.toLowerCase() === "true";
