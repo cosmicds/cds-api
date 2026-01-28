@@ -1074,6 +1074,7 @@ async function getStudentsForPadding(classID: number, count: number): Promise<St
             AND velocity_value IS NOT NULL
             AND ang_size_value IS NOT NULL
             AND ignore_students.student_id IS NULL
+            AND hcsm.student_id IS NULL
     GROUP BY HubbleMeasurements.student_id
     HAVING count >= 5
     ORDER BY RAND()
