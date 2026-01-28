@@ -1037,7 +1037,7 @@ export async function removeWaitingRoomOverride(_classID: number): Promise<numbe
   return 0;
 }
 
-async function getStudentsForPadding(count: number): Promise<Student[]> {
+async function getStudentsForPadding(classID: number, count: number): Promise<Student[]> {
   const database = Student.sequelize;
   if (database == null) {
     return [];
@@ -1049,6 +1049,13 @@ async function getStudentsForPadding(count: number): Promise<Student[]> {
         HubbleMeasurements
             INNER JOIN
         Students ON HubbleMeasurements.student_id = Students.id
+            LEFT OUTER JOIN
+        (SELECT 
+            student_id
+        FROM
+            HubbleClassStudentMerges
+        WHERE
+            HubbleClassStudentMerges.class_id = ${classID}) hcsm ON hcsm.student_id = HubbleMeasurements.student_id
           LEFT OUTER JOIN
 	        (
 	        SELECT
@@ -1079,6 +1086,25 @@ async function getStudentsForPadding(count: number): Promise<Student[]> {
   });
 }
 
+export async function mergeStudentIntoClass(studentID: number, classID: number): Promise<HubbleClassStudentMerge> {
+  return HubbleClassStudentMerge.create({
+    student_id: studentID,
+    class_id: classID
+  });
+}
+
+export async function mergeNStudentsIntoClass(classID: number, count: number): Promise<HubbleClassStudentMerge[]> {
+  const students = await getStudentsForPadding(classID, Math.round(count));
+  const creationIDPairs = students.map(student => {
+    return {
+      class_id: classID,
+      student_id: student.id,
+    };
+  });
+  return HubbleClassStudentMerge.bulkCreate(creationIDPairs);
+}
+
+
 export async function hubbleClassSetup(
   params: ClassSetupParams
 ) {
@@ -1090,14 +1116,7 @@ export async function hubbleClassSetup(
     // @ts-ignore
     const pad = options?.pad ?? true;
     if (pad) {
-      const students = await getStudentsForPadding(12);
-      const creationIDPairs = students.map(student => {
-        return {
-          class_id: cls.id,
-          student_id: student.id,
-        };
-      });
-      await HubbleClassStudentMerge.bulkCreate(creationIDPairs);
+      await mergeNStudentsIntoClass(cls.id, 12);
     }
   }
 }

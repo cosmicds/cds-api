@@ -43,6 +43,7 @@ import {
   removeWaitingRoomOverride,
   getWaitingRoomOverride,
   resetATWaitingRoomTest,
+  mergeNStudentsIntoClass,
 } from "./database";
 
 import { 
@@ -53,7 +54,7 @@ import {
 import { Express, Router } from "express";
 import { Sequelize, ForeignKeyConstraintError, UniqueConstraintError } from "sequelize";
 import { classForStudentStory, findClassById, findStudentById } from "../../database";
-import { initializeModels } from "./models";
+import { HubbleClassStudentMerge, initializeModels } from "./models";
 import { setUpHubbleAssociations } from "./associations";
 import { Story } from "../../models";
 
@@ -440,12 +441,48 @@ router.put("/merge-students", async (req, res) => {
   const body = req.body;
   const schema = S.struct({
     class_id: S.number.pipe(S.int()),
-    count: S.number.pipe(S.int()),
+    desired_merge_count: S.number.pipe(S.int()),
   });
   const maybe = S.decodeUnknownEither(schema)(body);
 
   if (Either.isLeft(maybe)) {
+    res.status(400).json({
+      error: "Invalid format. Request body should have the form { class_id: <integer>, desired_merge_count: <integer> }",
+    });
+    return;
+  }
 
+  const data = maybe.right;
+  const cls = await findClassById(data.class_id);
+  if (cls == null) {
+    res.status(404).json({
+      error: `No class found with class ID ${data.class_id}`,
+    });
+    return;
+  }
+
+  const currentMergeCount = await HubbleClassStudentMerge.count({ where: { class_id: data.class_id } });
+  if (currentMergeCount >= data.desired_merge_count) {
+    res.status(200).json({
+      message: `No merge was performed as there are already at least ${data.desired_merge_count} students merged into class ${data.class_id}`,
+    });
+    return;
+  }
+
+  const difference = data.desired_merge_count - currentMergeCount;
+  const merges = await mergeNStudentsIntoClass(data.class_id, difference)
+                     .catch(error => {
+                       console.error(error);
+                       return null;
+                     });
+  if (merges == null) {
+    res.status(500).json({
+      error: `There was an error merging students into class ${data.class_id}`,
+    });
+  } else {
+    res.status(200).json({
+      message: `Merged ${difference} new students into class ${data.class_id}, bringing the total merge count to ${data.desired_merge_count}`,
+    });
   }
 
 });

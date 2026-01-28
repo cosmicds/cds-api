@@ -1,25 +1,18 @@
 /* eslint-disable @typescript-eslint/no-floating-promises */
 
-import { beforeAll, afterAll, beforeEach, describe, it, expect, jest } from "@jest/globals";
+import { beforeAll, afterAll, beforeEach, describe, it, expect } from "@jest/globals";
 import request from "supertest";
 import type { Express } from "express";
-import type { Sequelize } from "sequelize";
+import { Op, type Sequelize } from "sequelize";
 
-import { authorize, createTestApp, getTestDatabaseConnection, createRandomClassWithStudents, randomStudent, setIntersection, randomBetween, randomClassForEducator, expectToMatchModel } from "../../../../tests/utils";
+import { authorize, createTestApp, getTestDatabaseConnection, createRandomClassWithStudents, randomStudent, setIntersection, randomBetween, randomClassForEducator } from "../../../../tests/utils";
 import { HubbleClassStudentMerge } from "../models/hubble_class_student_merges";
 import { globalRoutePath, createRandomHubbleDataForStudent, createRandomHubbleMeasurementForStudent, createRandomGalaxies } from "./utils";
 import { Class, Educator, IgnoreStudent, Student } from "../../../models";
 import { HubbleMeasurement, HubbleStudentData } from "../models";
-import { addStudentToClass, findClassById, findClassByIdOrCode } from "../../../database";
+import { addStudentToClass, findClassByIdOrCode } from "../../../database";
+import { mergeStudentIntoClass } from "../database";
 import { CreateClassResult } from "../../../request_results";
-
-
-async function mergeStudentIntoClass(studentID: number, classID: number): Promise<HubbleClassStudentMerge> {
-  return HubbleClassStudentMerge.create({
-    student_id: studentID,
-    class_id: classID
-  });
-}
 
 
 describe("Test student/class merge functionality", () => {
@@ -186,5 +179,31 @@ describe("Test student/class merge functionality", () => {
       const expectedCount = pad ? 12 : 0;
       expect(mergedStudentsForClass.length).toEqual(expectedCount);
     }
+  });
+
+  it("Should correctly pad a class with the correct number of students", async () => {
+    // Create some new students for padding purposes
+    const students = [];
+    for (let i = 0; i < 10; i++) {
+      const student = await randomStudent();
+      students.push(student);
+    }
+    const studentIDs = students.map(stu => stu.id);
+
+    const desiredMergeCount = 17;
+    const route = globalRoutePath("/merge-students");
+    const data = {
+      class_id: cls.id,
+      desired_merge_count: desiredMergeCount,
+    };
+    await authorize(request(testApp).put(route))
+      .send(data)
+      .expect(200)
+      .expect("Content-Type", /json/);
+
+    const updatedMergeCount = await HubbleClassStudentMerge.count({ where: { class_id: cls.id } });
+    expect(updatedMergeCount).toBe(desiredMergeCount);
+
+    await HubbleClassStudentMerge.destroy({ where: { student_id: { [Op.in]: studentIDs } } });
   });
 });
