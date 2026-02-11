@@ -7,6 +7,7 @@ export class SeasonsData extends Model<InferAttributes<SeasonsData>, InferCreati
   declare user_selected_dates_count: CreationOptional<number>;
   declare user_selected_locations: CreationOptional<[number, number][]>;
   declare user_selected_locations_count: CreationOptional<number>;
+  declare info_time_ms: CreationOptional<number>;
   declare aha_moment_responses: CreationOptional<string[]>;
   declare last_updated: CreationOptional<Date>;
   declare app_time_ms: CreationOptional<number>;
@@ -54,6 +55,11 @@ export function initializeSeasonsDataModel(sequelize: Sequelize) {
     user_selected_locations_count: {
       type: DataTypes.INTEGER.UNSIGNED,
       defaultValue: 0,
+    },
+    info_time_ms: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0
     },
     aha_moment_responses: {
       type: DataTypes.JSON,
