@@ -9,6 +9,8 @@ type SeasonsDataUpdateAttributes = UpdateAttributes<SeasonsData>;
 
 export const SeasonsUpdate = S.struct({
   app_time_ms: OptionalInt,
+  how_to_use_time_ms: OptionalInt,
+  what_to_explore_time_ms: OptionalInt,
   user_selected_dates: OptionalStringArray,
   user_selected_dates_count: OptionalInt,
   user_selected_locations: OptionalNumberPairArray,
@@ -63,6 +65,8 @@ export async function updateSeasonsData(userUUID: string, update: SeasonsUpdateT
     const creationData: CreationAttributes<SeasonsData> = {
       user_uuid: userUUID,
       app_time_ms: update.app_time_ms ?? 0,
+      how_to_use_time_ms: update.how_to_use_time_ms ?? 0,
+      what_to_explore_time_ms: update.what_to_explore_time_ms ?? 0,
       user_selected_dates: update.user_selected_dates ?? [],
       user_selected_dates_count: update.user_selected_dates?.length ?? 0,
       user_selected_locations: update.user_selected_locations ?? [],
@@ -99,13 +103,10 @@ export async function updateSeasonsData(userUUID: string, update: SeasonsUpdateT
 
   // For the time delta, it's fine to skip the update logic whether 
   // they're null/undefined (nothing to report) or zero (no change)
-  if (update.app_time_ms) {
-    dbUpdate.app_time_ms = data.app_time_ms + update.app_time_ms;
-  }
-  //
-  // See comment above about skipping the update logic
-  // if deltas are either null/undefined or zero
   const numberEntryKeys = [
+    "app_time_ms",
+    "how_to_use_time_ms",
+    "what_to_explore_time_ms",
     "time_slider_used_count",
     "wwt_play_pause_count",
     "wwt_time_reset_count",

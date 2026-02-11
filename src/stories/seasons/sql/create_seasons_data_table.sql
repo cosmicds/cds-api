@@ -2,6 +2,8 @@ CREATE TABLE SeasonsData (
     id int(11) UNSIGNED NOT NULL UNIQUE AUTO_INCREMENT,
     user_uuid varchar(36) NOT NULL UNIQUE,
     app_time_ms INT NOT NULL DEFAULT 0,
+    how_to_use_time_ms int(11) NOT NULL DEFAULT 0,
+    what_to_explore_time_ms int(11) NOT NULL DEFAULT 0,
     user_selected_dates JSON NOT NULL DEFAULT (JSON_ARRAY()),
     user_selected_dates_count int(11) UNSIGNED NOT NULL DEFAULT 0,
     user_selected_locations JSON NOT NULL DEFAULT (JSON_ARRAY()),
