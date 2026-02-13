@@ -1,32 +1,31 @@
 import { Sequelize, DataTypes, Model, InferAttributes, InferCreationAttributes } from "sequelize";
-import { Story } from "./story";
-import { Student } from "./student";
+import { Class, Student } from "../../../models";
 
-export class IgnoreStudent extends Model<InferAttributes<IgnoreStudent>, InferCreationAttributes<IgnoreStudent>> {
+export class HubbleClassStudentMerge extends Model<InferAttributes<HubbleClassStudentMerge>, InferCreationAttributes<HubbleClassStudentMerge>> {
   declare student_id: number;
-  declare story_name: string;
+  declare class_id: number;
 }
 
-export function initializeIgnoreStudentModel(sequelize: Sequelize) {
-  IgnoreStudent.init({
+export function initialHubbleClassStudentMergeModel(sequelize: Sequelize) {
+  HubbleClassStudentMerge.init({
     student_id: {
       type: DataTypes.INTEGER.UNSIGNED,
       allowNull: false,
       primaryKey: true,
       references: {
         model: Student,
-        key: "id"
+        key: "id",
       }
     },
-    story_name: {
-      type: DataTypes.STRING,
+    class_id: {
+      type: DataTypes.INTEGER.UNSIGNED,
       allowNull: false,
       primaryKey: true,
       references: {
-        model: Story,
-        key: "name"
+        model: Class,
+        key: "id",
       }
-    }
+    },
   }, {
     sequelize,
     indexes: [
@@ -34,7 +33,7 @@ export function initializeIgnoreStudentModel(sequelize: Sequelize) {
         fields: ["student_id"],
       },
       {
-        fields: ["story_name"],
+        fields: ["class_id"],
       },
     ]
   });

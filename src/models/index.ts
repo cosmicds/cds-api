@@ -8,6 +8,7 @@ import { IgnoreStudent, initializeIgnoreStudentModel } from "./ignore_student";
 import { ClassStories, initializeClassStoryModel } from "./story_class";
 import { CosmicDSSession, initializeSessionModel } from "./session";
 import { Permission, initializePermissionModel } from "./permission";
+import { Question, initializeQuestionModel } from "./question";
 import { Role, initializeRoleModel } from "./role";
 import { RolePermission, initializeRolePermissionModel } from "./role_permission";
 import { Stage, initializeStageModel } from "./stage";
@@ -19,7 +20,6 @@ import { StudentsClasses, initializeStudentClassModel } from "./student_class";
 import { Student, initializeStudentModel } from "./student";
 import { Sequelize } from "sequelize/types";
 import { initializeStudentOptionsModel } from "./student_options";
-import { initializeQuestionModel } from "./question";
 import { initializeAPIKeyModel } from "./api_key";
 import { initializeUserExperienceRatingModel } from "./user_experience";
 
@@ -34,6 +34,7 @@ export {
   IgnoreClass,
   IgnoreStudent,
   Permission,
+  Question,
   Role,
   RolePermission,
   Stage,

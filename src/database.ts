@@ -44,7 +44,7 @@ import { StudentOption, StudentOptions } from "./models/student_options";
 import { Question } from "./models/question";
 import { logger } from "./logger";
 import { Stage } from "./models/stage";
-import { classSetupRegistry } from "./registries";
+import { ClassSetupParams, classSetupRegistry } from "./registries";
 import { UserExperienceRating } from "./models/user_experience";
 
 export type LoginResponse = {
@@ -335,15 +335,16 @@ export const CreateClassSchema = S.struct({
   expected_size: S.number.pipe(S.int()),
   asynchronous: S.optional(S.boolean),
   story_name: S.optional(S.string),
+  options: S.optional(S.object),
 });
 
-export type CreateClassOptions = S.Schema.To<typeof CreateClassSchema>;
+export type CreateClassParams = S.Schema.To<typeof CreateClassSchema>;
 
-export async function createClass(options: CreateClassOptions): Promise<CreateClassResponse> {
+export async function createClass(params: CreateClassParams): Promise<CreateClassResponse> {
   
   let result = CreateClassResult.Ok;
   const code = await createClassCode();
-  const creationInfo = { ...options, code };
+  const creationInfo = { ...params, code };
 
   const db = Class.sequelize;
   if (db === undefined) {
@@ -355,7 +356,7 @@ export async function createClass(options: CreateClassOptions): Promise<CreateCl
 
       const cls = await Class.create(creationInfo);
 
-      const storyName = options.story_name;
+      const storyName = params.story_name;
       if (storyName) {
         await ClassStories.create({
           story_name: storyName,
@@ -365,7 +366,11 @@ export async function createClass(options: CreateClassOptions): Promise<CreateCl
         const setupFunctions = classSetupRegistry.setupFunctions(storyName);
         if (setupFunctions) {
           for (const setupFunc of setupFunctions) {
-            await setupFunc(cls, storyName);
+            const setupParams: ClassSetupParams = { cls, storyName };
+            if (params.options) {
+              setupParams.options = params.options;
+            }
+            await setupFunc(setupParams);
           }
         }
       }

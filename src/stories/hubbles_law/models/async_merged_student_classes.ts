@@ -21,7 +21,7 @@ export function initializeAsyncMergedHubbleStudentClassesModel(sequelize: Sequel
     },
     class_id: {
       type: DataTypes.INTEGER.UNSIGNED,
-      allowNull: true,
+      allowNull: false,
       primaryKey: true,
       references: {
         model: Class,

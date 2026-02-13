@@ -1,14 +1,17 @@
 /* eslint-disable @typescript-eslint/no-floating-promises */
 
+import fs from "fs";
+import { join } from "path";
 import type { Express } from "express";
 import type { Server } from "http";
 import type { Test } from "supertest";
-import type { InferAttributes, CreationAttributes, Model, Sequelize } from "sequelize";
+import { InferAttributes, CreationAttributes, Model, Sequelize, UniqueConstraintError } from "sequelize";
 
 import { setUpAssociations } from "../src/associations";
 import {
   APIKeyRole,
   Educator,
+  IgnoreClass,
   IgnoreStudent,
   Permission,
   Role,
@@ -72,8 +75,7 @@ export async function setupTestDatabase(): Promise<Sequelize> {
   // See https://github.com/sequelize/sequelize/issues/7953
   // and https://stackoverflow.com/a/45114507
   // db.sync({ force: true, match: /test/ }).finally(() => db.close());
-  await syncTables(true);
-  await addTestData();
+  await syncTables();
 
   return db;
 }
@@ -84,7 +86,7 @@ export async function teardownTestDatabase(): Promise<void> {
 }
 
 export async function syncTables(force=false): Promise<void> {
-  const options = { force };
+  const options = { force, alter: false };
   await APIKey.sync(options);
   await Student.sync(options);
   await Educator.sync(options);
@@ -98,6 +100,7 @@ export async function syncTables(force=false): Promise<void> {
   await StoryState.sync(options);
   await StageState.sync(options);
   await IgnoreStudent.sync(options);
+  await IgnoreClass.sync(options);
 }
 
 export async function addAdminAPIKey(): Promise<APIKey | void> {
@@ -133,12 +136,42 @@ export async function addAdminAPIKey(): Promise<APIKey | void> {
 }
 
 export async function addTestData() {
-  await addAdminAPIKey();
+  // In case multiple processes somehow try to add the same API key,
+  // we don't want to throw an error
+  try {
+    await addAdminAPIKey();
+  } catch (error) {
+    if (!(error instanceof UniqueConstraintError)) {
+      console.error(error);
+    }
+  }
 }
 
-export function createTestApp(db: Sequelize): Express {
+export async function createTestApp(db: Sequelize): Promise<Express> {
   const app = createApp(db, { sendEmails : false });
   setupApp(app, db);
+
+  const storiesDir = join(__dirname, "..", "src", "stories");
+  const entries = fs.readdirSync(storiesDir, { withFileTypes: true });
+  entries.forEach(entry => {
+    if (entry.isDirectory()) {
+      const file = join(storiesDir, entry.name, "main.ts");
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const data = require(file);
+      data.setup(app, db);
+      app.use(data.path, data.router);
+    }
+  });
+
+  for (const model of Object.values(db.models)) {
+    // Avoid issues like https://github.com/sequelize/sequelize/issues/12889
+    try {
+      await model.sync();
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
   return app;
 }
 
@@ -219,6 +252,22 @@ export async function setupStudentInClasses() {
   return { student, educator, class1, class2, sc1, sc2, cleanup };
 }
 
+export async function createRandomClassWithStudents(count: number, educator: Educator | null = null) {
+  const nStudents = Math.round(count);
+
+  const edu = educator ?? await randomEducator();
+  const cls = await randomClassForEducator(edu.id);
+
+  const students: Student[] = [];
+  for (let i = 0; i < nStudents; i++) {
+    const student = await randomStudent();
+    students.push(student);
+    await StudentsClasses.create({ class_id: cls.id, student_id: student.id });
+  }
+
+  return { educator: edu, students, class: cls };
+}
+
 type ModelKey<T extends Model> = (keyof InferAttributes<T>)[];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -233,4 +282,18 @@ export function expectToMatchModel<T extends Model>(object: any, expected: T, ex
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
   expect(object).toMatchObject(json);
+}
+
+export function randomBetween(low: number, high: number) {
+  return low + Math.random() * (high - low);
+}
+
+export function setIntersection<T>(setA: Set<T>, setB: Set<T>): Set<T> {
+  const result = new Set<T>();
+  for (const element of setA) {
+    if (setB.has(element)) {
+      result.add(element);
+    }
+  }
+  return result;
 }

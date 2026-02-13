@@ -5,6 +5,7 @@
     "serve": "node dist/src/main.js",
     "start": "npm run serve",
     "test": "jest --config jest.config.ts --forceExit --verbose",
+    "discover-tests": "jest --config jest.config.ts --listTests",
     "test-quiet": "DB_TEST_LOGGING=false jest --config jest.config.ts --forceExit --verbose"
   },
   "dependencies": {
