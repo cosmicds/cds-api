@@ -5,7 +5,7 @@ import request from "supertest";
 import type { Express } from "express";
 import { Op, type Sequelize } from "sequelize";
 
-import { authorize, createTestApp, getTestDatabaseConnection, createRandomClassWithStudents, randomStudent, setIntersection, randomBetween, randomClassForEducator } from "../../../../tests/utils";
+import { authorize, createTestApp, getTestDatabaseConnection, createRandomClassWithStudents, randomStudent, randomBetween, randomClassForEducator } from "../../../../tests/utils";
 import { HubbleClassStudentMerge } from "../models/hubble_class_student_merges";
 import { globalRoutePath, createRandomHubbleDataForStudent, createRandomHubbleMeasurementForStudent, createRandomGalaxies } from "./utils";
 import { Class, Educator, IgnoreStudent, Student } from "../../../models";
@@ -102,11 +102,9 @@ describe("Test student/class merge functionality", () => {
         expect(measurementIDs).toEqual(new Set(allStudents.map(student => student.id)));
 
         const studentData = body.studentData as HubbleStudentData[];
-        //
+
         // We need to include the merged students twice each
         expect(studentData.length).toEqual(totalStudentCount + mergedCount);
-
-        console.log("Passed tests");
       });
   });
 
