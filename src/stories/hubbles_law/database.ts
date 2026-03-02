@@ -538,11 +538,15 @@ async function getHubbleStudentDataForSyncClass(classID: number): Promise<Hubble
   return getHubbleStudentDataForClasses(classIDs);
 }
 
-export function getHubbleMeasurementsForStudents(studentIDs: number[]): Promise<HubbleMeasurement[]> {
+export function getHubbleMeasurementsForStudents(studentIDs: number[], excludeWithNull: boolean = false): Promise<HubbleMeasurement[]> {
+  const whereConditions: WhereOptions = [
+    { student_id: { [Op.in]: studentIDs } },
+  ];
+  if (excludeWithNull) {
+    whereConditions.push(EXCLUDE_MEASUREMENTS_WITH_NULL_CONDITION);
+  }
   return HubbleMeasurement.findAll({
-    where: {
-      student_id: { [Op.in]: studentIDs },
-    }
+    where: whereConditions,
   });
 }
 

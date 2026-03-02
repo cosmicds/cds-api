@@ -414,7 +414,7 @@ router.get(["/class-measurements/:studentID/:classID", "/stage-3-data/:studentID
       });
       return;
     }
-    measurements = await getHubbleMeasurementsForStudents(studentIDs);
+    measurements = await getHubbleMeasurementsForStudents(studentIDs, completeOnly);
   } else {
     measurements = await getClassMeasurementsForStudent(student.id, cls.id, lastChecked, completeOnly, excludeStudent);
   }
