@@ -44,6 +44,7 @@ import {
   getWaitingRoomOverride,
   resetATWaitingRoomTest,
   mergeNStudentsIntoClass,
+  getHubbleMeasurementsForStudents,
 } from "./database";
 
 import { 
@@ -54,7 +55,7 @@ import {
 import { Express, Router } from "express";
 import { Sequelize, ForeignKeyConstraintError, UniqueConstraintError } from "sequelize";
 import { classForStudentStory, findClassById, findStudentById } from "../../database";
-import { HubbleClassStudentMerge, initializeModels } from "./models";
+import { HubbleClassStudentMerge, HubbleMeasurement, initializeModels } from "./models";
 import { setUpHubbleAssociations } from "./associations";
 import { Story } from "../../models";
 
@@ -401,7 +402,23 @@ router.get(["/class-measurements/:studentID/:classID", "/stage-3-data/:studentID
     return;
   }
 
-  const measurements = await getClassMeasurementsForStudent(student.id, cls.id, lastChecked, completeOnly, excludeStudent);
+  let measurements: HubbleMeasurement[];
+  if ("student_ids" in req.query) {
+    const idsString = req.query.student_ids as string;
+    const studentIDs = idsString.split(",").map(t => Number(t));
+    const valid = !studentIDs.some(x => isNaN(x));
+
+    if (!valid) {
+      res.status(400).json({
+        message: "At least one of your specified student IDs is invalid. Student IDs should be integers.",
+      });
+      return;
+    }
+    measurements = await getHubbleMeasurementsForStudents(studentIDs);
+  } else {
+    measurements = await getClassMeasurementsForStudent(student.id, cls.id, lastChecked, completeOnly, excludeStudent);
+  }
+
   res.status(200).json({
     student_id: studentID,
     class_id: classID,
@@ -428,8 +445,24 @@ router.get(["/class-measurements/:studentID", "stage-3-measurements/:studentID"]
     return;
   }
 
-  const excludeStudent = (req.query.exclude_student as string)?.toLowerCase() === "true";
-  const measurements = await getClassMeasurementsForStudent(studentID, cls.id, null, excludeStudent);
+  let measurements: HubbleMeasurement[];
+  if ("student_ids" in req.query) {
+    const idsString = req.query.student_ids as string;
+    const studentIDs = idsString.split(",").map(t => Number(t));
+    const valid = !studentIDs.some(x => isNaN(x));
+
+    if (!valid) {
+      res.status(400).json({
+        message: "At least one of your specified student IDs is invalid. Student IDs should be integers.",
+      });
+      return;
+    }
+    measurements = await getHubbleMeasurementsForStudents(studentIDs);
+  } else {
+    const excludeStudent = (req.query.exclude_student as string)?.toLowerCase() === "true";
+    measurements = await getClassMeasurementsForStudent(studentID, cls.id, null, excludeStudent);
+  }
+
   res.status(200).json({
     student_id: studentID,
     class_id: null,

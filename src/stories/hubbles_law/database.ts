@@ -538,6 +538,14 @@ async function getHubbleStudentDataForSyncClass(classID: number): Promise<Hubble
   return getHubbleStudentDataForClasses(classIDs);
 }
 
+export function getHubbleMeasurementsForStudents(studentIDs: number[]): Promise<HubbleMeasurement[]> {
+  return HubbleMeasurement.findAll({
+    where: {
+      student_id: { [Op.in]: studentIDs },
+    }
+  });
+}
+
 export async function _getStageThreeStudentData(studentID: number, classID: number | null): Promise<HubbleStudentData[]> {
   const cls = classID !== null ? await findClassById(classID) : null;
   const asyncClass = cls?.asynchronous ?? true;
