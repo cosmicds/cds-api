@@ -30,7 +30,7 @@ promises.readdir(STORIES_DIR, { withFileTypes: true }).then(entries => {
 const stories = [
   "carina", "blaze-star-nova", "radwave-in-motion",
   "radwave-in-motion-deutsch", "jwst-brick",
-  "pinwheel-supernova", "green-comet",
+  "pinwheel-supernova", "green-comet", "annular-eclipse-2023",
   "rubin-first-look", "tempo-lab",
 ];
 stories.forEach(story => {
