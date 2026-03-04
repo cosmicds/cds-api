@@ -5,6 +5,7 @@ const config: Config = {
   silent: false,
   preset: "ts-jest",
   testEnvironment: "node",
+  testRegex: "/.*\\/?tests\\/.*\\.test\\.ts",
   coveragePathIgnorePatterns: [
     "./node_modules/",
     "./dist/",

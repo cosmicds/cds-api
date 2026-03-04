@@ -45,7 +45,6 @@ interface PermissionInfo {
   resourcePath: string;
 }
 export async function hasPermission(info: PermissionInfo): Promise<boolean> {
-  console.log(info);
   return Permission.findOne({
     include: [
       {
@@ -90,6 +89,7 @@ export async function requestHasPermission(req: GenericRequest): Promise<{ permi
     action,
     resourcePath,
   });
+
   return {
     permission,
     validKey: true,

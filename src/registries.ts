@@ -1,11 +1,17 @@
 import { Class } from "./models";
 
-type ClassSetupFunction = (cls: Class, storyName: string) => Promise<void>;
+export interface ClassSetupParams {
+  cls: Class;
+  storyName: string;
+  options?: object;
+}
+
+type ClassSetupFunction = (params: ClassSetupParams) => Promise<void>;
 
 class ClassSetupRegistry {
 
   private members: { [storyName: string]: ClassSetupFunction[] | undefined } = {};
-  
+
   register(storyName: string, setup: ClassSetupFunction) {
     if (!(storyName in this.members)) {
       this.members[storyName] = [];
