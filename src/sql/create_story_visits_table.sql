@@ -4,5 +4,8 @@ CREATE TABLE StoryVisitInfo (
     info JSON NOT NULL,
     timestamp datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY(id),
-    FOREIGN KEY(story_name) REFERENCES Stories(name)
+    FOREIGN KEY(story_name)
+      REFERENCES Stories(name)
+      ON UPDATE CASCADE
+      ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_unicode_ci PACK_KEYS=0;
