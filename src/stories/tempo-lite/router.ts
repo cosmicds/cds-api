@@ -1,13 +1,14 @@
 import * as S from "@effect/schema/Schema";
 import * as Either from "effect/Either";
-import { Express, Router } from "express";
+import { Express } from "express";
 import { Sequelize } from "sequelize";
 
 import { initializeModels } from "./models";
 import { addVisitForStory } from "../../database";
 import { TempoLiteEntry, TempoLiteUpdate, getTempoLiteData, submitTempoLiteData, updateTempoLiteData } from "./database";
+import { storyRouter } from "../../story_router";
 
-export const router = Router();
+export const router = storyRouter("tempo-lite");
 
 export function setup(_app: Express, db: Sequelize) {
   initializeModels(db);
