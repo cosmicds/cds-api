@@ -5,9 +5,15 @@ variable "aws_region" {
 }
 
 variable "environment" {
-  description = "Environment name"
+  description = "CosmicDS API server environment name"
   type        = string
-  default     = "cds-api-production"
+  default     = "cds-api"
+}
+
+variable "cds_environment" {
+  description = "General CosmicDS environment name"
+  type        = string
+  default     = "production"
 }
 
 variable "github_repository" {

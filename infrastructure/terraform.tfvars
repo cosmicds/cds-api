@@ -1,5 +1,5 @@
 aws_region = "us-east-1"
-environment = "cds-api-production"
+environment = "cds-api"
 
 # GitHub repository for CI/CD
 github_repository = "cosmicds/cds-api"
