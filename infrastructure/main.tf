@@ -362,6 +362,12 @@ resource "aws_cloudfront_distribution" "apps" {
     ssl_support_method       = "sni-only"
     minimum_protocol_version = "TLSv1.2_2021"
   }
+
+  restrictions {
+    geo_restriction {
+      restriction_type = "none"
+    }
+  }
 }
 
 # ECS Cluster
@@ -403,6 +409,19 @@ resource "aws_ssm_parameter" "cds_api_env_vars" {
 # ECS Task Execution Role
 resource "aws_iam_role" "ecs_task_execution_role" {
   name = "${var.cds_environment}-ecs-task-execution-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ecs-tasks.amazonaws.com"
+        }
+      }
+    ]
+  })
 }
 
 resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy" {
