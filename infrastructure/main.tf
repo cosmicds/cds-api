@@ -306,7 +306,70 @@ resource "aws_cloudfront_origin_access_control" "alb" {
 }
 
 
-# TODO: How to add the API server-specific CloudFront piece in here?
+# CloudFront Distribution
+resource "aws_cloudfront_distribution" "apps" {
+  enabled             = true
+  is_ipv6_enabled     = true
+  default_root_object = ""
+  comment             = "${var.environment} CloudFront distribution for CDS applications"
+  price_class         = "PriceClass_100"
+  aliases             = [var.alb_domain_name]
+
+  origin {
+    domain_name = aws_lb.main.dns_name
+    origin_id   = "alb-${aws_lb.main.id}"
+
+    custom_origin_config {
+      http_port              = 80
+      https_port             = 443
+      origin_protocol_policy = "https-only"
+      origin_ssl_protocols   = ["TLSv1.2"]
+
+      origin_keepalive_timeout = 60
+      origin_read_timeout      = 60
+    }
+
+    custom_header {
+      name  = "X-CloudFront-Secret"
+      value = local.cloudfront_secret
+    }
+  }
+
+  # Default cache behavior for CDS API 
+  default_cache_behavior {
+    allowed_methods  = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
+    cached_methods   = ["GET", "HEAD", "OPTIONS"]
+    target_origin_id = "alb-${aws_lb.main.id}"
+
+    forwarded_values {
+      query_string = true
+      headers      = ["*"]
+
+      cookies {
+        forward = "all"
+      }
+    }
+
+    viewer_protocol_policy = "redirect-to-https"
+    min_ttl                = 0
+    default_ttl            = 0
+    max_ttl                = 0
+    compress               = true
+  }
+
+  viewer_certificate {
+    acm_certificate_arn      = data.aws_acm_certificate.alb.arn
+    ssl_support_method       = "sni-only"
+    minimum_protocol_version = "TLSv1.2_2021"
+  }
+}
+
+# ECS Cluster
+# TODO: Is it enough to just add the name here?
+# We don't want to change anything, we just want to use the ECS cluster
+resource "aws_ecs_cluster" "main" {
+  name = "${var.cds_environment}-cluster"
+}
 
 # Secrets Manager for sensitive environment variables
 resource "aws_secretsmanager_secret" "cds_api_secrets" {
