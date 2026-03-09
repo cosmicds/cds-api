@@ -335,7 +335,7 @@ resource "aws_codepipeline" "cds_api_pipeline" {
 # Data source for AWS account ID
 data "aws_caller_identity" "current" {}
 
-# CloudWatch Log Groups for CodeBuild
+# CloudWatch Log Group for CodeBuild
 resource "aws_cloudwatch_log_group" "codebuild_api" {
   name              = "/aws/codebuild/${var.environment}-build"
   retention_in_days = 14
