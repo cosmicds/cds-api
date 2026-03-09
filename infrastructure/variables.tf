@@ -16,6 +16,30 @@ variable "cds_environment" {
   default     = "production"
 }
 
+variable "cds_api_min_capacity" {
+  description = "Minimum number of tasks for cds-api"
+  type        = number
+  default = 1
+}
+
+variable "cds_api_max_capacity" {
+  description = "Maximum number of tasks for cds-api"
+  type        = number
+  default = 2
+}
+
+variable "cloudfront_secret" {
+  description = "Secret value for CloudFront custom header to prevent direct ALB access. Leave empty to auto-generate."
+  type        = string
+  sensitive   = true
+  default     = ""
+
+  validation {
+    condition     = var.cloudfront_secret == "" || length(var.cloudfront_secret) >= 32
+    error_message = "CloudFront secret must be either empty (for auto-generation) or at least 32 characters long."
+  }
+}
+
 variable "github_repository" {
   description = "GitHub repository in the format 'owner/repo'"
   type        = string

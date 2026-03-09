@@ -321,7 +321,7 @@ resource "aws_codepipeline" "cds_api_pipeline" {
       run_order        = 1
 
       configuration = {
-        ProjectName = aws_codebuild_project.cds_api.name
+        ProjectName = aws_codebuild_project.cds_api_build.name
       }
     }
   }
