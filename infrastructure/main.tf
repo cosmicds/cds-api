@@ -230,7 +230,7 @@ resource "aws_lb" "main" {
 
 # Target Group
 resource "aws_lb_target_group" "cds_api" {
-  name        = "${var.environment}-cds-api-tg"
+  name        = "${var.environment}-tg"
   port        = 8865
   protocol    = "HTTP"
   vpc_id      = aws_vpc.main.id
@@ -249,7 +249,7 @@ resource "aws_lb_target_group" "cds_api" {
   }
 
   tags = {
-    Name        = "${var.environment}-cds-api-tg"
+    Name        = "${var.environment}-tg"
     Environment = var.environment
   }
 }
@@ -371,19 +371,27 @@ resource "aws_cloudfront_distribution" "apps" {
 }
 
 # ECS Cluster
-# TODO: Is it enough to just add the name here?
-# We don't want to change anything, we just want to use the ECS cluster
 resource "aws_ecs_cluster" "main" {
-  name = "${var.cds_environment}-cluster"
+  name = "${var.environment}-cluster"
+
+  setting {
+    name  = "containerInsights"
+    value = "enabled"
+  }
+
+  tags = {
+    Name        = "${var.environment}-ecs-cluster"
+    Environment = var.environment
+  }
 }
 
 # Secrets Manager for sensitive environment variables
 resource "aws_secretsmanager_secret" "cds_api_secrets" {
-  name        = "${var.environment}/cds-api/secrets"
+  name        = "${var.environment}/secrets"
   description = "Secrets for CDS API server application"
 
   tags = {
-    Name        = "${var.environment}-cds-api-secrets"
+    Name        = "${var.environment}-secrets"
     Environment = var.environment
   }
 }
@@ -395,12 +403,12 @@ resource "aws_ssm_parameter" "cds_api_env_vars" {
     "LOG_LEVEL"   = "info"
   }
 
-  name  = "/${var.environment}/cds-api/env/${each.key}"
+  name  = "/${var.environment}/env/${each.key}"
   type  = "String"
   value = each.value
 
   tags = {
-    Name        = "${var.environment}-cds-api-${each.key}"
+    Name        = "${var.environment}-${each.key}"
     Environment = var.environment
     Application = "cds-api"
   }
@@ -408,7 +416,7 @@ resource "aws_ssm_parameter" "cds_api_env_vars" {
 
 # ECS Task Execution Role
 resource "aws_iam_role" "ecs_task_execution_role" {
-  name = "${var.cds_environment}-ecs-task-execution-role"
+  name = "${var.environment}-ecs-task-execution-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -453,7 +461,7 @@ resource "aws_iam_role_policy" "ecs_secrets_policy" {
           "ssm:GetParameter"
         ]
         Resource = [
-          "arn:aws:ssm:${var.aws_region}:*:parameter/${var.cds_environment}/cds-api/env/*",
+          "arn:aws:ssm:${var.aws_region}:*:parameter/${var.environment}/env/*",
         ]
       }
     ]
@@ -462,7 +470,7 @@ resource "aws_iam_role_policy" "ecs_secrets_policy" {
 
 # ECS Task Definition
 resource "aws_ecs_task_definition" "cds_api" {
-  family                   = "${var.cds_environment}-cds-api"
+  family                   = var.environment
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   cpu                      = 256
@@ -522,7 +530,7 @@ resource "aws_cloudwatch_log_group" "cds_api" {
 
 # ECS Service
 resource "aws_ecs_service" "cds_api" {
-  name            = "${var.environment}-cds-api"
+  name            = var.environment
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.cds_api.arn
   desired_count   = var.cds_api_min_capacity

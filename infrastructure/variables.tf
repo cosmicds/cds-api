@@ -10,12 +10,6 @@ variable "environment" {
   default     = "cds-api"
 }
 
-variable "cds_environment" {
-  description = "General CosmicDS environment name"
-  type        = string
-  default     = "production"
-}
-
 variable "cds_api_min_capacity" {
   description = "Minimum number of tasks for cds-api"
   type        = number
