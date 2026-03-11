@@ -8,7 +8,7 @@ resource "aws_ecr_repository" "cds_api" {
   }
 
   tags = {
-    Name        = "${var.environment}-cds-api-ecr"
+    Name        = "${var.environment}-ecr"
     Environment = var.environment
   }
 }
