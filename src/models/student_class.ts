@@ -35,6 +35,11 @@ export function initializeStudentClassModel(sequelize: Sequelize) {
     },
   }, {
     sequelize,
-    freezeTableName: true
+    freezeTableName: true,
+    indexes: [
+      {
+        fields: ["class_id"],
+      },
+    ]
   });
 }
