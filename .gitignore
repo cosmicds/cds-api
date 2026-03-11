@@ -26,3 +26,6 @@ pnpm-debug.log*
 .elasticbeanstalk/*
 !.elasticbeanstalk/*.cfg.yml
 !.elasticbeanstalk/*.global.yml
+
+# Terraform local cache
+.terraform/
