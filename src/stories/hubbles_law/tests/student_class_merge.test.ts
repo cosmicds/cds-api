@@ -156,7 +156,7 @@ describe("Test student/class merge functionality", () => {
       let classCode: string = "";
       await authorize(request(testApp).post(route))
         .send(classData)
-        .expect(200)
+        .expect(201)
         .expect("Content-Type", /json/)
         .then(async (res) => {
           const body = res.body;
