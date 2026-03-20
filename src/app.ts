@@ -9,6 +9,11 @@ import { v4 } from "uuid";
 
 import { apiKeyMiddleware } from "./middleware";
 import { ALLOWED_ORIGINS } from "./utils";
+import swaggerJSDoc, { OAS3Options } from "swagger-jsdoc";
+import swaggerUi, { SwaggerUiOptions } from "swagger-ui-express";
+import { SwaggerTheme, SwaggerThemeNameEnum } from "swagger-themes";
+
+import { schemas } from "./openapi/schemas";
 
 export function setupApp(app: Express, db: Sequelize) {
 
@@ -41,7 +46,6 @@ export function setupApp(app: Express, db: Sequelize) {
     }
   });
 
-
   const SECRET = "ADD_REAL_SECRET";
   const SESSION_NAME = "cosmicds";
 
@@ -69,6 +73,75 @@ export function setupApp(app: Express, db: Sequelize) {
 
   // parse requests of content-type - application/x-www-form-urlencoded
   app.use(bodyParser.urlencoded({ extended: true }));
+
+  const swaggerOptions: OAS3Options = {
+    apis: [
+      "./dist/src/app.js",
+      "./dist/src/server.js",
+      "./dist/src/stories/**/main.js",
+    ],
+    definition: {
+      openapi: "3.1.0",
+      info: {
+        title: "CosmicDS API",
+        version: "0.1.0",
+        description: "An API server for interacting with the CosmicDS database.",
+      },
+      tags: [
+        {
+          name: "students",
+          description: "Operations relating to student management",
+        },
+        {
+          name: "educators",
+          description: "Operations relating to educator management",
+        },
+        {
+          name: "classes",
+          description: "Operations relating to class management",
+        },
+        {
+          name: "stories",
+          description: "Operations related to managing data stories",
+        },
+        {
+          name: "questions",
+          description: "Operations related to managing questions",
+        },
+      ],
+      host: "api.cosmicds.cfa.harvard.edu",
+      basePath: "/",
+      components: {
+        securitySchemes: {
+          apiKey: {
+            type: "apiKey",
+            in: "header",
+            name: "Authorization",
+          }
+        },
+        schemas: schemas(),
+      },
+      security: [
+        { apiKey: [] },
+      ]
+    }
+  };
+  const swaggerSpec = swaggerJSDoc(swaggerOptions);
+
+  app.get("/docs.json", (_req, res) => {
+    res.setHeader("Content-Type", "application/json");
+    res.send(swaggerSpec);
+  });
+
+  const theme = new SwaggerTheme();
+  const swaggerUIOptions: SwaggerUiOptions = {
+    explorer: false,
+    customSiteTitle: "CosmicDS Database API",
+    customCss: theme.getBuffer(SwaggerThemeNameEnum.GRUVBOX),
+  };
+
+  app.use("/docs", swaggerUi.serve);
+  app.get("/docs", swaggerUi.setup(swaggerSpec, swaggerUIOptions));
 
   app.use(function(req, res, next) {
 

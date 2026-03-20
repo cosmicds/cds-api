@@ -137,7 +137,22 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     next();
   });
 
-  // simple route
+  /**
+   * @openapi
+   * /:
+   *   get:
+   *    description: Welcome to the CosmicDS API server!
+   *    responses:
+   *      200:
+   *        description: Returns a welcome message, with an extra bit of text if no valid API key is present in the `Authorization` header
+   *        content:
+   *          application/json:
+   *            schema:
+   *             type: object
+   *             properties:
+   *               message: 
+   *                 type: string
+   */
   app.get("/", async (req, res) => {
     const key = req.get("Authorization");
     const apiKey = key ? await getAPIKey(key) : null;
@@ -149,6 +164,62 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     res.json({ message: message });
   });
 
+  /**
+   * @openapi
+   * /permission:
+   *   get:
+   *     description: Used for determining whether an API key has permission to perform a given action on a given resource path
+   *     parameters:
+   *       - in: query
+   *         name: api_key
+   *         schema:
+   *           type: string
+   *       - in: query
+   *         name: action 
+   *         schema:
+   *           type: string
+   *           enum:
+   *             - read
+   *             - write
+   *             - delete
+   *       - in: query
+   *         name: path 
+   *         schema:
+   *           type: string
+   *     responses:
+   *       200:
+   *         description: The request had all of necessary query items (API key, action, resource path)
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 permission:
+   *                   type: boolean
+   *       400:
+   *         description: At least query parameter was invalid/missing
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 permission:
+   *                   type: boolean
+   *                 error:
+   *                   type: string
+   *       404:
+   *         description: The requested API key does not exist
+   *         content:
+   *           application/json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 permission:
+   *                   type: boolean
+   *                 error:
+   *                   type: string
+   *
+   */
   app.get("/permission", async (req, res) => {
     const key = req.query.api_key;
     const action = req.query.action;
@@ -171,7 +242,7 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
 
     const apiKey = await getAPIKey(maybe.right.key);
     if (apiKey === null) {
-      res.json({
+      res.status(404).json({
         permission: false,
         message: "The provided API key does not exist",
       });
@@ -187,7 +258,45 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
 
   });
 
-  // Educator sign-up
+  /**
+   *  @openapi
+   *  /educators/create:
+   *    post:
+   *      tags:
+   *        - educators
+   *      description: Create a new educator account
+   *      requestBody:
+   *        required: true
+   *        content:
+   *          application/json:
+   *            schema:
+   *              $ref: "#/components/schemas/EducatorCreationInfo"
+   *      responses:
+   *        201:
+   *          description: A new educator was successfully created
+   *          content:
+   *            application/json:
+   *              schema:
+   *                $ref: "#/components/schemas/EducatorCreated"
+   *        409:
+   *          description: An educator with the given email address already exists
+   *          content:
+   *            application/json:
+   *              schema:
+   *                $ref: "#/components/schemas/EducatorCreated"
+   *        400:
+   *          description: The request body was ill-formed
+   *          content:
+   *            application/json:
+   *              schema:
+   *                $ref: "#/components/schemas/EducatorCreated"
+   *        500:
+   *          description: An error occurred while creating the educator
+   *          content:
+   *            application/json:
+   *              schema:
+   *                $ref: "#/components/schemas/EducatorCreated"
+   */
   app.post([
     "/educators/create",
     "/educator-sign-up", // Old
@@ -223,7 +332,45 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     });
   });
 
-  // Student sign-up
+  /**
+   *  @openapi
+   *  /students/create:
+   *    post:
+   *      tags:
+   *        - students
+   *      description: Create a new student account
+   *      requestBody:
+   *        required: true
+   *        content:
+   *          application/json:
+   *            schema:
+   *              $ref: "#/components/schemas/StudentCreationInfo"
+   *      responses:
+   *        201:
+   *          description: A new student was successfully created
+   *          content:
+   *            application/json:
+   *              schema:
+   *                $ref: "#/components/schemas/StudentCreated"
+   *        409:
+   *          description: A student with the given email address already exists
+   *          content:
+   *            application/json:
+   *              schema:
+   *                $ref: "#/components/schemas/StudentCreated"
+   *        400:
+   *          description: The request body was ill-formed
+   *          content:
+   *            application/json:
+   *              schema:
+   *                $ref: "#/components/schemas/StudentCreated"
+   *        500:
+   *          description: An error occurred while creating the student 
+   *          content:
+   *            application/json:
+   *              schema:
+   *                $ref: "#/components/schemas/StudentCreated"
+   */
   app.post([
     "/students/create",
     "/student-sign-up", // Old
@@ -382,22 +529,106 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
 
   /* Users (students and educators) */
 
+  /**
+   *  @openapi
+   *  /students:
+   *    get:
+   *      tags:
+   *        - students
+   *      description: Return information about all existing students
+   *      responses:
+   *        200:
+   *          content:
+   *            application/json:
+   *              schema:
+   *                type: array
+   *                items:
+   *                  $ref: "#/components/schemas/Student"
+  */
   app.get("/students", async (_req, res) => {
     const queryResponse = await getAllStudents();
     res.json(queryResponse);
   });
 
+  /**
+   *  @openapi
+   *  /educators:
+   *    get:
+   *      tags:
+   *        - educators
+   *      description: Return information about all existing educators
+   *      responses:
+   *        200:
+   *          content:
+   *            application/json:
+   *              schema:
+   *                type: array
+   *                items:
+   *                  $ref: "#/components/schemas/Educator"
+  */
   app.get("/educators", async (_req, res) => {
     const queryResponse = await getAllEducators();
     res.json(queryResponse);
   });
 
+  /**
+   *  @openapi
+   *  /users:
+   *    get:
+   *      tags:
+   *        - educators
+   *        - students
+   *      description: Return information about all existing students and educators
+   *      responses:
+   *        200:
+   *          content:
+   *            application/json:
+   *              schema:
+   *                type: array
+   *                items:
+   *                  $ref: "#/components/schemas/User"
+  */
   app.get("/users", async (_req, res) => {
     const students = await getAllStudents();
     const educators = await getAllEducators();
     res.json({ students, educators });
   });
 
+  /**
+  * @openapi
+  * /students/{identifier}:
+  *   get:
+  *     tags:
+  *       - students
+  *     description: Return information about the student with the given identifier (ID (#) or username (string))
+  *     parameters:
+  *       - name: identifier
+  *         in: path
+  *         required: true
+  *         oneOf:
+  *           - type: string
+  *           - type: integer
+  *     responses:
+  *       200:
+  *         description: A student with the given identifier exists
+  *         content:
+  *           application/json:
+  *             schema:
+  *               type: object
+  *               properties:
+  *                 student:
+  *                   schema:
+  *                     $ref: "#/components/schemas/Student"
+  *       404:
+  *         description: A student with the given identifier does not exist
+  *         content:
+  *           application/json:
+  *             schema:
+  *               type: "object"
+  *               properties:
+  *               student:
+  *                 type: null
+  */
   app.get([
     "/students/:identifier",
     "/student/:identifier", // Backwards compatibility
@@ -411,6 +642,47 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     });
   });
 
+  /**
+  * @openapi
+  * /students/{identifier}/classes:
+  *   get:
+  *     tags:
+  *       - students
+  *       - classes
+  *     description: Return information about each class that the specified student is in
+  *     parameters:
+  *       - name: identifier
+  *         in: path
+  *         required: true
+  *         schema:
+  *           type: string
+  *     responses:
+  *       200:
+  *         description: A student with the given identifier exists
+  *         content:
+  *           application/json:
+  *             schema:
+  *               type: object
+  *               properties:
+  *                 student_id:
+  *                   type: integer
+  *                 classes:
+  *                   type: array
+  *                   items:
+  *                     $ref: "#/components/schemas/Class"
+  *       404:
+  *         description: A student with the given identifier does not exist
+  *         content:
+  *           application/json:
+  *             schema:
+  *               type: object
+  *               properties:
+  *                 student_id:
+  *                   type: number
+  *                   format: null 
+  *                 classes:
+  *                   type: array
+  */
   app.get("/students/:identifier/classes", async (req, res) => {
     const student = await findStudentByIdOrUsername(req.params.identifier);
     if (student === null) {
@@ -429,7 +701,47 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     });
 
   });
-
+ 
+  /**
+   *  @openapi
+   *  /students/{identifier}/classes/{classID}:
+   *    delete:
+   *      tags:
+   *        - students
+   *        - classes
+   *      description: Remove the given student from the given class if they're a member
+   *      parameters:
+   *        - name: identifier
+   *          in: path
+   *          required: true
+   *          oneOf:
+   *          - type: string
+   *          - type: integer
+   *        - name: classID
+   *          in: path
+   *          required: true
+   *          schema:
+   *            type: integer
+   *      responses:
+   *        204:
+   *          description: The student was a member of the class, and has now been removed
+   *        404:
+   *          description: Either the student or class does not exist, or the student was not in the class
+   *          content:
+   *            application/json:
+   *              schema:
+   *                type: object
+   *                properties:
+   *                  message:
+   *                    description: A message detailing why the attempt failed
+   *                    type: string
+   *        500:
+   *          description: An error occurred while trying to remove the student from the class
+   *          content:
+   *            application/json:
+   *              schema:
+   *                $ref: "#/components/schemas/Error"
+  */
   app.delete("/students/:identifier/classes/:classID", async (req, res) => {
 
     const identifier = req.params.identifier;
@@ -438,7 +750,6 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
       res.statusCode = 404;
       res.json({
         message: `No student found for identifier ${identifier}`,
-        success: false,
       });
       return;
     }
@@ -449,7 +760,6 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
       res.statusCode = 404;
       res.json({
         message: `No class found with ID ${classID}`,
-        success: false,
       });
       return;
     }
@@ -462,35 +772,81 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     });
 
     if (join === null) {
-      res.statusCode = 404;
-      res.json({
-        success: false,
+      res.status(404).json({
         message: `Student with identifier ${identifier} not found in class ${classID}`,
       });
       return;
     }
 
     join.destroy()
-      .then(() => {
-        res.statusCode = 204;
-        res.end();
-      })
+      .then(() => res.status(204).end())
       .catch(error => {
         console.log(error);
-        res.statusCode = 500;
-        res.json({
+        res.status(500).json({
           error: "Operation failed. There was an internal server error while removing the student from the class."
         });
       });
 
   });
 
+  /**
+   *   @openapi
+   *   /students/ignore/{identifier}/{storyName}:
+   *     put:
+   *       tags:
+   *         - students
+   *       description: Set whether a student is ignored for the data aggregation of a given story
+   *       parameters:
+   *         - name: identifier
+   *           description: Either the student's username or ID
+   *           in: path
+   *           required: true
+   *           oneOf:
+   *             - type: string
+   *             - type: integer
+   *         - name: storyName
+   *           in: path
+   *           required: true
+   *           schema:
+   *             type: string
+   *       requestBody:
+   *         required: true
+   *         content:
+   *           application.json:
+   *             schema:
+   *               type: object
+   *               properties:
+   *                 ignore: 
+   *                   description: Whether or not the student should be ignored
+   *                   type: boolean
+   *       responses:
+   *         200:
+   *           description: The student's ignore state now matches the request
+   *           content:
+   *             application/json:
+   *               schema:
+   *                 type: object
+   *                 properties:
+   *                   message:
+   *                     type: string
+   *         404:
+   *           description: Either the student or story does not exist
+   *           content:
+   *             application/json:
+   *               schema:
+   *                $ref: "#/components/schemas/Error"
+   *         400:
+   *           description: The request body had the wrong form
+   *           content:
+   *             application/json:
+   *              schema:
+   *                $ref: "#/components/schemas/Error"
+   */
   app.put("/students/ignore/:identifier/:storyName", async (req, res) => {
     const identifier = req.params.identifier;
     const student = await findStudentByIdOrUsername(identifier);
     if (student === null) {
       res.status(404).json({
-        success: false,
         error: `No student found for identifier ${identifier}`,
       });
       return;
@@ -500,7 +856,6 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     const story = await getStory(storyName);
     if (story === null) {
       res.status(404).json({
-        success: false,
         error: `No story found with name ${storyName}`,
       });
       return;
@@ -512,7 +867,6 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     const maybe = S.decodeUnknownEither(schema)(req.body);
     if (Either.isLeft(maybe)) {
       res.status(400).json({
-        success: false,
         error: "Invalid request body; should have form { ignore: <boolean> }",
       });
       return;
@@ -523,7 +877,6 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     let message: string;
     
     if (ignore) {
-
       const [ignored, created] = await IgnoreStudent.upsert({
         student_id: student.id,
         story_name: story.name,
@@ -563,9 +916,37 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
       }
     }
 
-    res.json({ success, message });
+    res.json({ message });
   });
 
+  /**
+  * @openapi
+  * /educators/{identifier}:
+  *   get:
+  *     tags:
+  *       - educators
+  *     description: Return information about the educator with the given identifier (ID (#) or username (string))
+  *     parameters:
+  *       - name: identifier
+  *         in: path
+  *         required: true
+  *         oneOf:
+  *           - type: string
+  *           - type: integer
+  *     responses:
+  *       200:
+  *         description: An educator with the given identifier exists
+  *         content:
+  *           application/json:
+  *             schema:
+  *               type: "#/components/schemas/Educator"
+  *       404:
+  *         description: An educator with the given identifier does not exist
+  *         content:
+  *           application/json:
+  *             schema:
+  *               type: null
+  */
   app.get("/educators/:identifier", async (req, res) => {
     const params = req.params;
     const id = Number(params.identifier);
@@ -584,6 +965,48 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     });
   });
 
+  /**
+   *  @openapi
+   *  /classes/join:
+   *    post:
+   *      tags:
+   *        - classes
+   *      description: Add a student to a class
+   *      requestBody:
+   *        required: true
+   *        content:
+   *          application/json:
+   *            schema:
+   *              type: object
+   *              properties:
+   *                username:
+   *                  description: The student's username
+   *                  type: string
+   *                class_code:
+   *                  description: The code for the class
+   *                  type: string
+   *      responses:
+   *        200:
+   *          description: The student was successfully added to the class, or was already a member
+   *          content:
+   *            application/json:
+   *              schema:
+   *                type: object
+   *                properties:
+   *                  message:
+   *                    description: A message detailing whether the student was already in the class or was newly added
+   *                    type: string
+   *        404:
+   *          description: At least one of the student username or class code were invalid
+   *          content:
+   *            application/json:
+   *              schema:
+   *                type: object
+   *                properties:
+   *                  message:
+   *                    description: A message detailing which field(s) were invalid
+   *                    type: string
+   */
   app.post("/classes/join", async (req, res) => {
     const username = req.body.username as string;
     const classCode = req.body.class_code as string;
@@ -604,7 +1027,6 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
       message += invalid.join(", ");
       res.statusCode = 404;
       res.json({
-        success: false,
         message: message
       });
       return;
@@ -625,10 +1047,50 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
       message = "Student added to class successfully";
     }
 
-    res.json({ success, message });
+    res.json({ message });
   });
 
   /* Classes */
+
+  /**
+   *  @openapi
+   *  /classes/create:
+   *    post:
+   *      tags:
+   *        - classes
+   *      description: Create a new class
+   *      requestBody:
+   *        required: true
+   *        content:
+   *          application/json:
+   *            schema:
+   *              $ref: "#/components/schemas/ClassCreationInfo"
+   *      responses:
+   *        201:
+   *          description: The new class was successfully created
+   *          content:
+   *            application/json:
+   *              schema:
+   *                $ref: "#/components/schemas/ClassCreated"
+   *        409:
+   *          description: A student with the given email address already exists
+   *          content:
+   *            application/json:
+   *              schema:
+   *                $ref: "#/components/schemas/StudentCreated"
+   *        400:
+   *          description: The request body was ill-formed
+   *          content:
+   *            application/json:
+   *              schema:
+   *                $ref: "#/components/schemas/StudentCreated"
+   *        500:
+   *          description: An error occurred while creating the student 
+   *          content:
+   *            application/json:
+   *              schema:
+   *                $ref: "#/components/schemas/StudentCreated"
+   */
   app.post([
     "/classes/create",
     "/create-class",
@@ -642,15 +1104,42 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
       response = {
         result: CreateClassResult.BadRequest,
       };
-      res.status(400);
     }
-    res.json({
+    const statusCode = CreateClassResult.statusCode(response.result);
+    res.status(statusCode).json({
       class_info: response.class,
       status: response.result,
       success: CreateClassResult.success(response.result)
     });
   });
 
+  /**
+  * @openapi
+  * /classes/{identifier}:
+  *   get:
+  *     tags:
+  *       - classes
+  *     description: Return information about the class with the given identifier (ID (#) or code (string))
+  *     parameters:
+  *       - name: identifier
+  *         in: path
+  *         required: true
+  *         schema:
+  *           type: string
+  *     responses:
+  *       200:
+  *         description: A class with the given identifier exists
+  *         content:
+  *           application/json:
+  *             schema:
+  *               type: "#/components/schemas/Class"
+  *       404:
+  *         description: A class with the given identifier does not exist
+  *         content:
+  *           application/json:
+  *             schema:
+  *               type: null
+  */
   app.get("/classes/:identifier", async (req, res) => {
     const params = req.params;
     const id = Number(params.identifier);
@@ -672,6 +1161,43 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     });
   });
 
+  /**
+   *  @openapi
+   *  /classes/{identifier}:
+   *    delete:
+   *      tags:
+   *        - classes
+   *      description: Delete the class specified by the given identifier
+   *      parameters:
+   *        - name: identifier
+   *          in: path
+   *          required: true
+   *          oneOf:
+   *            - type: string
+   *            - type: integer
+   *          schema:
+   *            type: string
+   *        - name: classID
+   *          in: path
+   *          required: true
+   *          schema:
+   *            type: integer
+   *      responses:
+   *        204:
+   *          description: The class has been deleted
+   *        404:
+   *          description: No class exists with the given identifier
+   *          content:
+   *            application/json:
+   *              schema:
+   *                $ref: "#/components/schemas/Error"
+   *        500:
+   *          description: An error occurred while trying to delete the class
+   *          content:
+   *            application/json:
+   *              schema:
+   *                $ref: "#/components/schemas/Error"
+  */
   app.delete("/classes/:identifier", async (req, res) => {
     const params = req.params;
     const id = Number(params.identifier);
@@ -687,32 +1213,52 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     }
     if (cls === null) {
       res.status(404).json({
-        success: false,
         error: `Could not find class with ${identifier} ${params.identifier}`,
       });
       return;
     }
-    const success = await cls.destroy()
-      .then(() => true)
+
+    cls.destroy()
+      .then(() => res.status(204).end())
       .catch(error => {
         console.log(error);
-        return false;
+        res.status(500).json({
+          error: `Server error deleting class with ${identifier} ${params.identifier}`,
+        });
       });
-
-    if (!success) {
-      res.status(500).json({
-        success: false,
-        error: `Server error deleting class with ${identifier} ${params.identifier}`,
-      });
-      return;
-    }
-
-    res.json({
-      success: true,
-      message: "Class deleted",
-    });
   });
 
+  /**
+   *  @openapi
+   *  /classes/size/{classID}:
+   *    get:
+   *      tags:
+   *        - classes
+   *      description: Retrieve how many students are in a given class
+   *      parameters:
+   *        - name: classID
+   *          in: path
+   *          required: true
+   *          schema:
+   *            type: integer
+   *      responses:
+   *        200:
+   *          content:
+   *            application/json:
+   *              schema:
+   *                type: object
+   *                properties:
+   *                  class_id:
+   *                    type: integer 
+   *                  size:
+   *                    type: integer
+   *        404:
+   *          description: No class exists with the given ID
+   *          content:
+   *            application/json:
+   *              schema:
+   *                $ref: "#/components/schemas/Error"
+   */
   app.get("/classes/size/:classID", async (req, res) => {
     const classID = Number(req.params.classID);
     const cls = await findClassById(classID);
@@ -729,6 +1275,37 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     });
   });
 
+  /**
+   *  @openapi
+   *  /classes/expected-size/{classID}:
+   *    get:
+   *      tags:
+   *        - classes
+   *      description: Retrieve the expected (i.e. teacher-specified) size of a class
+   *      parameters:
+   *        - name: classID
+   *          in: path
+   *          required: true
+   *          schema:
+   *            type: integer
+   *      responses:
+   *        200:
+   *          content:
+   *            application/json:
+   *              schema:
+   *                type: object
+   *                properties:
+   *                  class_id:
+   *                    type: string
+   *                  expected_size:
+   *                    type: integer
+   *        404:
+   *          description: No class exists with the given ID
+   *          content:
+   *            application/json:
+   *              schema:
+   *                $ref: "#/components/schemas/Error"
+   */
   app.get("/classes/expected-size/:classID", async (req, res) => {
     const classID = Number(req.params.classID);
     const cls = await findClassById(classID);
@@ -745,6 +1322,37 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     });
   });
 
+  /**
+   *  @openapi
+   *  /classes/roster/{classID}:
+   *    get:
+   *      tags:
+   *        - classes
+   *      description: Retrieve information about the students in a given class
+   *      parameters:
+   *        - name: classID
+   *          in: path
+   *          required: true
+   *          schema:
+   *            type: integer
+   *      responses:
+   *        200:
+   *          content:
+   *            application/json:
+   *              schema:
+   *                type: array
+   *                items:
+   *                  $ref: "#/components/schemas/Student"
+   *        404:
+   *          description: No class exists with the given ID
+   *          content:
+   *            application/json:
+   *              schema:
+   *                type: object
+   *                properties:
+   *                  error:
+   *                    type: string
+   */
   app.get("/classes/roster/:classID", async (req, res) => {
     const classID = Number(req.params.classID);
     const cls = await findClassById(classID);
@@ -759,6 +1367,43 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     res.json(students);
   });
 
+  /*
+   *  @openapi
+   *  /classes/active/{classIdentifier}/{storyName}:
+   *    get:
+   *      tags:
+   *        - classes
+   *        - stories
+   *      description: Retrieve whether the given class is marked as active for using the given story
+   *      parameters:
+   *        - name: classIdentifier:
+   *          in: path
+   *          required: true
+   *          oneOf:
+   *            - type: string
+   *            - type: integer
+   *        - name: storyName
+   *          in: path
+   *          required: true
+   *          schema:
+   *            type: string
+   *      responses:
+   *        200:
+   *          description: The class is signed up to use the given story
+   *          content:
+   *            application/json:
+   *              schema:
+   *                type: object
+   *                properties:
+   *                  active:
+   *                    type: boolean
+   *        404:
+   *          description: Either the class or story does not exist, or the class is not signed up to use the story
+   *          content:
+   *            application/json:
+   *              schema:
+   *                $ref: "#/components/schemas/Error"
+   * */
   app.get("/classes/active/:classIdentifier/:storyName", async (req, res) => {
     const classIdentifier = req.params.classIdentifier;
     const cls = await findClassByIdOrCode(classIdentifier);
@@ -791,6 +1436,70 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
 
   });
 
+  /**
+   *  @openapi
+   *  /classes/active/{classIdentifier}/{storyName}:
+   *    post:
+   *      tags:
+   *        - classes
+   *        - stories
+   *      description: Set whether a class is marked active for a given story
+   *      parameters:
+   *        - name: classIdentifier
+   *          in: path
+   *          required: true
+   *          oneOf:
+   *            - type: string
+   *            - type: integer
+   *        - name: storyName
+   *          in: path
+   *          required: true
+   *          schema:
+   *            type: string
+   *      requestBody:
+   *        required: true
+   *        content:
+   *          application/json:
+   *            schema:
+   *              type: object
+   *              properties:
+   *                active:
+   *                  type: boolean
+   *      responses:
+   *        200:
+   *          description: The class's active status was set successfully
+   *          content:
+   *            application/json:
+   *              schema:
+   *                type: object
+   *                properties:
+   *                  class_id:
+   *                    type: integer 
+   *                  class_code:
+   *                    type: string
+   *                  story_name:
+   *                    type: string
+   *                  active:
+   *                    type: boolean
+   *        404:
+   *          description: Either the class or story does not exist, or the class is not signed up for the given story
+   *          content:
+   *            application/json:
+   *              schema:
+   *                $ref: "#/components/schemas/Error"
+   *        400:
+   *          description: The request body was not properly formatted
+   *          content:
+   *            application/json:
+   *              schema:
+   *                $ref: "#/components/schemas/Error"
+   *        500:
+   *          description: An error occurred while updating the active status
+   *          content:
+   *            application/json:
+   *              schema:
+   *                $ref: "#/components/schemas/Error"
+   */
   app.post("/classes/active/:classIdentifier/:storyName", async (req, res) => {
     const classIdentifier = req.params.classIdentifier;
     const cls = await findClassByIdOrCode(classIdentifier);
@@ -845,11 +1554,55 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
       class_code: cls.code,
       story_name: storyName,
       active,
-      success: true,
     });
 
   });
 
+  /**
+   *  @openapi
+   *  /story-state/{studentID}/{storyName}:
+   *    get:
+   *      tags:
+   *        - students
+   *        - stories
+   *      description: Retrieve the story state for the given student/story
+   *      parameters:
+   *        - name: studentID
+   *          in: path
+   *          required: true
+   *          type: integer
+   *        - name: storyName
+   *          in: path
+   *          required: true
+   *          type: string
+   *      responses:
+   *        200:
+   *          content:
+   *            application/json:
+   *              schema:
+   *                type: object
+   *                properties:
+   *                  student_id:
+   *                    type: integer
+   *                  story_name:
+   *                    type: string
+   *                  state:
+   *                    description: The story state
+   *                    type: object
+   *        404:
+   *          description: The student does not have a story state for the given story
+   *          content:
+   *            application/json:
+   *              schema:
+   *                type: object
+   *                properties:
+   *                  student_id:
+   *                    type: integer
+   *                  story_name:
+   *                    type: string
+   *                  state:
+   *                    type: null
+   */
   app.get("/story-state/:studentID/:storyName", async (req, res) => {
     const params = req.params;
     const studentID = Number(params.studentID);
@@ -863,13 +1616,65 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     });
   });
 
+  /**
+   *  @openapi
+   *  /story-state/{studentID}/{storyName}:
+   *    put:
+   *      tags:
+   *        - students
+   *        - stories
+   *      description: Set the story state for the given student/story
+   *      parameters:
+   *        - name: studentID
+   *          in: path
+   *          required: true
+   *          type: integer
+   *        - name: storyName
+   *          in: path
+   *          required: true
+   *          type: string
+   *      requestBody:
+   *        description: The story state, represented as a JSON object
+   *        required: true
+   *        content:
+   *          application/json:
+   *            schema:
+   *              type: object
+   *      responses:
+   *        200:
+   *          content:
+   *            application/json:
+   *              schema:
+   *                type: object
+   *                properties:
+   *                  student_id:
+   *                    type: integer
+   *                  story_name:
+   *                    type: string
+   *                  state:
+   *                    description: The story state
+   *                    type: object
+   *        500:
+   *          description: The student does not have a story state for the given story
+   *          content:
+   *            application/json:
+   *              schema:
+   *                type: object
+   *                properties:
+   *                  student_id:
+   *                    type: integer
+   *                  story_name:
+   *                    type: string
+   *                  state:
+   *                    type: null
+   */
   app.put("/story-state/:studentID/:storyName", async (req, res) => {
     const params = req.params;
     const studentID = Number(params.studentID);
     const storyName = params.storyName;
     const newState = req.body;
     const state = await updateStoryState(studentID, storyName, newState);
-    const status = state !== null ? 200 : 404;
+    const status = state !== null ? 200 : 500;
     res.status(status).json({
       student_id: studentID,
       story_name: storyName,
@@ -877,6 +1682,57 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     });
   });
 
+  /**
+   * @openapi
+   *  /story-state/{studentID}/{storyName}:
+   *    patch:
+   *      tags:
+   *        - students
+   *        - stories
+   *      description: Update the story state for the given student/story
+   *      parameters:
+   *        - name: studentID
+   *          in: path
+   *          required: true
+   *          type: integer
+   *        - name: storyName
+   *          in: path
+   *          required: true
+   *          type: string
+   *      requestBody:
+   *        description: The story state, represented as a JSON object
+   *        required: true
+   *        content:
+   *          application/json:
+   *            schema:
+   *              type: object
+   *      responses:
+   *        200:
+   *          content:
+   *            application/json:
+   *              schema:
+   *                type: object
+   *                properties:
+   *                  student_id:
+   *                    type: integer
+   *                  story_name:
+   *                    type: string
+   *                  state:
+   *                    description: The story state
+   *                    type: object
+   *        404:
+   *          description: The student does not have a story state for the given story
+   *          content:
+   *            application/json:
+   *              schema:
+   *                type: object
+   *                properties:
+   *                  student_id:
+   *                    type: integer
+   *                  story_name:
+   *                    type: string
+   *                  state:
+   */
   app.patch("/story-state/:studentID/:storyName", async (req, res) => {
     const params = req.params;
     const studentID = Number(params.studentID);
@@ -891,6 +1747,33 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     });
   });
 
+  /**
+   *  @openapi
+   *  /stages/{storyName}:
+   *    get:
+   *      tags:
+   *        - stories
+   *      description: Get information about the stages registered to the given story
+   *      parameters:
+   *        - name: storyName
+   *          in: path
+   *          required: true
+   *          type: string
+   *      responses:
+   *        200:
+   *          content:
+   *            application/json:
+   *              schema:
+   *                type: array
+   *                items:
+   *                  $ref: "#/components/schemas/Stage"
+   *        404:
+   *          description: No story was found with the given name
+   *          content:
+   *            application/json:
+   *              schema:
+   *                $ref: "#/components/schemas/Error"
+   */
   app.get("/stages/:storyName", async (req, res) => {
     const storyName = req.params.storyName;
     const story = await getStory(storyName);
@@ -908,12 +1791,49 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     });
   });
 
-  // Use query parameters `student_id`, `class_id`, and `stage_name` to filter output
-  // `stage_name` is optional. If not specified, return value will be an object of the form
-  // { stage1: [<states>], stage2: [<states>], ... }
-  // If specified, this returns an object of the form [<states>]
-  // At least one of `student_id` and `class_id` must be specified.
-  // If both are specified, only `student_id` is used
+  /**
+   *  @openapi
+   *  /stage-states/{storyName}:
+   *    get:
+   *      description: Get the stage states for the given student/class and (optionally) stage. At least one of studentID and classID is required. If both are given, only studentID is used
+   *      tags:
+   *        - students
+   *      parameters:
+   *        - name: studentID
+   *          in: query
+   *          type: integer
+   *        - name: classID
+   *          in: query
+   *          type: integer
+   *        - name: stage_name
+   *          in: query
+   *          type: string
+   *      responses:
+   *        200:
+   *          description: If stage_name is given, an array of stage states for the given student/class is returned. Otherwise, the response payload is an object of stage state arrays keyed by stage name
+   *          content:
+   *            application/json:
+   *              schema:
+   *                oneOf:
+   *                  - type: object
+   *                    additionalProperties:
+   *                      $ref: "#/components/schemas/StageState"
+   *                  - type: array
+   *                    items:
+   *                      $ref: "#/components/schemas/StageState"
+   *        400:
+   *          description: Neither a student nor class ID is given
+   *          content:
+   *            application/json:
+   *              schema:
+   *                $ref: "#/components/schemas/Error"
+   *        404:
+   *          description: At least one of the given story or student/class does not exist
+   *          content:
+   *            application/json:
+   *              schema:
+   *                $ref: "#/components/schemas/Error"
+   */
   app.get("/stage-states/:storyName", async (req, res) => {
     const storyName = req.params.storyName;
     const story = await getStory(storyName);
@@ -962,6 +1882,59 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     res.json(results);
   });
 
+  /**
+   *  @openapi
+   *  /stage-state/{studentID}/{storyName}/{stageName}:
+   *    get:
+   *      tags:
+   *        - students
+   *      description: Get the student's state for a given stage in a story
+   *      parameters:
+   *        - name: studentID
+   *          in: path
+   *          required: true
+   *          type: integer
+   *        - name: storyName 
+   *          in: path
+   *          required: true
+   *          type: string
+   *        - name: stageName 
+   *          in: path
+   *          required: true
+   *          type: string
+   *      responses:
+   *        200:
+   *          content:
+   *            application/json:
+   *              schema:
+   *                type: object
+   *                properties:
+   *                  student_id:
+   *                    type: integer
+   *                  story_name:
+   *                    type: string
+   *                  stage_name:
+   *                    type: string
+   *                  state:
+   *                    schema:
+   *                      $ref: "#/components/schemas/StageState"
+   *        404:
+   *          description: No stage state exists for the given student/story/stage combination
+   *          content:
+   *            application/json:
+   *              schema:
+   *                type: object
+   *                properties:
+   *                  student_id:
+   *                    type: integer
+   *                  story_name:
+   *                    type: string
+   *                  stage_name:
+   *                    type: string
+   *                  state:
+   *                    schema:
+   *                      $ref: null
+   */
   app.get("/stage-state/:studentID/:storyName/:stageName", async (req, res) => {
     const params = req.params;
     const studentID = Number(params.studentID);
@@ -977,6 +1950,65 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     });
   });
 
+  /**
+   *  @openapi
+   *  /stage-state/{studentID}/{storyName}/{stageName}:
+   *    put:
+   *      tags:
+   *        - students
+   *      description: Set a student's state for a given stage in a story
+   *      parameters:
+   *        - name: studentID
+   *          in: path
+   *          required: true
+   *          type: integer
+   *        - name: storyName
+   *          in: path
+   *          required: true
+   *          type: string
+   *        - name: stageName
+   *          in: path
+   *          required: true
+   *          type: string
+   *      requestBody:
+   *        required: true
+   *        description: The stage state, represented as a JSON object
+   *        content:
+   *          application/json:
+   *            schema:
+   *              type: object
+   *      responses:
+   *        200:
+   *          content:
+   *            application/json:
+   *              schema:
+   *                type: object
+   *                properties:
+   *                  student_id:
+   *                    type: integer
+   *                  story_name:
+   *                    type: string
+   *                  stage_state:
+   *                    type: string
+   *                  state:
+   *                    schema:
+   *                      $ref: "#/components/schemas/StageState"
+   *        404:
+   *          description: The state for the given student/story/stage combination does not exist
+   *          content:
+   *            application/json:
+   *              schema:
+   *                type: object
+   *                properties:
+   *                  student_id:
+   *                    type: integer
+   *                  story_name:
+   *                    type: string
+   *                  stage_state:
+   *                    type: string
+   *                  state:
+   *                    type: null 
+   */
   app.put("/stage-state/:studentID/:storyName/:stageName", async (req, res) => {
     const params = req.params;
     const studentID = Number(params.studentID);
@@ -993,6 +2025,36 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     });
   });
 
+  /**
+   *  @openapi
+   *  /stage-state/{studentID}/{storyName}/{stageName}:
+   *    delete:
+   *      tags:
+   *        - students
+   *      description: Delete a student's state for a given stage in a story
+   *      parameters:
+   *        - name: studentID
+   *          in: path
+   *          required: true
+   *          type: integer
+   *        - name: storyName
+   *          in: path
+   *          required: true
+   *          type: string
+   *        - name: stageName
+   *          in: path
+   *          required: true
+   *          type: string
+   *      responses:
+   *        200:
+   *          description: The state was deleted successfully
+   *        404:
+   *          description: The state for the given student/story/stage combination does not exist
+   *          content:
+   *            application/json:
+   *              schema:
+   *                $ref: "#/components/schemas/Error"
+   */
   app.delete("/stage-state/:studentID/:storyName/:stageName", async (req, res) => {
     const params = req.params;
     const studentID = Number(params.studentID);
@@ -1001,31 +2063,99 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     const state = await getStudentStageState(studentID, storyName, stageName);
     if (state != null) {
       res.status(200);
-      const count = await deleteStageState(studentID, storyName, stageName);
-      const success = count > 0;
-      res.json({
-        success,
-      });
+      await deleteStageState(studentID, storyName, stageName);
+      res.end();
     } else {
       res.status(404);
-      const message = "No such (student, story, stage) combination found";
-      res.statusMessage = message;
-      res.json({
-        message,
-      });
+      const error = "No such (student, story, stage) combination found";
+      res.statusMessage = error;
+      res.json({ error });
     }
   });
 
+  /**
+   *  @openapi
+   *  /educator-classes/{educatorID}:
+   *    get:
+   *      tags:
+   *        - educators
+   *        - classes
+   *      description: Return information on all of the classes associated with an educator
+   *      parameters:
+   *        - name: educatorID
+   *          in: path
+   *          required: true
+   *          type: integer
+   *      responses:
+   *        200:
+   *          content:
+   *            application/json:
+   *              schema:
+   *                type: object
+   *                properties:
+   *                  educator_id:
+   *                    type: integer
+   *                  classes:
+   *                    type: array
+   *                    items:
+   *                      $ref: "#/components/schemas/Class"
+   *        404:
+   *          description: No educator with the given ID was found
+   *          content:
+   *            application/json:
+   *              schema:
+   *                $ref: "#/components/schemas/Error"
+   */
   app.get("/educator-classes/:educatorID", async (req, res) => {
     const params = req.params;
     const educatorID = Number(params.educatorID);
+    const educator = await findEducatorById(educatorID);
+    if (educator === null) {
+      res.status(404).json({
+        error: `No educator found with ID ${educatorID}`,
+      });
+      return;
+    }
     const classes = await getClassesForEducator(educatorID);
     res.json({
       educator_id: educatorID,
-      classes: classes
+      classes,
     });
   });
 
+  /**
+   *  @openapi
+   *  /student-classes/{studentID}:
+   *    get:
+   *      tags:
+   *        - students 
+   *        - classes
+   *      description: Return information on all of the classes that a student is a member of
+   *      parameters:
+   *        - name: studentID
+   *          in: path
+   *          required: true
+   *          type: integer
+   *      responses:
+   *        200:
+   *          content:
+   *            application/json:
+   *              schema:
+   *                type: object
+   *                properties:
+   *                  student_id:
+   *                    type: integer
+   *                  classes:
+   *                    type: array
+   *                    items:
+   *                      $ref: "#/components/schemas/Class"
+   *        404:
+   *          description: No student with the given ID was found
+   *          content:
+   *            application/json:
+   *              schema:
+   *                $ref: "#/components/schemas/Error"
+   */
   app.get("/student-classes/:studentID", async (req, res) => {
     const params = req.params;
     const studentID = Number(params.studentID);
@@ -1043,10 +2173,57 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     res.json(info);
   });
 
+  /**
+   *  @openapi
+   *  /roster-info/{classID}/{storyName}:
+   *    get:
+   *      tags:
+   *        - classes
+   *      description: Get the story states for a given class and story
+   *      parameters:
+   *        - name: classID
+   *          in: path
+   *          required: true
+   *          type: integer
+   *        - name: storyName
+   *          in: path
+   *          required: true
+   *          type: string
+   *      responses:
+   *        200:
+   *          content:
+   *            application/json:
+   *              schema:
+   *                type: array
+   *                items:
+   *                  $ref: "#/components/schemas/StoryState"
+   *        404:
+   *          description: Either the given class or story was not found
+   *          content:
+   *            application/json:
+   *              schema:
+   *                $ref: "#/components/schemas/Error"
+   */
   app.get("/roster-info/:classID/:storyName", async (req, res) => {
     const params = req.params;
     const classID = Number(params.classID);
     const storyName = params.storyName;
+    const cls = await findClassById(classID);
+    if (cls === null) {
+      res.status(404).json({
+        error: `No class found with ID ${classID}`,
+      });
+      return;
+    }
+
+    const story = await getStory(storyName);
+    if (story === null) {
+      res.status(404).json({
+        error: `No story found with name ${storyName}`,
+      });
+      return;
+    }
+
     const info = await getRosterInfoForStory(classID, storyName);
     res.json(info);
   });
@@ -1061,6 +2238,35 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
 
 
   // Question information
+
+  /**
+   *  @openapi
+   *  /question/{tag}:
+   *    get:
+   *      tags:
+   *        - questions
+   *      description: Get information about the question with a given tag
+   *      parameters:
+   *        - name: tag
+   *          in: path
+   *          required: true
+   *          type: string
+   *      responses:
+   *        200:
+   *          content:
+   *            application/json:
+   *              schema:
+   *                type: object
+   *                properties:
+   *                  question:
+   *                    $ref: "#/components/schemas/Question"
+   *        404:
+   *          description: No question was found with the given tag
+   *          content:
+   *            application/json:
+   *              schema:
+   *                $ref: "#/components/schemas/Question"
+   */
   app.get("/question/:tag", async (req, res) => {
     const tag = req.params.tag;
     let version = parseInt(req.query.version as string);
@@ -1095,9 +2301,49 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     });
   });
 
+  /**
+   *  @openapi
+   *  /question/{tag}:
+   *    post:
+   *      tags:
+   *        - questions
+   *      description: Create a question with a given tag
+   *      parameters:
+   *        - name: tag
+   *          in: path
+   *          required: true
+   *          type: string
+   *      requestBody:
+   *        required: true
+   *        schema:
+   *          $ref: "#/components/schemas/QuestionCreationInfo"
+   *      responses:
+   *        200:
+   *          content:
+   *            application/json:
+   *              schema:
+   *                type: object
+   *                properties:
+   *                  question:
+   *                    schema:
+   *                      $ref: "#/components/schemas/Question"
+   *        400:
+   *          description: The request body format is incorrect
+   *          content:
+   *            application/json:
+   *              schema:
+   *                $ref: "#/components/schemas/Error"
+   *        500:
+   *          description: The request body was properly formatted, but there was an error creating the question
+   *          content:
+   *            application/json:
+   *              schema:
+   *                $ref: "#/components/schemas/Error"
+   */
   app.post("/question/:tag", async (req, res) => {
 
-    const data = { ...req.body, tag: req.params.tag };
+    const tag = req.params.tag;
+    const data = { ...req.body, tag };
     const maybe = S.decodeUnknownEither(QuestionInfoSchema)(data);
 
     if (Either.isLeft(maybe)) {
@@ -1108,9 +2354,9 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
       return;
     }
 
-    const currentQuestion = await findQuestion(req.params.tag);
+    const currentQuestion = await findQuestion(tag);
     const version = currentQuestion !== null ? currentQuestion.version + 1 : 1;
-    const questionInfo = { ...maybe.right, version };
+    const questionInfo = { ...maybe.right, version, tag };
     const addedQuestion = await addQuestion(questionInfo);
     if (addedQuestion === null) {
       res.statusCode = 500;
@@ -1125,8 +2371,46 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     });
   });
 
+  /**
+   *  @openapi
+   *  /questions/{storyName}:
+   *    get:
+   *      tags:
+   *        - questions
+   *        - stories
+   *      description: Retrieve information on all of the questions associated with a given story
+   *      parameters:
+   *        - name: storyName
+   *          in: path
+   *          required: true
+   *          type: string
+   *      responses:
+   *        200:
+   *          content:
+   *            application/json:
+   *              schema:
+   *                type: object
+   *                properties:
+   *                  questions:
+   *                    schema:
+   *                      $ref: "#/components/schemas/Question"
+   *        404:
+   *          description: No story was found with the given name
+   *          content:
+   *            application/json:
+   *              schema:
+   *                $ref: "#/components/schemas/Error"
+   */
   app.get("/questions/:storyName", async (req, res) => {
     const storyName = req.params.storyName;
+    const story = await getStory(storyName);
+    if (story === null) {
+      res.status(404).json({
+        error: `No story found with name ${storyName}`,
+      });
+      return;
+    }
+
     const newestOnlyString = req.query.newest_only as string;
     const newestOnly = newestOnlyString?.toLowerCase() !== "false";
     const questions = await getQuestionsForStory(storyName, newestOnly);
