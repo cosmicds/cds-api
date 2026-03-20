@@ -605,9 +605,10 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
   *       - name: identifier
   *         in: path
   *         required: true
-  *         oneOf:
-  *           - type: string
-  *           - type: integer
+  *         schema:
+  *           oneOf:
+  *             - type: string
+  *             - type: integer
   *     responses:
   *       200:
   *         description: A student with the given identifier exists
@@ -714,9 +715,10 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
    *        - name: identifier
    *          in: path
    *          required: true
-   *          oneOf:
-   *          - type: string
-   *          - type: integer
+   *          schema:
+   *            oneOf:
+   *            - type: string
+   *            - type: integer
    *        - name: classID
    *          in: path
    *          required: true
@@ -801,9 +803,10 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
    *           description: Either the student's username or ID
    *           in: path
    *           required: true
-   *           oneOf:
-   *             - type: string
-   *             - type: integer
+   *           schema:
+   *             oneOf:
+   *               - type: string
+   *               - type: integer
    *         - name: storyName
    *           in: path
    *           required: true
@@ -930,9 +933,10 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
   *       - name: identifier
   *         in: path
   *         required: true
-  *         oneOf:
-  *           - type: string
-  *           - type: integer
+  *         schema:
+  *           oneOf:
+  *             - type: string
+  *             - type: integer
   *     responses:
   *       200:
   *         description: An educator with the given identifier exists
@@ -1172,11 +1176,10 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
    *        - name: identifier
    *          in: path
    *          required: true
-   *          oneOf:
-   *            - type: string
-   *            - type: integer
    *          schema:
-   *            type: string
+   *            oneOf:
+   *              - type: string
+   *              - type: integer
    *        - name: classID
    *          in: path
    *          required: true
@@ -1379,9 +1382,10 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
    *        - name: classIdentifier:
    *          in: path
    *          required: true
-   *          oneOf:
-   *            - type: string
-   *            - type: integer
+   *          schema:
+   *            oneOf:
+   *              - type: string
+   *              - type: integer
    *        - name: storyName
    *          in: path
    *          required: true
@@ -1448,9 +1452,10 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
    *        - name: classIdentifier
    *          in: path
    *          required: true
-   *          oneOf:
-   *            - type: string
-   *            - type: integer
+   *          schema:
+   *            oneOf:
+   *              - type: string
+   *              - type: integer
    *        - name: storyName
    *          in: path
    *          required: true
@@ -1570,11 +1575,13 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
    *        - name: studentID
    *          in: path
    *          required: true
-   *          type: integer
+   *          schema:
+   *            type: integer
    *        - name: storyName
    *          in: path
    *          required: true
-   *          type: string
+   *          schema:
+   *            type: string
    *      responses:
    *        200:
    *          content:
@@ -1628,11 +1635,13 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
    *        - name: studentID
    *          in: path
    *          required: true
-   *          type: integer
+   *          schema:
+   *            type: integer
    *        - name: storyName
    *          in: path
    *          required: true
-   *          type: string
+   *          schema:
+   *            type: string
    *      requestBody:
    *        description: The story state, represented as a JSON object
    *        required: true
@@ -1694,11 +1703,13 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
    *        - name: studentID
    *          in: path
    *          required: true
-   *          type: integer
+   *          schema:
+   *            type: integer
    *        - name: storyName
    *          in: path
    *          required: true
-   *          type: string
+   *          schema:
+   *            type: string
    *      requestBody:
    *        description: The story state, represented as a JSON object
    *        required: true
@@ -1758,7 +1769,8 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
    *        - name: storyName
    *          in: path
    *          required: true
-   *          type: string
+   *          schema:
+   *            type: string
    *      responses:
    *        200:
    *          content:
@@ -1801,13 +1813,16 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
    *      parameters:
    *        - name: studentID
    *          in: query
-   *          type: integer
+   *          schema:
+   *            type: integer
    *        - name: classID
    *          in: query
-   *          type: integer
+   *          schema:
+   *            type: integer
    *        - name: stage_name
    *          in: query
-   *          type: string
+   *          schema:
+   *            type: string
    *      responses:
    *        200:
    *          description: If stage_name is given, an array of stage states for the given student/class is returned. Otherwise, the response payload is an object of stage state arrays keyed by stage name
@@ -1893,15 +1908,18 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
    *        - name: studentID
    *          in: path
    *          required: true
-   *          type: integer
+   *          schema:
+   *            type: integer
    *        - name: storyName 
    *          in: path
    *          required: true
-   *          type: string
+   *          schema:
+   *            type: string
    *        - name: stageName 
    *          in: path
    *          required: true
-   *          type: string
+   *          schema:
+   *            type: string
    *      responses:
    *        200:
    *          content:
@@ -1961,15 +1979,18 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
    *        - name: studentID
    *          in: path
    *          required: true
-   *          type: integer
+   *          schema:
+   *            type: integer
    *        - name: storyName
    *          in: path
    *          required: true
-   *          type: string
+   *          schema:
+   *            type: string
    *        - name: stageName
    *          in: path
    *          required: true
-   *          type: string
+   *          schema:
+   *            type: string
    *      requestBody:
    *        required: true
    *        description: The stage state, represented as a JSON object
@@ -2036,15 +2057,18 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
    *        - name: studentID
    *          in: path
    *          required: true
-   *          type: integer
+   *          schema:
+   *            type: integer
    *        - name: storyName
    *          in: path
    *          required: true
-   *          type: string
+   *          schema:
+   *            type: string
    *        - name: stageName
    *          in: path
    *          required: true
-   *          type: string
+   *          schema:
+   *            type: string
    *      responses:
    *        200:
    *          description: The state was deleted successfully
@@ -2085,7 +2109,8 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
    *        - name: educatorID
    *          in: path
    *          required: true
-   *          type: integer
+   *          schema:
+   *            type: integer
    *      responses:
    *        200:
    *          content:
@@ -2135,7 +2160,8 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
    *        - name: studentID
    *          in: path
    *          required: true
-   *          type: integer
+   *          schema:
+   *            type: integer
    *      responses:
    *        200:
    *          content:
@@ -2184,11 +2210,13 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
    *        - name: classID
    *          in: path
    *          required: true
-   *          type: integer
+   *          schema:
+   *            type: integer
    *        - name: storyName
    *          in: path
    *          required: true
-   *          type: string
+   *          schema:
+   *            type: string
    *      responses:
    *        200:
    *          content:
@@ -2250,7 +2278,8 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
    *        - name: tag
    *          in: path
    *          required: true
-   *          type: string
+   *          schema:
+   *            type: string
    *      responses:
    *        200:
    *          content:
@@ -2312,7 +2341,8 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
    *        - name: tag
    *          in: path
    *          required: true
-   *          type: string
+   *          schema:
+   *            type: string
    *      requestBody:
    *        required: true
    *        schema:
@@ -2383,7 +2413,8 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
    *        - name: storyName
    *          in: path
    *          required: true
-   *          type: string
+   *          schema:
+   *            type: string
    *      responses:
    *        200:
    *          content:
