@@ -15,7 +15,7 @@ phases:
     commands:
       - echo Build started on `date`
       - echo Building the Docker image for CDS API...
-      - docker build -t cds-api:latest -f docker/cds-api/Dockerfile .
+      - docker build -t cds-api:latest -f docker/Dockerfile .
       - docker tag cds-api:latest $REPOSITORY_URI:latest
       - docker tag cds-api:latest $REPOSITORY_URI:$IMAGE_TAG
   post_build:
