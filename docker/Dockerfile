@@ -9,7 +9,7 @@ COPY tests ./tests
 RUN npm ci
 RUN npm run build
 
-ARG port=8081
+ARG port=8080
 EXPOSE $port
 ENV PORT="$port"
 
