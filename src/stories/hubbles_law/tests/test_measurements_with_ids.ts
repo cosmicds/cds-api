@@ -3,7 +3,7 @@
 import { beforeAll, afterAll, beforeEach, describe, it, expect } from "@jest/globals";
 import type { Express } from "express";
 import type { Sequelize } from "sequelize";
-import request from "supertest";
+import request, { Response } from "supertest";
 import { authorize, createRandomClassWithStudents, createTestApp, getTestDatabaseConnection, randomBetween, randomClassForEducator, randomStudent } from "../../../../tests/utils";
 
 import { Class, Educator, Student } from "../../../models";
@@ -94,7 +94,7 @@ describe("Test student IDs query parameter for class data", () => {
       await authorize(request(testApp).get(route))
         .expect(200)
         .expect("Content-Type", /json/)
-        .then(async (res) => {
+        .then(async (res: Response) => {
           const body = res.body;
 
           const measurements = body.measurements as HubbleMeasurement[];
