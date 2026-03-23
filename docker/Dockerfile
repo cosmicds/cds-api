@@ -4,6 +4,7 @@ WORKDIR /app
 
 COPY .eslintrc.json package*.json tsconfig.json ./
 COPY src ./src
+COPY tests ./tests
 
 RUN npm ci
 RUN npm run build

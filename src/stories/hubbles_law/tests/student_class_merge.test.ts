@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-floating-promises */
 
 import { beforeAll, afterAll, beforeEach, describe, it, expect } from "@jest/globals";
-import request from "supertest";
+import request, { Response } from "supertest";
 import type { Express } from "express";
 import { Op, type Sequelize } from "sequelize";
 
@@ -118,7 +118,7 @@ describe("Test student/class merge functionality", () => {
     await authorize(request(testApp).get(route))
       .expect(200)
       .expect("Content-Type", /json/)
-      .then(async (res) => {
+      .then(async (res: Response) => {
         const body = res.body;
         expect(body.class_id).toEqual(cls.id);
 
