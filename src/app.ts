@@ -14,6 +14,7 @@ import swaggerUi, { SwaggerUiOptions } from "swagger-ui-express";
 import { SwaggerTheme, SwaggerThemeNameEnum } from "swagger-themes";
 
 import { schemas } from "./openapi/schemas";
+import { COSMICDS_OPENAPI_VERSION, COSMICDS_HOST, COSMICDS_OPENAPI_APIKEY_SCHEME, COSMICDS_OPENAPI_TAGS } from "./openapi/options";
 
 export function setupApp(app: Express, db: Sequelize) {
 
@@ -78,53 +79,27 @@ export function setupApp(app: Express, db: Sequelize) {
     apis: [
       "./dist/src/app.js",
       "./dist/src/server.js",
-      "./dist/src/stories/**/main.js",
     ],
     definition: {
-      openapi: "3.1.0",
+      openapi: COSMICDS_OPENAPI_VERSION,
       info: {
         title: "CosmicDS API",
         version: "0.1.0",
         description: "An API server for interacting with the CosmicDS database.",
       },
-      tags: [
-        {
-          name: "students",
-          description: "Operations relating to student management",
-        },
-        {
-          name: "educators",
-          description: "Operations relating to educator management",
-        },
-        {
-          name: "classes",
-          description: "Operations relating to class management",
-        },
-        {
-          name: "stories",
-          description: "Operations related to managing data stories",
-        },
-        {
-          name: "questions",
-          description: "Operations related to managing questions",
-        },
-      ],
-      host: "api.cosmicds.cfa.harvard.edu",
+      tags: COSMICDS_OPENAPI_TAGS,
+      host: COSMICDS_HOST,
       basePath: "/",
       components: {
         securitySchemes: {
-          apiKey: {
-            type: "apiKey",
-            in: "header",
-            name: "Authorization",
-          }
+          apiKey: COSMICDS_OPENAPI_APIKEY_SCHEME, 
         },
         schemas: schemas(),
       },
       security: [
         { apiKey: [] },
-      ]
-    }
+      ],
+    },
   };
   const swaggerSpec = swaggerJSDoc(swaggerOptions);
 

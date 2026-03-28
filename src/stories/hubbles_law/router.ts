@@ -66,6 +66,13 @@ import { setUpHubbleAssociations } from "./associations";
 import { Story } from "../../models";
 import { Schema } from "@effect/schema";
 
+import swaggerJSDoc, { OAS3Options } from "swagger-jsdoc";
+import swaggerUi, { SwaggerUiOptions } from "swagger-ui-express";
+import { SwaggerTheme, SwaggerThemeNameEnum } from "swagger-themes";
+import { COSMICDS_HOST, COSMICDS_OPENAPI_APIKEY_SCHEME, COSMICDS_OPENAPI_TAGS, COSMICDS_OPENAPI_VERSION } from "../../openapi/options";
+
+export const BASE_PATH = "/hubbles_law";
+
 export const router = Router();
 
 export function setup(_app: Express, db: Sequelize) {
@@ -76,6 +83,55 @@ export function setup(_app: Express, db: Sequelize) {
     name: "hubbles_law",
     display_name: "Hubble's Law",
   }).catch(error => console.error(error));
+
+  const swaggerOptions: OAS3Options = {
+    apis: [
+      "dist/src/stories/hubbles_law/main.js",
+    ],
+    definition: {
+      openapi: COSMICDS_OPENAPI_VERSION,
+      info: {
+        title: "CosmicDS API - Hubble's Law",
+        version: "0.1.0",
+        description: "The endpoints on the CosmicDS API server relating to the Hubble's Law story",
+      },
+      tags: [
+        ...COSMICDS_OPENAPI_TAGS,
+        {
+          name: "measurements",
+          description: "Operations relating to students' Hubble measurements",
+        }
+      ],
+      host: COSMICDS_HOST,
+      basePath: BASE_PATH,
+      components: {
+        securitySchemes: {
+          apiKey: COSMICDS_OPENAPI_APIKEY_SCHEME, 
+        },
+        schemas: schemas(),
+      },
+      security: [
+        { apiKey: [] },
+      ],
+    },
+  };
+
+  const swaggerSpec = swaggerJSDoc(swaggerOptions);
+
+  router.get("/docs.json", (_req, res) => {
+    res.setHeader("Content-Type", "application/json");
+    res.send(swaggerSpec);
+  });
+
+  const theme = new SwaggerTheme();
+  const swaggerUIOptions: SwaggerUiOptions = {
+    explorer: false,
+    customSiteTitle: "CosmicDS Database API - Hubble's Law",
+    customCss: theme.getBuffer(SwaggerThemeNameEnum.GRUVBOX),
+  };
+
+  router.use("/docs", swaggerUi.serve);
+  router.use("/docs", swaggerUi.setup(swaggerSpec, swaggerUIOptions));
 }
 
 /**
