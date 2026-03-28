@@ -66,6 +66,7 @@ export const IntArray = arrayType(S.number.pipe(S.int()));
 export const StringArray = arrayType(S.string);
 export const StringPair = pairType(S.string);
 export const StringPairArray = pairArrayType(S.string);
+export const OptionalNumber = S.optional(S.number, { exact: true });
 export const OptionalInt = S.optional(S.number.pipe(S.int()), { exact: true });
 export const OptionalBoolean = S.optional(S.boolean, { exact: true });
 export const OptionalString = S.optional(S.string, { exact: true });
