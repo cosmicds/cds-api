@@ -70,6 +70,7 @@ import swaggerJSDoc, { OAS3Options } from "swagger-jsdoc";
 import swaggerUi, { SwaggerUiOptions } from "swagger-ui-express";
 import { SwaggerTheme, SwaggerThemeNameEnum } from "swagger-themes";
 import { COSMICDS_HOST, COSMICDS_OPENAPI_APIKEY_SCHEME, COSMICDS_OPENAPI_TAGS, COSMICDS_OPENAPI_VERSION } from "../../openapi/options";
+import { setupSwaggerDocs } from "../../openapi/utils";
 
 export const BASE_PATH = "/hubbles_law";
 
@@ -116,22 +117,12 @@ export function setup(_app: Express, db: Sequelize) {
     },
   };
 
-  const swaggerSpec = swaggerJSDoc(swaggerOptions);
-
-  router.get("/docs.json", (_req, res) => {
-    res.setHeader("Content-Type", "application/json");
-    res.send(swaggerSpec);
+  setupSwaggerDocs({
+    router,
+    swaggerOptions,
+    title: "CosmicDS Database API - Hubble's Law",
   });
 
-  const theme = new SwaggerTheme();
-  const swaggerUIOptions: SwaggerUiOptions = {
-    explorer: false,
-    customSiteTitle: "CosmicDS Database API - Hubble's Law",
-    customCss: theme.getBuffer(SwaggerThemeNameEnum.GRUVBOX),
-  };
-
-  router.use("/docs", swaggerUi.serve);
-  router.use("/docs", swaggerUi.setup(swaggerSpec, swaggerUIOptions));
 }
 
 /**

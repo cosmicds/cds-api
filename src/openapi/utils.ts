@@ -1,5 +1,9 @@
+import { Express, IRouter, Router } from "express";
 import { DataTypes, type Model, type ModelAttributeColumnOptions, type ModelStatic } from "sequelize";
-import { Schema } from "swagger-jsdoc";
+import swaggerJSDoc, { OAS3Options, Schema } from "swagger-jsdoc";
+import swaggerUi, { SwaggerUiOptions } from "swagger-ui-express";
+import { SwaggerTheme, SwaggerThemeNameEnum } from "swagger-themes";
+import { GenericRequest, GenericResponse } from "../utils";
 
 
 function typeInfoForAttribute<M extends Model>(attribute: ModelAttributeColumnOptions<M>): Record<string, unknown> | null{
@@ -63,4 +67,33 @@ export function modelToSchema<M extends Model>(modelType: ModelStatic<M>): Schem
     required,
     properties,
   };
+}
+
+export interface SwaggerSetupOptions {
+  router: IRouter;
+  swaggerOptions: OAS3Options;
+  docsPath?: string;
+  title?: string;
+  theme?: SwaggerThemeNameEnum;
+}
+
+export function setupSwaggerDocs(options: SwaggerSetupOptions) {
+  const router = options.router;
+  const swaggerSpec = swaggerJSDoc(options.swaggerOptions);
+  
+  const docsPath = options.docsPath ?? "/docs";
+  router.get(`${docsPath}.json`, (_req: GenericRequest, res: GenericResponse) => {
+    res.setHeader("Content-Type", "application/json");
+    res.send(swaggerSpec);
+  });
+
+  const theme = new SwaggerTheme();
+  const swaggerUIOptions: SwaggerUiOptions = {
+    explorer: false,
+    customSiteTitle: options.title ?? "CosmicDS Database API",
+    customCss: theme.getBuffer(options.theme ?? SwaggerThemeNameEnum.GRUVBOX),
+  };
+
+  router.use(docsPath, swaggerUi.serve);
+  router.get(docsPath, swaggerUi.setup(swaggerSpec, swaggerUIOptions));
 }

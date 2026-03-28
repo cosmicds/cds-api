@@ -15,6 +15,7 @@ import { SwaggerTheme, SwaggerThemeNameEnum } from "swagger-themes";
 
 import { schemas } from "./openapi/schemas";
 import { COSMICDS_OPENAPI_VERSION, COSMICDS_HOST, COSMICDS_OPENAPI_APIKEY_SCHEME, COSMICDS_OPENAPI_TAGS } from "./openapi/options";
+import { setupSwaggerDocs } from "./openapi/utils";
 
 export function setupApp(app: Express, db: Sequelize) {
 
@@ -101,22 +102,11 @@ export function setupApp(app: Express, db: Sequelize) {
       ],
     },
   };
-  const swaggerSpec = swaggerJSDoc(swaggerOptions);
 
-  app.get("/docs.json", (_req, res) => {
-    res.setHeader("Content-Type", "application/json");
-    res.send(swaggerSpec);
+  setupSwaggerDocs({
+    router: app,
+    swaggerOptions,
   });
-
-  const theme = new SwaggerTheme();
-  const swaggerUIOptions: SwaggerUiOptions = {
-    explorer: false,
-    customSiteTitle: "CosmicDS Database API",
-    customCss: theme.getBuffer(SwaggerThemeNameEnum.GRUVBOX),
-  };
-
-  app.use("/docs", swaggerUi.serve);
-  app.get("/docs", swaggerUi.setup(swaggerSpec, swaggerUIOptions));
 
   app.use(function(req, res, next) {
 
