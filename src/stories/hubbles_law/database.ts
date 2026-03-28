@@ -12,23 +12,37 @@ import { HubbleClassMergeGroup } from "./models/hubble_class_merge_group";
 import { mySqlDatetime } from "../../utils";
 import { HubbleClassStudentMerge } from "./models/hubble_class_student_merges";
 
+import * as S from "@effect/schema/Schema";
+import { OptionalNumber, OptionalString } from "../../utils";
+
 const galaxyAttributes = ["id", "ra", "decl", "z", "type", "name", "element"];
 
-export async function submitHubbleMeasurement(data: {
-  student_id: number,
-  galaxy_id: number,
-  rest_wave_value: number | null,
-  rest_wave_unit: string | null,
-  obs_wave_value: number | null,
-  obs_wave_unit: string | null,
-  velocity_value: number | null,
-  velocity_unit: string | null,
-  ang_size_value: number | null,
-  ang_size_unit: string | null,
-  est_dist_value: number | null,
-  est_dist_unit: string | null,
-  brightness?: number
-}): Promise<SubmitHubbleMeasurementResult> {
+export const Measurement = S.struct({
+  student_id: S.Int,
+  galaxy_id: S.Int,
+  rest_wave_value: OptionalNumber,
+  rest_wave_unit: OptionalString,
+  obs_wave_value: OptionalNumber,
+  obs_wave_unit: OptionalString,
+  velocity_value: OptionalNumber,
+  velocity_unit: OptionalString,
+  ang_size_value: OptionalNumber,
+  ang_size_unit: OptionalString,
+  est_dist_value: OptionalNumber,
+  est_dist_unit: OptionalString,
+  brightness: OptionalNumber,
+});
+
+export type MeasurementType = S.Schema.To<typeof Measurement>;
+
+export const SampleMeasurement = S.extend(Measurement, S.struct({
+  // measurement_number: S.optional(S.literal("first", "second")),
+  measurement_number: S.string,
+}));
+
+export type SampleMeasurementType = S.Schema.To<typeof SampleMeasurement>;
+
+export async function submitHubbleMeasurement(data: MeasurementType): Promise<SubmitHubbleMeasurementResult> {
 
   logger.verbose(`Attempting to submit measurement for student ${data.student_id}, galaxy ${data.galaxy_id}`);
 
@@ -74,22 +88,7 @@ export async function submitHubbleMeasurement(data: {
   }
 }
 
-export async function submitSampleHubbleMeasurement(data: {
-  student_id: number,
-  galaxy_id: number,
-  measurement_number: string,
-  rest_wave_value: number | null,
-  rest_wave_unit: string | null,
-  obs_wave_value: number | null,
-  obs_wave_unit: string | null,
-  velocity_value: number | null,
-  velocity_unit: string | null,
-  ang_size_value: number | null,
-  ang_size_unit: string | null,
-  est_dist_value: number | null,
-  est_dist_unit: string | null,
-  brightness?: number,
-}): Promise<SubmitHubbleMeasurementResult> {
+export async function submitSampleHubbleMeasurement(data: SampleMeasurementType): Promise<SubmitHubbleMeasurementResult> {
 
   const student = await findStudentById(data.student_id);
   if (student === null) {

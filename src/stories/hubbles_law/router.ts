@@ -8,6 +8,8 @@ import {
   GenericResponse
 } from "../../server";
 
+import { OptionalInt, OptionalString } from "../../utils";
+
 import {
   getGalaxyByName,
   getAllGalaxies,
@@ -45,6 +47,10 @@ import {
   resetATWaitingRoomTest,
   mergeNStudentsIntoClass,
   getHubbleMeasurementsForStudents,
+  Measurement,
+  MeasurementType,
+  SampleMeasurement,
+  SampleMeasurementType,
 } from "./database";
 
 import { 
@@ -58,6 +64,7 @@ import { classForStudentStory, findClassById, findStudentById } from "../../data
 import { HubbleClassStudentMerge, HubbleMeasurement, initializeModels } from "./models";
 import { setUpHubbleAssociations } from "./associations";
 import { Story } from "../../models";
+import { Schema } from "@effect/schema";
 
 export const router = Router();
 
@@ -71,98 +78,243 @@ export function setup(_app: Express, db: Sequelize) {
   }).catch(error => console.error(error));
 }
 
+/**
+ *  @openapi
+ *  /submit-measurement:
+ *    put:
+ *      tags:
+ *        - students
+ *        - measurements
+ *      description: Submit a Hubble measurement for a student
+ *      requestBody:
+ *        required: true
+ *        content:
+ *          application/json:
+ *            schema:
+ *              type: object
+ *              description: At least one of galaxy_id or galaxy_name must be given. If both are given, only galaxy_id is used
+ *              schema:
+ *                $ref: "#/components/schemas/HubbleMeasurementInput"
+ *      responses:
+ *        200:
+ *          description: The measurement was submitted successfully
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                $schema:
+ *                  type: object
+ *                  properties:
+ *                    measurement:
+ *                      schema:
+ *                        $ref: "#/components/schemas/HubbleMeasurement"
+ *        400:
+ *          description: The request body did not have the required form
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ *        422:
+ *          description: Either the student ID or galaxy ID did not correspond to a valid item
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ */
 router.put("/submit-measurement", async (req, res) => {
-  const data = req.body;
-  const valid = (
-    typeof data.student_id === "number" &&
-    ((typeof data.galaxy_id === "number") || (typeof data.galaxy_name === "string")) &&
-    (!data.rest_wave_value || typeof data.rest_wave_value === "number") &&
-    (!data.rest_wave_unit || typeof data.rest_wave_unit === "string") &&
-    (!data.obs_wave_value || typeof data.obs_wave_value === "number") &&
-    (!data.obs_wave_unit || typeof data.obs_wave_unit === "string") &&
-    (!data.velocity_value || typeof data.velocity_value === "number") &&
-    (!data.velocity_unit || typeof data.velocity_unit === "string") &&
-    (!data.ang_size_value || typeof data.ang_size_value === "number") &&
-    (!data.ang_size_unit || typeof data.ang_size_unit === "string") &&
-    (!data.est_dist_value || typeof data.est_dist_value === "number") &&
-    (!data.est_dist_unit || typeof data.est_dist_unit === "string") &&
-    (!data.brightness || typeof data.brightness === "number")
-  );
 
-  if (typeof data.galaxy_id !== "number") {
-    let galaxyName = data.galaxy_name;
+  const schema = S.extend(Measurement, S.struct({
+    galaxy_id: OptionalInt,
+    galaxy_name: OptionalString,
+  })).pipe(
+    Schema.filter(obj => "galaxy_id" in obj || "galaxy_name" in obj,
+    { message: () => "At least one of galaxy_id or galaxy_name must be specified" },
+  ));
+
+  const maybe = S.decodeUnknownEither(schema)(req.body); 
+
+  if (Either.isLeft(maybe)) {
+    res.status(400).json({
+      error: "The request body was malformed",
+    });
+    return;
+  }
+
+  let data: MeasurementType;
+
+  const maybeGalaxyID = maybe.right.galaxy_id;
+  if (typeof maybeGalaxyID === "number") {
+    data = { ...maybe.right, galaxy_id: maybeGalaxyID };
+  } else {
+    const dataToEdit = { ...maybe.right };
+    let galaxyName = dataToEdit.galaxy_name as string;
     if (!galaxyName.endsWith(".fits")) {
       galaxyName += ".fits";
     }
     const galaxy = await getGalaxyByName(galaxyName);
-    data.galaxy_id = galaxy?.id || 0;
-    delete data.galaxy_name;
+    delete dataToEdit.galaxy_name;
+    data = { ...dataToEdit, galaxy_id: galaxy?.id || 0 };
   }
 
-  let result: SubmitHubbleMeasurementResult;
-  if (valid) {
-    result = await submitHubbleMeasurement(data);
+  const result = await submitHubbleMeasurement(data);
+  const status = SubmitHubbleMeasurementResult.statusCode(result);
+
+  res.statusCode = status;
+  if (status >= 400) {
+    res.json({
+      error: status,
+    });
   } else {
-    result = SubmitHubbleMeasurementResult.BadRequest;
-    res.status(400);
+    res.json({
+      measurement: data,
+    });
   }
-  res.json({
-    measurement: data,
-    status: result,
-    success: SubmitHubbleMeasurementResult.success(result)
-  });
 });
 
+/**
+ *  @openapi
+ *  /sample-measurement:
+ *    put:
+ *      description: Submit a sample Hubble measurement for a student
+ *      tags:
+ *        - students
+ *        - measurements
+ *      requestBody:
+ *        required: true
+ *        content:
+ *          application/json:
+ *            schema:
+ *              type: object
+ *              description: At least one of galaxy_id or galaxy_name must be given. If both are given, only galaxy_id is used. The identifier must correspond to the sample galaxy
+ *              schema:
+ *                $ref: "#/components/schemas/HubbleSampleMeasurementInput"
+ *      responses:
+ *        200:
+ *          description: The sample measurement was submitted successfully
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                $schema:
+ *                  type: object
+ *                  properties:
+ *                    measurement:
+ *                      schema:
+ *                        $ref: "#/components/schemas/HubbleSampleMeasurement"
+ *        400:
+ *          description: The request body did not have the required form
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ *        422:
+ *          description: Either the student ID or galaxy ID did not correspond to a valid item
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ */
 router.put("/sample-measurement", async (req, res) => {
-  const data = req.body;
-  const valid = (
-    typeof data.student_id === "number" &&
-    ((typeof data.galaxy_id === "number") || (typeof data.galaxy_name === "string")) &&
-    (!data.rest_wave_value || typeof data.rest_wave_value === "number") &&
-    (!data.rest_wave_unit || typeof data.rest_wave_unit === "string") &&
-    (!data.obs_wave_value || typeof data.obs_wave_value === "number") &&
-    (!data.obs_wave_unit || typeof data.obs_wave_unit === "string") &&
-    (!data.velocity_value || typeof data.velocity_value === "number") &&
-    (!data.velocity_unit || typeof data.velocity_unit === "string") &&
-    (!data.ang_size_value || typeof data.ang_size_value === "number") &&
-    (!data.ang_size_unit || typeof data.ang_size_unit === "string") &&
-    (!data.est_dist_value || typeof data.est_dist_value === "number") &&
-    (!data.est_dist_unit || typeof data.est_dist_unit === "string") &&
-    (!data.measurement_number || typeof data.measurement_number == "string") &&
-    (!data.brightness || typeof data.brightness === "number")
-  );
 
-  let galaxy;
-  if (typeof data.galaxy_id !== "number") {
-    let galaxyName = data.galaxy_name;
+  const schema = S.extend(SampleMeasurement, S.struct({
+    galaxy_id: OptionalInt,
+    galaxy_name: OptionalString,
+  })).pipe(
+    Schema.filter(obj => "galaxy_id" in obj || "galaxy_name" in obj,
+    { message: () => "At least one of galaxy_id or galaxy_name must be specified" },
+  ));
+
+  const maybe = S.decodeUnknownEither(schema)(req.body);
+
+  if (Either.isLeft(maybe)) {
+    res.status(400).json({
+      error: "The request body was malformed",
+    });
+    return;
+  }
+
+  let data: SampleMeasurementType;
+
+  const maybeGalaxyID = maybe.right.galaxy_id;
+
+  let galaxy: Galaxy | null;
+  if (typeof maybeGalaxyID === "number") {
+    galaxy = await getGalaxyById(maybeGalaxyID);
+    data = { ...maybe.right, galaxy_id: maybeGalaxyID, measurement_number: maybe.right.measurement_number ?? "first" };
+  } else {
+    const dataToEdit = { ...maybe.right };
+    let galaxyName = dataToEdit.galaxy_name as string;
     if (!galaxyName.endsWith(".fits")) {
       galaxyName += ".fits";
     }
     galaxy = await getGalaxyByName(galaxyName);
-    data.galaxy_id = galaxy?.id || 0;
-    delete data.galaxy_name;
-  } else {
-    galaxy = await getGalaxyById(data.galaxy_id);
-  }
+    delete dataToEdit.galaxy_name;
 
-  if (!data.measurement_number) {
-    data.measurement_number = "first";
+    data = { ...dataToEdit, galaxy_id: galaxy?.id || 0, measurement_number: maybe.right.measurement_number ?? "first" };
   }
 
   let result: SubmitHubbleMeasurementResult;
-  if (valid || galaxy === null || galaxy.is_sample === 0) {
+  if (galaxy?.is_sample === 0) {
     result = await submitSampleHubbleMeasurement(data);
   } else {
     result = SubmitHubbleMeasurementResult.BadRequest;
-    res.status(400);
+    res.status(400).json({
+      error: `The given galaxy ID ${galaxy?.id} is not that of the sample galaxy`,
+    });
+    return;
   }
-  res.json({
-    measurement: data,
-    status: result,
-    success: SubmitHubbleMeasurementResult.success(result)
-  });
+
+  const status = SubmitHubbleMeasurementResult.statusCode(result);
+  res.statusCode = status;
+  if (status >= 400) {
+    res.json({
+      error: status,
+    });
+  } else {
+    res.json({
+      measurement: data,
+    });
+  }
 });
 
+/**
+ *  @openapi
+ *  /measurement/{studentID}/{galaxyIdentifier}:
+ *    delete:
+ *      tags:
+ *        - students
+ *        - measurements
+ *      description: Delete a student's measurement for a particular galaxy
+ *      parameters:
+ *        - name: studentID
+ *          in: path
+ *          required: true
+ *          schema:
+ *            type: integer
+ *        - name: galaxyIdentifier
+ *          in: path
+ *          required: true
+ *          schema:
+ *            type: string
+ *      responses:
+ *        200:
+ *          description: The measurement was successfully deleted
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  student_id:
+ *                    type: integer
+ *                  galaxy_id:
+ *                    type: integer
+ *        404:
+ *          description: A measurement for the given student and galaxy was not found
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ */
 router.delete("/measurement/:studentID/:galaxyIdentifier", async (req, res) => {
   const data = req.params;
   const studentID = parseInt(data.studentID) || 0;
@@ -172,43 +324,84 @@ router.delete("/measurement/:studentID/:galaxyIdentifier", async (req, res) => {
     const galaxy = await getGalaxyByName(data.galaxyIdentifier);
     galaxyID = galaxy?.id || 0;
   }
-  const valid = (studentID !== 0) && (galaxyID !== 0);
 
-  let result: RemoveHubbleMeasurementResult;
-  if (valid) {
-    result = await removeHubbleMeasurement(studentID, galaxyID);
+  const result = await removeHubbleMeasurement(studentID, galaxyID);
+  res.statusCode = RemoveHubbleMeasurementResult.statusCode(result);
+
+  if (res.statusCode >= 400) {
+    res.json({
+      error: result,
+    });
   } else {
-    result = RemoveHubbleMeasurementResult.BadRequest;
-    res.status(400);
-  }
-  res.status(RemoveHubbleMeasurementResult.statusCode(result))
-    .json({
+    res.json({
       student_id: studentID,
       galaxy_id: galaxyID,
-      status: result,
-      success: RemoveHubbleMeasurementResult.success(result)
     });
+  }
 });
 
+/**
+  * @openapi
+  * /sample-measurement/{studentID}/{measurementNumber}:
+  *   delete:
+  *     tags:
+  *       - students
+  *       - measurements
+  *     description: Delete a student's sample measurement
+  *     parameters:
+  *       - name: studentID
+  *         in: path
+  *         required: true
+  *         schema:
+  *           type: integer
+  *       - name: measurementNumber
+  *         in: path
+  *         required: true
+  *         schema:
+  *           type: string
+  *           enum:
+  *             - first
+  *             - second
+  *     responses:
+  *       200:
+  *         description: The sample measurement was successfully deleted
+  *         content:
+  *           application/json:
+  *             schema:
+  *               type: object
+  *               properties:
+  *                 student_id:
+  *                   type: integer
+  *                 measurement_number:
+  *                   type: string
+  *                   enum:
+  *                     - first
+  *                     - second
+  *       404:
+  *         description: A sample measurement for the given student and galaxy was not found
+  *         content:
+  *           application/json:
+  *             schema:
+  *               $ref: "#/components/schemas/Error"
+ */
 router.delete("/sample-measurement/:studentID/:measurementNumber", async (req, res) => {
   const data = req.params;
   const studentID = parseInt(data.studentID) || 0;
   const measurementNumber = data.measurementNumber;
-  const valid = (studentID !== 0 && (measurementNumber === "first" || measurementNumber === "second"));
 
-  let result: RemoveHubbleMeasurementResult;
-  if (valid) {
-    result = await removeSampleHubbleMeasurement(studentID, measurementNumber);
-  } else {
-    result = RemoveHubbleMeasurementResult.BadRequest;
-    res.status(400);
-  }
-  res.status(RemoveHubbleMeasurementResult.statusCode(result))
-    .json({
-      student_id: studentID,
-      status: result,
-      success: RemoveHubbleMeasurementResult.success(result)
+  const result = await removeSampleHubbleMeasurement(studentID, measurementNumber);
+  res.statusCode = RemoveHubbleMeasurementResult.statusCode(result);
+
+  if (res.statusCode >= 400) {
+    res.json({
+      error: result,
     });
+  } else {
+    res.json({
+      student_id: studentID,
+      measurement_number: measurementNumber,
+    });
+  }
 });
 
 router.get("/measurements/classes/:classID", async (req, res) => {
