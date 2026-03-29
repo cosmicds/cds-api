@@ -66,9 +66,7 @@ import { setUpHubbleAssociations } from "./associations";
 import { Story } from "../../models";
 import { Schema } from "@effect/schema";
 
-import swaggerJSDoc, { OAS3Options } from "swagger-jsdoc";
-import swaggerUi, { SwaggerUiOptions } from "swagger-ui-express";
-import { SwaggerTheme, SwaggerThemeNameEnum } from "swagger-themes";
+import { OAS3Options } from "swagger-jsdoc";
 import { COSMICDS_HOST, COSMICDS_OPENAPI_APIKEY_SCHEME, COSMICDS_OPENAPI_TAGS, COSMICDS_OPENAPI_VERSION } from "../../openapi/options";
 import { setupSwaggerDocs } from "../../openapi/utils";
 
@@ -361,10 +359,23 @@ router.put("/sample-measurement", async (req, res) => {
  *            application/json:
  *              schema:
  *                $ref: "#/components/schemas/Error"
+ *        422:
+ *          description: The given student ID is not a number
+ *          content:
+ *          application/json:
+ *            schema:
+ *              $ref: "#/components/schemas/Error"
  */
 router.delete("/measurement/:studentID/:galaxyIdentifier", async (req, res) => {
   const data = req.params;
-  const studentID = parseInt(data.studentID) || 0;
+  const studentID = parseInt(data.studentID);
+
+  if (isNaN(studentID)) {
+    res.status(422).json({
+      error: `The student ID must be a number; received ${studentID}`,
+    });
+    return;
+  }
 
   let galaxyID = parseInt(data.galaxyIdentifier) || 0;
   if (galaxyID === 0) {
@@ -430,11 +441,25 @@ router.delete("/measurement/:studentID/:galaxyIdentifier", async (req, res) => {
   *           application/json:
   *             schema:
   *               $ref: "#/components/schemas/Error"
+  *       422
+  *         description: At least one of the student ID or measurement number was not of the correct format
+  *         content:
+  *           application/json:
+  *             schema:
+  *               $ref: "#/components/schemas/Error"
  */
 router.delete("/sample-measurement/:studentID/:measurementNumber", async (req, res) => {
   const data = req.params;
-  const studentID = parseInt(data.studentID) || 0;
-  const measurementNumber = data.measurementNumber;
+  const studentID = parseInt(data.studentID);
+  const measurementNumber = data.measurementNumber?.toLowerCase();
+
+  if (isNaN(studentID) || !(["first", "second"].includes(measurementNumber))) {
+    res.status(422).json({
+      error: `The student ID must be a number and measurement number must be one of "first", "second",
+              received student ID: ${studentID}, measurement number: ${measurementNumber}.`,
+    });
+    return;
+  }
 
   const result = await removeSampleHubbleMeasurement(studentID, measurementNumber);
   res.statusCode = RemoveHubbleMeasurementResult.statusCode(result);
@@ -451,12 +476,60 @@ router.delete("/sample-measurement/:studentID/:measurementNumber", async (req, r
   }
 });
 
+/**
+ *  @openapi
+ *  /measurements/classes/{classID}:
+ *    get:
+ *      tags:
+ *        - classes
+ *        - measurements
+ *      description: Get all of the student measurements for a class
+ *      parameters:
+ *        - name: classID
+ *          in: path
+ *          required: true
+ *          schema:
+ *            type: integer
+ *      responses:
+ *        200:
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  class_id:
+ *                    type: integer
+ *                  measurements:
+ *                    type: array
+ *                    items:
+ *                      $ref: "#/components/schemas/HubbleMeasurement"
+ *        404:
+ *          description: No class exists with the given ID
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ *        422
+ *          description: The given class ID was not a number
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ */
 router.get("/measurements/classes/:classID", async (req, res) => {
   const classID = parseInt(req.params.classID);
+
+  if (isNaN(classID)) {
+    res.status(422).json({
+      error: `The class ID must be a number; received ${classID}`,
+    });
+    return;
+  }
+
   const isValidClass = (await findClassById(classID)) !== null;
   if (!isValidClass) {
     res.status(404).json({
-      message: `No class with ID ${classID}`,
+      error: `No class with ID ${classID}`,
     });
     return;
   }
@@ -470,56 +543,291 @@ router.get("/measurements/classes/:classID", async (req, res) => {
   });
 });
 
+/**
+ *  @openapi
+ *  /measurements/{studentID}:
+ *    get:
+ *      tags:
+ *        - students
+ *        - measurements
+ *      description: Get all of a given student's measurements
+ *      parameters:
+ *        - name: studentID
+ *          in: path
+ *          required: true
+ *          schema:
+ *            type: integer
+ *      responses:
+ *        200:
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:{  
+ *                  student_id:
+ *                    type: integer
+ *                  measurements:
+ *                    type: array
+ *                    items:
+ *                      $ref: "#/components/schemas/HubbleMeasurement"
+ *        404:
+ *          description: No student exists with the given ID
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ *        422
+ *          description: The given student ID is not a number
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ */
 router.get("/measurements/:studentID", async (req, res) => {
   const params = req.params;
   const studentID = parseInt(params.studentID);
+
   if (isNaN(studentID)) {
-    res.status(400).json({
-      message: "Invalid student ID!",
+    res.status(422).json({
+      error: `The student ID must be a number; received ${studentID}`,
     });
     return;
   }
+
   const student = await findStudentById(studentID);
-  const measurements = student !== null ?
-    await getStudentHubbleMeasurements(studentID) :
-    null;
-  const status = measurements === null ? 404 : 200;
-  res.status(status).json({
+  if (student === null) {
+    res.status(404).json({
+      error: `No student exists with ID ${studentID}`,
+    });
+    return;
+  }
+    
+  const measurements = await getStudentHubbleMeasurements(studentID);
+
+  res.json({
     student_id: studentID,
     measurements: measurements
   });
 });
 
+/**
+ *  @openapi
+ *  /measurements/{studentID}/{galaxyID}:
+ *    get:
+ *      tags:
+ *        - students
+ *        - measurements
+ *      description: Get a student's measurement for a particular galaxy
+ *      parameters:
+ *        - name: studentID
+ *          in: path
+ *          required: true
+ *          schema:
+ *            type: integer
+ *        - name: galaxyID
+ *          in: path
+ *          required: true
+ *          schema:
+ *            type: integer
+ *      responses:
+ *        200:
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  student_id:
+ *                    type: integer
+ *                  galaxy_id:
+ *                    type: integer
+ *                  measurement:
+ *                    schema:
+ *                      $ref: "#/components/schemas/HubbleMeasurement"
+ *        404:
+ *          description: No measurement was found for the given student and galaxy
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ *        422:
+ *          description: At least one of the student and galaxy IDs was not an integer
+ *            content:
+ *              application/json:
+ *                schema:
+ *                  $ref: "#/components/schemas/Error"
+ */
 router.get("/measurements/:studentID/:galaxyID", async (req, res) => {
   const params = req.params;
   const studentID = parseInt(params.studentID);
   const galaxyID = parseInt(params.galaxyID);
+
+  if (isNaN(studentID) || isNaN(galaxyID)) {
+    res.status(422).json({
+      error: `Student ID and galaxy ID must both be integers; received student ID: ${studentID}, galaxy ID: ${galaxyID}`
+    });
+    return;
+  }
+
   const measurement = await getHubbleMeasurement(studentID, galaxyID);
-  const status = measurement === null ? 404 : 200;
-  res.status(status).json({
+
+  if (measurement === null) {
+    res.status(400).json({
+      error: `No measurement found with student ID ${studentID} and galaxy ID ${galaxyID}`
+    });
+    return;
+  }
+
+  res.json({
     student_id: studentID,
     galaxy_id: galaxyID,
     measurement: measurement
   });
 });
 
+/**
+ *  @openapi
+ *  /sample-measurements/{studentID}:
+ *    get:
+ *      tags:
+ *        - students
+ *        - measurements
+ *      description: Get all of a student's sample measurements
+ *      parameters:
+ *        - name: studentID
+ *          in: path
+ *          required: true
+ *          schema:
+ *            type: integer
+ *      responses:
+ *        200:
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  student_id:
+ *                    type: integer
+ *                  measurement:
+ *                    schema:
+ *                      $ref: "#/components/schemas/HubbleMeasurement"
+ *        404:
+ *          description: No student exists with the given ID
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ *        422:
+ *          description: The given student ID is now a number
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ */
 router.get("/sample-measurements/:studentID", async (req, res) => {
   const params = req.params;
   const studentID = parseInt(params.studentID);
+
+  if (isNaN(studentID)) {
+    res.status(422).json({
+      error: `The student ID must be a number; received ${studentID}`,
+    });
+    return;
+  }
+
+  const student = await findStudentById(studentID);
+  if (student === null) {
+    res.status(404).json({
+      error: `No student exists with ID ${studentID}`,
+    });
+    return;
+  }
+
   const measurements = await getSampleHubbleMeasurements(studentID);
-  const status = measurements === null ? 404 : 200;
-  res.status(status).json({
+
+  res.json({
     student_id: studentID,
     measurements: measurements
   });
 });
 
+/**
+ *  @openapi
+ *  /sample-measurements/{studentID}/{measurementNumber}:
+ *    get:
+ *      tags:
+ *        - students
+ *        - measurements
+ *      description: Get a student's sample measurement for a given measurement number
+ *      parameters:
+ *        - name: studentID
+ *          in: path
+ *          required: true
+ *          schema:
+ *            type: integer
+ *        - name: measurementNumber
+ *          in: path
+ *          required: true
+ *          schema:
+ *            type: string
+ *            enum:
+ *              - first
+ *              - second
+ *      responses:
+ *        200:
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  student_id:
+ *                    type: integer
+ *                  measurement:
+ *                    schema:
+ *                      $ref: "#/components/schemas/HubbleMeasurement"
+ *        404:
+ *          description: Either the student does not exist, or the requested measurement was not found
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ *        422:
+ *          description: At least one of the student ID or measurement number was not of the correct format 
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ */
 router.get("/sample-measurements/:studentID/:measurementNumber", async (req, res) => {
   const params = req.params;
   const studentID = parseInt(params.studentID);
+  const measurementNumber = params.measurementNumber?.toLowerCase();
+
+  if (isNaN(studentID) || !(["first", "second"].includes(measurementNumber))) {
+    res.status(422).json({
+      error: `The student ID must be a number and measurement number must be one of "first", "second",
+              received student ID: ${studentID}, measurement number: ${measurementNumber}.`,
+    });
+    return;
+  }
+
+  const student = await findStudentById(studentID);
+  if (student === null) {
+    res.status(404).json({
+      error: `No student exists with ID ${studentID}`,
+    });
+    return;
+  }
+
   const measurement = await getSampleHubbleMeasurement(studentID, params.measurementNumber);
-  const status = measurement === null ? 404 : 200;
-  res.status(status).json({
+
+  if (measurement === null) {
+    res.status(404).json({
+      error: `No measurement found for stuent ID ${studentID}, measurement number ${measurementNumber}`,
+    });
+    return;
+  }
+
+  res.json({
     student_id: studentID,
     measurement: measurement
   });

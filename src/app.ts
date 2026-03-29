@@ -9,9 +9,7 @@ import { v4 } from "uuid";
 
 import { apiKeyMiddleware } from "./middleware";
 import { ALLOWED_ORIGINS } from "./utils";
-import swaggerJSDoc, { OAS3Options } from "swagger-jsdoc";
-import swaggerUi, { SwaggerUiOptions } from "swagger-ui-express";
-import { SwaggerTheme, SwaggerThemeNameEnum } from "swagger-themes";
+import { OAS3Options } from "swagger-jsdoc";
 
 import { schemas } from "./openapi/schemas";
 import { COSMICDS_OPENAPI_VERSION, COSMICDS_HOST, COSMICDS_OPENAPI_APIKEY_SCHEME, COSMICDS_OPENAPI_TAGS } from "./openapi/options";
