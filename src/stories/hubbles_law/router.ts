@@ -942,6 +942,7 @@ router.get("/sample-galaxy", async (_req, res) => {
  *          required: false
  *          schema:
  *            type: boolean
+ *            default: false
  *      responses:
  *        200:
  *          content:
@@ -961,7 +962,6 @@ router.get("/sample-galaxy", async (_req, res) => {
  *            application/json:
  *              schema:
  *                $ref: "#/components/messages/Error"
- *                
  */
 router.get("/class-measurements/size/:studentID/:classID", async (req, res) => {
   res.header("Cache-Control", "no-cache, no-store, must-revalidate");  // HTTP 1.1
@@ -994,6 +994,44 @@ router.get("/class-measurements/size/:studentID/:classID", async (req, res) => {
   });
 });
 
+/**
+ *  @openapi
+ *  /class-measurements/students-completed/{studentID}/{classID}:
+ *    get:
+ *      tags:
+ *        - measurements
+ *      description: Get the number of students related to the given student and class which have completed measurements
+ *      parameters:
+ *        - name: studentID
+ *          in: path
+ *          required: true
+ *          schema:
+ *            type: integer
+ *        - name: classID
+ *          in: path
+ *          required: true
+ *          schema:
+ *            type: integer
+ *      responses:
+ *        200:
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  student_id:
+ *                    type: integer
+ *                  class_id:
+ *                    type: integer
+ *                  students_completed_measurements:
+ *                    type: integer
+ *        404:
+ *          description: Either the student or class ID is invalid
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/messages/Error"
+ */
 router.get("/class-measurements/students-completed/:studentID/:classID", async (req, res) => {
   res.header("Cache-Control", "no-cache, no-store, must-revalidate");  // HTTP 1.1
   res.header("Pragma", "no-cache");  // HTTP 1.0
@@ -1002,7 +1040,7 @@ router.get("/class-measurements/students-completed/:studentID/:classID", async (
   const isValidStudent = (await findStudentById(studentID)) !== null;
   if (!isValidStudent) {
     res.status(404).json({
-      message: "Invalid student ID",
+      error: "Invalid student ID",
     });
     return;
   }
@@ -1011,19 +1049,86 @@ router.get("/class-measurements/students-completed/:studentID/:classID", async (
   const isValidClass = (await findClassById(classID)) !== null;
   if (!isValidClass) {
     res.status(404).json({
-      message: "Invalid class ID",
+      error: "Invalid class ID",
     });
     return;
   }
 
   const count = await getStudentsWithCompleteMeasurementsCount(studentID, classID);
-  res.status(200).json({
+  res.json({
     student_id: studentID,
     class_id: classID,
     students_completed_measurements: count,
   });
 });
 
+/**
+ *  @openapi
+ *  /class-measurements/{studentID}/{classID}:
+ *    get:
+ *      tags:
+ *        - students
+ *        - classes
+ *        - measurements
+ *      description: Get the class measurements from a given class, for a given student
+ *      parameters:
+ *        - name: studentID
+ *          in: path
+ *          required: true
+ *          schema:
+ *            type: integer
+ *        - name: classID
+ *          in: path
+ *          required: true
+ *          schema:
+ *            type: integer
+ *        - name: complete_only
+ *          in: query
+ *          required: false
+ *          schema:
+ *            type: boolean
+ *            default: false
+ *        - name: exclude_student
+ *          in: query
+ *          required: false
+ *          schema:
+ *            type: boolean
+ *            default: false
+ *        - name: student_ids
+ *          in: qury
+ *          required: false
+ *          schema:
+ *            type: array
+ *            items:
+ *              type: integer
+ *      responses:
+ *        200:
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  student_id:
+ *                    type: integer
+ *                  class_id:
+ *                    type: integer
+ *                  measurements:
+ *                    type: array
+ *                    items:
+ *                      $ref: "#/components/schemas/HubbleMeasurement"
+ *        400:
+ *          description: At least one of the student IDs is not an integer
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ *        404:
+ *          description: At least one of the class or student IDs is invalid
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ */
 router.get(["/class-measurements/:studentID/:classID", "/stage-3-data/:studentID/:classID"], async (req, res) => {
   const lastCheckedStr = req.query.last_checked as string;
   let lastChecked: number | null = parseInt(lastCheckedStr);
@@ -1050,9 +1155,9 @@ router.get(["/class-measurements/:studentID/:classID", "/stage-3-data/:studentID
     const invalidItems = [];
     if (invalidStudent) { invalidItems.push("student"); }
     if (invalidClass) { invalidItems.push("class"); }
-    const message = `Invalid ${invalidItems.join(" and ")} ID${invalidItems.length == 2 ? "s": ""}`;
+    const error = `Invalid ${invalidItems.join(" and ")} ID${invalidItems.length == 2 ? "s": ""}`;
     res.status(404).json({
-      message
+      error,
     });
     return;
   }
@@ -1065,7 +1170,7 @@ router.get(["/class-measurements/:studentID/:classID", "/stage-3-data/:studentID
 
     if (!valid) {
       res.status(400).json({
-        message: "At least one of your specified student IDs is invalid. Student IDs should be integers.",
+        error: "At least one of your specified student IDs is invalid. Student IDs should be integers.",
       });
       return;
     }
@@ -1074,7 +1179,7 @@ router.get(["/class-measurements/:studentID/:classID", "/stage-3-data/:studentID
     measurements = await getClassMeasurementsForStudent(student.id, cls.id, lastChecked, completeOnly, excludeStudent);
   }
 
-  res.status(200).json({
+  res.json({
     student_id: studentID,
     class_id: classID,
     measurements,
