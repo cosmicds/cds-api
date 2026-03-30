@@ -86,7 +86,7 @@ export function setup(_app: Express, db: Sequelize) {
 
   const swaggerOptions: OAS3Options = {
     apis: [
-      "dist/src/stories/hubbles_law/main.js",
+      "dist/src/stories/hubbles_law/router.js",
     ],
     definition: {
       openapi: COSMICDS_OPENAPI_VERSION,
@@ -363,9 +363,9 @@ router.put("/sample-measurement", async (req, res) => {
  *        422:
  *          description: The given student ID is not a number
  *          content:
- *          application/json:
- *            schema:
- *              $ref: "#/components/schemas/Error"
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
  */
 router.delete("/measurement/:studentID/:galaxyIdentifier", async (req, res) => {
   const data = req.params;
@@ -442,7 +442,7 @@ router.delete("/measurement/:studentID/:galaxyIdentifier", async (req, res) => {
   *           application/json:
   *             schema:
   *               $ref: "#/components/schemas/Error"
-  *       422
+  *       422:
   *         description: At least one of the student ID or measurement number was not of the correct format
   *         content:
   *           application/json:
@@ -510,7 +510,7 @@ router.delete("/sample-measurement/:studentID/:measurementNumber", async (req, r
  *            application/json:
  *              schema:
  *                $ref: "#/components/schemas/Error"
- *        422
+ *        422:
  *          description: The given class ID was not a number
  *          content:
  *            application/json:
@@ -564,7 +564,7 @@ router.get("/measurements/classes/:classID", async (req, res) => {
  *            application/json:
  *              schema:
  *                type: object
- *                properties:{  
+ *                properties:
  *                  student_id:
  *                    type: integer
  *                  measurements:
@@ -577,7 +577,7 @@ router.get("/measurements/classes/:classID", async (req, res) => {
  *            application/json:
  *              schema:
  *                $ref: "#/components/schemas/Error"
- *        422
+ *        422:
  *          description: The given student ID is not a number
  *          content:
  *            application/json:
@@ -651,11 +651,11 @@ router.get("/measurements/:studentID", async (req, res) => {
  *              schema:
  *                $ref: "#/components/schemas/Error"
  *        422:
- *          description: At least one of the student and galaxy IDs was not an integer
- *            content:
- *              application/json:
- *                schema:
- *                  $ref: "#/components/schemas/Error"
+ *          description: At least one of the student or galaxy IDs was not an integer
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
  */
 router.get("/measurements/:studentID/:galaxyID", async (req, res) => {
   const params = req.params;
@@ -718,7 +718,7 @@ router.get("/measurements/:studentID/:galaxyID", async (req, res) => {
  *              schema:
  *                $ref: "#/components/schemas/Error"
  *        422:
- *          description: The given student ID is now a number
+ *          description: The given student ID is not a number
  *          content:
  *            application/json:
  *              schema:
