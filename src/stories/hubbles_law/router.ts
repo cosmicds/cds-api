@@ -69,6 +69,7 @@ import { Schema } from "@effect/schema";
 import { OAS3Options } from "swagger-jsdoc";
 import { COSMICDS_HOST, COSMICDS_OPENAPI_APIKEY_SCHEME, COSMICDS_OPENAPI_TAGS, COSMICDS_OPENAPI_VERSION } from "../../openapi/options";
 import { setupSwaggerDocs } from "../../openapi/utils";
+import { schemas } from "./openapi_schemas";
 
 export const BASE_PATH = "/hubbles_law";
 
@@ -709,7 +710,7 @@ router.get("/measurements/:studentID/:galaxyID", async (req, res) => {
  *                    type: integer
  *                  measurement:
  *                    schema:
- *                      $ref: "#/components/schemas/HubbleMeasurement"
+ *                      $ref: "#/components/schemas/HubbleSampleMeasurement"
  *        404:
  *          description: No student exists with the given ID
  *          content:
@@ -783,7 +784,7 @@ router.get("/sample-measurements/:studentID", async (req, res) => {
  *                    type: integer
  *                  measurement:
  *                    schema:
- *                      $ref: "#/components/schemas/HubbleMeasurement"
+ *                      $ref: "#/components/schemas/HubbleSampleMeasurement"
  *        404:
  *          description: Either the student does not exist, or the requested measurement was not found
  *          content:
@@ -833,6 +834,22 @@ router.get("/sample-measurements/:studentID/:measurementNumber", async (req, res
   });
 });
 
+/**
+ *  @openapi
+ *  /sample-measurements:
+ *    get:
+ *      tags:
+ *        - measurements
+ *      description: Get all sample measurements
+ *      responses:
+ *        200:
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: array
+ *                items:
+ *                  $ref: "#/components/schemas/HubbleSampleMeasurement"
+ */
 router.get("/sample-measurements", async (req, res) => {
   const filterNullString = ((req.query.filter_null as string) ?? "true").toLowerCase();
   const filterNull = filterNullString !== "false";
@@ -840,22 +857,112 @@ router.get("/sample-measurements", async (req, res) => {
   res.json(measurements);
 });
 
+/**
+ *  @openapi
+ *  /sample-measurements/{measurementNumber}:
+ *    get:
+ *      tags:
+ *        - measurements
+ *      description: Get all sample measurements for the given measurement number
+ *      parameters:
+ *        - name: measurementNumber
+ *          in: path
+ *          required: true
+ *          schema:
+ *            type: string
+ *            enum:
+ *              - first
+ *              - second
+ *      responses:
+ *        200:
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: array
+ *                items:
+ *                  $ref: "#/components/schemas/SampleHubbleMeasurement"
+ *        400:
+ *          description: The given measurement number was not either "first" or "second"
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ */
 router.get("/sample-measurements/:measurementNumber", async (req, res) => {
   const params = req.params;
-  const measurementNumber = params.measurementNumber;
+  const measurementNumber = params.measurementNumber?.toLowerCase();
   if (measurementNumber !== "first" && measurementNumber !== "second") {
-    res.status(400).json(null);
+    res.status(400).json({
+      error: `The measurement number must be either "first" or "second", received ${params.measurementNumber}`,
+    });
   } else {
     const measurements = await getAllNthSampleHubbleMeasurements(measurementNumber);
     res.json(measurements);
   }
 });
 
+/**
+ *  @openapi
+ *  /sample-galaxy:
+ *    get:
+ *      tags:
+ *        - galaxies
+ *      description: Return information about the sample galaxy
+ *      content:
+ *        application/json:
+ *          schema:
+ *            $ref: "#/components/schemas/Galaxy"
+ */
 router.get("/sample-galaxy", async (_req, res) => {
   const galaxy = await getSampleGalaxy();
   res.json(galaxy);
 });
 
+/**
+ *  @openapi
+ *  /class-measurements/size/{studentID}/{classID}:
+ *    get:
+ *      tags:
+ *        - measurements
+ *      description: Get the number of class measurements for a given student and class
+ *      parameters:
+ *        - name: studentID
+ *          in: path
+ *          required: true
+ *          schema:
+ *            type: integer
+ *        - name: classID
+ *          in: path
+ *          required: true
+ *          schema:
+ *            type: integer
+ *        - name: complete_only
+ *          in: query
+ *          description: If given as true, only complete measurements are counted
+ *          required: false
+ *          schema:
+ *            type: boolean
+ *      responses:
+ *        200:
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  student_id:
+ *                    type: integer
+ *                  class_id:
+ *                    type: integer
+ *                  measurement_count:
+ *                    type: integer
+ *        404:
+ *          description: Either the student or class ID is invalid
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/messages/Error"
+ *                
+ */
 router.get("/class-measurements/size/:studentID/:classID", async (req, res) => {
   res.header("Cache-Control", "no-cache, no-store, must-revalidate");  // HTTP 1.1
   res.header("Pragma", "no-cache");  // HTTP 1.0
@@ -864,7 +971,7 @@ router.get("/class-measurements/size/:studentID/:classID", async (req, res) => {
   const isValidStudent = (await findStudentById(studentID)) !== null;
   if (!isValidStudent) {
     res.status(404).json({
-      message: "Invalid student ID",
+      error: "Invalid student ID",
     });
     return;
   }
@@ -873,14 +980,14 @@ router.get("/class-measurements/size/:studentID/:classID", async (req, res) => {
   const isValidClass = (await findClassById(classID)) !== null;
   if (!isValidClass) {
     res.status(404).json({
-      message: "Invalid class ID",
+      error: "Invalid class ID",
     });
     return;
   }
 
   const completeOnly = (req.query.complete_only as string)?.toLowerCase() === "true";
   const count = await getClassMeasurementCountForStudent(studentID, classID, completeOnly);
-  res.status(200).json({
+  res.json({
     student_id: studentID,
     class_id: classID,
     measurement_count: count,

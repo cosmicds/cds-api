@@ -1,4 +1,6 @@
-import { Schemas } from "../../openapi/schemas";
+import { Schemas, schemas as baseSchemas } from "../../openapi/schemas";
+import { modelToSchema } from "../../openapi/utils";
+import { Galaxy } from "./models";
 
 const measurementInput = {
   type: "object",
@@ -44,6 +46,8 @@ const sampleMeasurement = {
 
 export function schemas(): Schemas {
   return {
+    ...baseSchemas(),
+    Galaxy: modelToSchema(Galaxy),
     HubbleMeasurementInput: measurementInput,
     HubbleMeasurement: measurement,
     HubbleSampleMeasurementInput: sampleMeasurementInput,
