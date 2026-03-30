@@ -136,11 +136,9 @@ export function setup(_app: Express, db: Sequelize) {
  *        required: true
  *        content:
  *          application/json:
+ *            description: At least one of galaxy_id or galaxy_name must be given. If both are given, only galaxy_id is used
  *            schema:
- *              type: object
- *              description: At least one of galaxy_id or galaxy_name must be given. If both are given, only galaxy_id is used
- *              schema:
- *                $ref: "#/components/schemas/HubbleMeasurementInput"
+ *              $ref: "#/components/schemas/HubbleMeasurementInput"
  *      responses:
  *        200:
  *          description: The measurement was submitted successfully
@@ -229,11 +227,9 @@ router.put("/submit-measurement", async (req, res) => {
  *        required: true
  *        content:
  *          application/json:
+ *            description: At least one of galaxy_id or galaxy_name must be given. If both are given, only galaxy_id is used. The identifier must correspond to the sample galaxy
  *            schema:
- *              type: object
- *              description: At least one of galaxy_id or galaxy_name must be given. If both are given, only galaxy_id is used. The identifier must correspond to the sample galaxy
- *              schema:
- *                $ref: "#/components/schemas/HubbleSampleMeasurementInput"
+ *              $ref: "#/components/schemas/HubbleSampleMeasurementInput"
  *      responses:
  *        200:
  *          description: The sample measurement was submitted successfully
@@ -241,12 +237,10 @@ router.put("/submit-measurement", async (req, res) => {
  *            application/json:
  *              schema:
  *                type: object
- *                $schema:
- *                  type: object
- *                  properties:
- *                    measurement:
- *                      schema:
- *                        $ref: "#/components/schemas/HubbleSampleMeasurement"
+ *                properties:
+ *                  measurement:
+ *                    schema:
+ *                      $ref: "#/components/schemas/HubbleSampleMeasurement"
  *        400:
  *          description: The request body did not have the required form
  *          content:
@@ -1095,7 +1089,7 @@ router.get("/class-measurements/students-completed/:studentID/:classID", async (
  *            type: boolean
  *            default: false
  *        - name: student_ids
- *          in: qury
+ *          in: query
  *          required: false
  *          schema:
  *            type: array
