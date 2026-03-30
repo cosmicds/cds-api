@@ -100,7 +100,11 @@ export function setup(_app: Express, db: Sequelize) {
         {
           name: "measurements",
           description: "Operations relating to students' Hubble measurements",
-        }
+        },
+        {
+          name: "galaxies",
+          description: "Operations relating to managing galaxies used for the Hubble's Law story",
+        },
       ],
       host: COSMICDS_HOST,
       basePath: BASE_PATH,
@@ -1180,13 +1184,71 @@ router.get(["/class-measurements/:studentID/:classID", "/stage-3-data/:studentID
   });
 });
 
+/**
+ *  @openapi
+ *  /class-measurements/{studentID}:
+ *    get:
+ *      tags:
+ *        - students
+ *        - classes
+ *        - measurements
+ *      description: Get the class measurements relevant for a given student
+ *      parameters:
+ *        - name: studentID
+ *          in: path
+ *          required: true
+ *          schema:
+ *            type: integer
+ *        - name: student_ids
+ *          in: query
+ *          required: false
+ *          description: If specified, the measurements for these students are returned
+ *          schema:
+ *            type: array
+ *            items:
+ *              type: integer
+ *        - name: exclude_student
+ *          in: query
+ *          required: false
+ *          description: If true, the given student's data is excluded from the returned measurements. Not used if a list of student IDs is specified
+ *          schema:
+ *            type: boolean
+ *            default: false
+ *      responses:
+ *        200:
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  student_id:
+ *                    type: integer
+ *                  class_id:
+ *                    type: null
+ *                  measurements:
+ *                    type: array
+ *                    items:
+ *                      $ref: "#/components/schemas/HubbleMeasurement"
+ *          400:
+ *            description: At least one of the given student IDs is invalid
+ *            content:
+ *              application/json:
+ *                schema:
+ *                  $ref: "#/components/schemas/Error"
+ *          404:
+ *            description: The given student cannot be found or is not in a class signed up for the Hubble's Law story
+ *            content:
+ *              application/json:
+ *                schema:
+ *                  $ref: "#/components/schemas/Error"
+ */
 router.get(["/class-measurements/:studentID", "stage-3-measurements/:studentID"], async (req, res) => {
   const params = req.params;
   const studentID = parseInt(params.studentID);
   const isValidStudent = (await findStudentById(studentID)) !== null;
   if (!isValidStudent) {
     res.status(404).json({
-      message: "Invalid student ID",
+      error: "Invalid student ID",
     });
     return;
   }
@@ -1194,7 +1256,7 @@ router.get(["/class-measurements/:studentID", "stage-3-measurements/:studentID"]
   const cls = await classForStudentStory(studentID, "hubbles_law");
   if (cls === null) {
     res.status(404).json({
-      message: `Student ${studentID} is not in a class signed up for the Hubble's Law story`,
+      error: `Student ${studentID} is not in a class signed up for the Hubble's Law story`,
     });
     return;
   }
@@ -1207,7 +1269,7 @@ router.get(["/class-measurements/:studentID", "stage-3-measurements/:studentID"]
 
     if (!valid) {
       res.status(400).json({
-        message: "At least one of your specified student IDs is invalid. Student IDs should be integers.",
+        error: "At least one of your specified student IDs is invalid. Student IDs should be integers.",
       });
       return;
     }
@@ -1224,6 +1286,47 @@ router.get(["/class-measurements/:studentID", "stage-3-measurements/:studentID"]
   });
 });
 
+/**
+ *  @openapi
+ *  /merge-students:
+ *    put:
+ *      tags:
+ *        - classes
+ *      description: Update a class's merge status to include the given number of merge students
+ *      requestBody:
+ *        required: true
+ *        content:
+ *          application/json:
+ *            schema:
+ *              type: object
+ *              properties:
+ *                class_id:
+ *                  type: integer
+ *                desired_merge_count:
+ *                  type: integer
+ *                  description: This is the intended number of total students to have merged into the class, not an amount to add. Thus repeating this request with the same count will have no additional effect
+ *      responses:
+ *        200:
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  message:
+ *                    type: string
+ *        400:
+ *          description: The request body format was invalid
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ *        404:
+ *          description: No class was found with the given class ID
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ */
 router.put("/merge-students", async (req, res) => {
   const body = req.body;
   const schema = S.struct({
@@ -1274,13 +1377,51 @@ router.put("/merge-students", async (req, res) => {
 
 });
 
+/**
+ *  @openapi
+ *  /merged-classes/{classID}:
+ *    get:
+ *      deprecated: true
+ *      tags:
+ *        - classes
+ *      description: Return the list of classes that are merged with a given class. Deprecated as the class-merging system will not be used going forward
+ *      parameters:
+ *        - name: classID
+ *          in: path
+ *          required: true
+ *          schema:
+ *            type: integer
+ *        - name: ignore_merge_order
+ *          in: query
+ *          required: false
+ *          schema:
+ *            type: boolean
+ *            default: false
+ *      responses:
+ *        200:
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  merged_class_ids:
+ *                    type: array
+ *                    items:
+ *                      type: integer
+ *        404:
+ *          description: No class found with the given ID
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ */
 router.get("/merged-classes/:classID", async (req, res) => {
   const classID = Number(req.params.classID);
   const ignoreMergeOrder = (req.query?.ignore_merge_order as string)?.toLowerCase() === "true";
   const cls = await findClassById(classID);
   if (cls === null) {
     res.status(404).json({
-      message: `No class found with ID ${classID}`,
+      error: `No class found with ID ${classID}`,
     });
     return;
   }
@@ -1290,6 +1431,54 @@ router.get("/merged-classes/:classID", async (req, res) => {
   });
 });
 
+// TODO: Handle reduced fields
+/**
+ *  @openapi
+ *  /all-data:
+ *    get:
+ *      tags:
+ *        - measurements
+ *      description: Return all Hubble measurements, student summaries, and class summaries
+ *      parameters:
+ *        - name: class_id
+ *          in: query
+ *          required: false
+ *          schema:
+ *            type: integer
+ *        - name: minimal
+ *          in: query
+ *          required: false
+ *          description: If true, only a minimal set of attributes needed for the Hubble's Law story are returned
+ *          schema:
+ *            type: boolean
+ *            default: false
+ *        - name: before
+ *          in: query
+ *          required: false
+ *          description: If specified, only fetch measurements last updated before the given date
+ *          schema:
+ *            type: string
+ *            format: date
+ *      responses:
+ *        200:
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  measurements:
+ *                    type: array
+ *                    items:
+ *                      $ref: "#/components/schemas/HubbleMeasurement"
+ *                  studentData:
+ *                    type: array
+ *                    items:
+ *                      $ref: "#/components/schemas/HubbleStudentData"
+ *                  classData:
+ *                    type: array
+ *                    items:
+ *                      $ref: "#/components/schemas/HubbleClassData"
+ */
 router.get("/all-data", async (req, res) => {
   const minimal = (req.query?.minimal as string)?.toLowerCase() === "true";
   let classID: number | null = parseInt(req.query.class_id as string);
@@ -1313,6 +1502,39 @@ router.get("/all-data", async (req, res) => {
   });
 });
 
+// TODO: Handle reduced fields
+/**
+ *  @openapi
+ *  /galaxies:
+ *    get:
+ *      tags:
+ *        - galaxies
+ *      description: Return information on all valid galaxies. Valid galaxies are those not marking as having some element of bad data
+ *      parameters:
+ *        - name: types
+ *          in: query
+ *          required: false
+ *          description: If specified, only galaxies of the specified types are returned
+ *          schema:
+ *            type: array
+ *            items:
+ *              type: string
+ *        - name: flags
+ *          in: query
+ *          required: false
+ *          description: If specified, return the galaxy flag fields in the response
+ *          schema:
+ *            type: boolean
+ *            default: false
+ *      responses:
+ *        200:
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: array
+ *                items:
+ *                  $ref: "#/components/schemas/Galaxy"
+ */
 router.get("/galaxies", async (req, res) => {
   const types = req.query?.types ?? undefined;
   const flags = (/true/i).test((req.query?.flags as string) ?? undefined);
