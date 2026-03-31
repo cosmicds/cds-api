@@ -44,6 +44,45 @@ const sampleMeasurement = {
   required: ["student_id", "galaxy_id"],
 };
 
+const minimalMeasurement = {
+  type: "object",
+  required: ["student_id", "galaxy_id", "velocity_value", "est_dist_value", "class_id"],
+  properties: {
+    student_id: { type: "integer" },
+    galaxy_id: { type: "integer" },
+    velocity_value: { type: "number" },
+    est_dist_value: { type: "number" },
+    class_id: { type: "integer" },
+  },
+};
+
+const minimalStudentData = {
+  type: "object",
+  required: ["student_id", "age_value", "class_id"],
+  properties: {
+    student_id: { type: "integer" },
+    age_value: { type: "number" },
+    class_id: { type: "integer" },
+  },
+};
+
+const minimalGalaxy = {
+  type: "object",
+  required: ["id", "ra", "decl", "z", "type", "name", "element"],
+  properties: {
+    id: { type: "integer" },
+    ra: { type: "number" },
+    decl: { type: "number" },
+    z: { type: "number" },
+    type: { type: "number" },
+    name: { type: "string" },
+    element: {
+      type: "string",
+      enum: ["H-α", "Mg-I"],
+    },
+  },
+};
+
 export function schemas(): Schemas {
   return {
     ...baseSchemas(),
@@ -54,5 +93,8 @@ export function schemas(): Schemas {
     HubbleMeasurement: measurement,
     HubbleSampleMeasurementInput: sampleMeasurementInput,
     HubbleSampleMeasurement: sampleMeasurement,
+    MinimalHubbleMeasurement: minimalMeasurement,
+    MinimalHubbleStudentData: minimalStudentData,
+    MinimalGalaxy: minimalGalaxy,
   };
 }

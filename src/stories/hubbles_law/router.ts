@@ -1431,7 +1431,6 @@ router.get("/merged-classes/:classID", async (req, res) => {
   });
 });
 
-// TODO: Handle reduced fields
 /**
  *  @openapi
  *  /all-data:
@@ -1469,11 +1468,15 @@ router.get("/merged-classes/:classID", async (req, res) => {
  *                  measurements:
  *                    type: array
  *                    items:
- *                      $ref: "#/components/schemas/HubbleMeasurement"
+ *                      oneOf:
+ *                        - $ref: "#/components/schemas/HubbleMeasurement"
+ *                        - $ref: "#/components/schemas/MinimalHubbleMeasurement"
  *                  studentData:
  *                    type: array
  *                    items:
- *                      $ref: "#/components/schemas/HubbleStudentData"
+ *                      oneOf:
+ *                        - $ref: "#/components/schemas/HubbleStudentData"
+ *                        - $ref: "#/components/schemas/MinimalHubbleStudentData"
  *                  classData:
  *                    type: array
  *                    items:
@@ -1502,7 +1505,6 @@ router.get("/all-data", async (req, res) => {
   });
 });
 
-// TODO: Handle reduced fields
 /**
  *  @openapi
  *  /galaxies:
@@ -1533,7 +1535,9 @@ router.get("/all-data", async (req, res) => {
  *              schema:
  *                type: array
  *                items:
- *                  $ref: "#/components/schemas/Galaxy"
+ *                  oneOf:
+ *                    - $ref: "#/components/schemas/Galaxy"
+ *                    - $ref: "#/components/schemas/MinimalGalaxy"
  */
 router.get("/galaxies", async (req, res) => {
   const types = req.query?.types ?? undefined;
