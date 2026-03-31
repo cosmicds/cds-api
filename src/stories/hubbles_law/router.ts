@@ -1553,63 +1553,189 @@ router.get("/galaxies", async (req, res) => {
   res.json(galaxies);
 });
 
-async function markBad(req: GenericRequest, res: GenericResponse, marker: (galaxy: Galaxy) => Promise<boolean>) {
-  const galaxyID = req.body.galaxy_id;
-  const galaxyName = req.body.galaxy_name;
-  if (!(galaxyID || galaxyName)) { 
+async function markBadHandler(
+  req: GenericRequest,
+  res: GenericResponse,
+  errorMessage: string,
+  marker: (galaxy: Galaxy) => Promise<boolean>
+) {
+  const schema = S.struct({
+    galaxy_id: S.optional(S.number.pipe(S.int())),
+    galaxy_name: S.optional(S.string),
+  });
+
+  const maybe = S.decodeUnknownEither(schema)(req.body);
+
+  if (Either.isLeft(maybe)
+        ||
+      (maybe.right.galaxy_id == null && maybe.right.galaxy_name == null)
+     ) {
     res.status(400).json({
-      status: "missing_id_or_name"
+      error: `
+        Request body is malformed.
+        It should have at least one of
+        galaxy_id (integer) or galaxy_name (string)
+      `,
     });
     return;
-   }
-
-  let galaxy: Galaxy | null;
-  if (galaxyID) {
-    galaxy = await Galaxy.findOne({ where: { id : galaxyID }});
-  } else {
-    galaxy = await getGalaxyByName(galaxyName);
   }
+
+  const data = maybe.right;
+  const galaxy = await (data.galaxy_id != null ? getGalaxyById(data.galaxy_id) : getGalaxyByName(data.galaxy_name!));
 
   if (galaxy === null) {
-    res.status(400).json({
-      status: "no_such_galaxy"
+    res.status(404).json({
+      error: "No matching galaxy found",
     });
     return;
   }
 
-  return marker(galaxy);
+  const success = await marker(galaxy);
+  if (success) {
+    res.status(204).end();
+  } else {
+    res.status(500).json({
+      error: errorMessage,
+    });
+  }
+
 }
 
 /**
  * Really should be POST
- * This was previously idempotent, but no longer is
+ *  This was previously idempotent, but no longer is
+ */
+
+/**
+ *  @openapi
+ *  /mark-galaxy-bad:
+ *    put:
+ *      tags:
+ *        - galaxies
+ *      description: Mark a galaxy as "bad", meaning that it won't be an option for future students in the Hubble data story. This was originally idempotent but not is not, so really should be a POST
+ *      requestBody:
+ *        required: true
+ *        content:
+ *          application/json:
+ *            description: Only the galaxy_id is used if both are provided
+ *            schema:
+ *              type: object
+ *              properties:
+ *                galaxy_id:
+ *                  type: integer
+ *                galaxy_name:
+ *                  type: string
+ *      responses:
+ *        204:
+ *          description: The galaxy was successfully marked as bad
+ *        400:
+ *          description: The request body was malformed
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ *        404:
+ *          description: No galaxy matching the given identifier was found
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ *        500:
+ *          description: An error occurred while marking the galaxy as bad in the database
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
  */
 router.put("/mark-galaxy-bad", async (req, res) => {
-  const success = await markBad(req, res, markGalaxyBad);
-
-  if (success) {
-    res.status(204).end();
-  } else {
-    res.status(500).json({
-      error: "Error marking galaxy as bad",
+  const error = "Error marking the galaxy as bad";
+  markBadHandler(req, res, error, markGalaxyBad)
+    .catch(_err => {
+      res.status(500).json({
+        error
+      });
     });
-  }
-
 });
 
+/**
+ *  @openapi
+ *  /mark-spectrum-bad:
+ *    post:
+ *      tags:
+ *        - galaxies
+ *      description: Mark a galaxy's spectrum as "bad", meaning that galaxy won't be an option for future students in the Hubble data story.
+ *      requestBody:
+ *        required: true
+ *        content:
+ *          application/json:
+ *            description: Only the galaxy_id is used if both are provided
+ *            schema:
+ *              type: object
+ *              properties:
+ *                galaxy_id:
+ *                  type: integer
+ *                galaxy_name:
+ *                  type: string
+ *      responses:
+ *        204:
+ *          description: The spectrum was successfully marked as bad
+ *        400:
+ *          description: The request body was malformed
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ *        404:
+ *          description: No galaxy matching the given identifier was found
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ *        500:
+ *          description: An error occurred while marking the spectrum as bad in the database
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ */
 router.post("/mark-spectrum-bad", async (req, res) => {
-  const success = await markBad(req, res, markGalaxySpectrumBad);
-
-  if (success) {
-    res.status(204).end();
-  } else {
-    res.status(500).json({
-      error: "Error marking spectrum as bad",
+  const error = "Error marking the spectrum as bad";
+  markBadHandler(req, res, error, markGalaxySpectrumBad)
+    .catch(_err => {
+      res.status(500).json({
+        error
+      });
     });
-  }
 
 });
 
+/**
+ *  @openapi
+ *  /spectra/{type}/{name}:
+ *    get:
+ *      tags:
+ *        - galaxies
+ *      parameters:
+ *        - name: type
+ *          in: path
+ *          required: true
+ *          schema:
+ *            type: string
+ *            enum:
+ *              - spiral
+ *              - elliptical
+ *              - irregular
+ *        - name: name
+ *          in: path
+ *          required: true
+ *          schema:
+ *            type: string
+ *      responses:
+ *        302:
+ *          description: Redirect to where the given galaxy's spectrum is stored on AWS
+ *          content:
+ *            binary/octet-stream
+ */
 router.get("/spectra/:type/:name", async (req, res) => {
   res.redirect(`https://cosmicds.s3.us-east-1.amazonaws.com/spectra/${req.params.type}/${req.params.name}`);
 });
@@ -1619,6 +1745,41 @@ const WaitingRoomOverrideSchema = S.struct({
   class_id: S.number.pipe(S.int()),
 });
 
+/**
+ *  @openapi
+ *  /waiting-room-override/{classID}:
+ *    get:
+ *      tags:
+ *        - classes
+ *      description: Get the waiting room override for a class
+ *      parameters:
+ *        - name: classID
+ *          in: path
+ *          required: true
+ *          schema:
+ *            type: integer
+ *    responses:
+ *      200:
+ *        content:
+ *          application/json:
+ *            schema:
+ *              type: object
+ *              properties:
+ *                class_id:
+ *                  type: integer
+ *                override_status:
+ *                  type: boolean
+ *      404:
+ *        content:
+ *          application/json:
+ *            schema:
+ *              $ref: "#/components/schemas/Error"
+ *      500:
+ *        content:
+ *          application/json:
+ *            schema:
+ *              $ref: "#/components/schemas/Error"
+ */
 router.get("/waiting-room-override/:classID", async (req, res) => {
   const classID = Number(req.params.classID);
   const cls = await findClassById(classID);
@@ -1644,6 +1805,62 @@ router.get("/waiting-room-override/:classID", async (req, res) => {
 
 });
 
+/**
+ *  @openapi
+ *  /waiting-room-override:
+ *    put:
+ *      tags:
+ *        - classes
+ *      description: Set a class to allow overriding the waiting room
+ *      requestBody:
+ *        required: true
+ *        schema:
+ *          type: object
+ *          properties:
+ *            class_id:
+ *              type: integer
+ *      responses:
+ *        200:
+ *          description: The waiting room override was already set
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  class_id:
+ *                    type: integer
+ *                  message:
+ *                    type: string
+ *        201:
+ *          description: The waiting room override for the class was successfully set
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  class_id:
+ *                    type: integer
+ *                  message:
+ *                    type: string
+ *        400:
+ *          description: The request body has the wrong format
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ *        404:
+ *          description: No class was found with the given ID
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ *        500:
+ *          description: There was an error while setting the waiting room override
+ *          content:
+ *            application/json:
+ *              schemas:
+ *                $ref: "#/components/schemas/Error"
+ */
 router.put("/waiting-room-override", async (req, res) => {
   const body = req.body;
   const maybe = S.decodeUnknownEither(WaitingRoomOverrideSchema)(body);
@@ -1658,7 +1875,6 @@ router.put("/waiting-room-override", async (req, res) => {
   const result = await setWaitingRoomOverride(right.class_id);
   const success = !(result instanceof Error); 
   const responseData = {
-    success,
     class_id: right.class_id,
   };
   if (!success) {
@@ -1672,12 +1888,10 @@ router.put("/waiting-room-override", async (req, res) => {
     } else if (result instanceof UniqueConstraintError) {
       res.status(200).json({
         class_id: right.class_id,
-        success: true,
         message: `The waiting room override for class ${right.class_id} was already set`,
       });
     } else {
       res.status(500).json({
-        ...responseData,
         error: `An error occurred while setting the waiting room override for class ${right.class_id}`,
       });
     }
@@ -1697,6 +1911,46 @@ router.put("/waiting-room-override", async (req, res) => {
 });
 
 
+/**
+ *  @openapi
+ *  /waiting-room-override:
+ *    delete:
+ *      tags:
+ *        - classes
+ *      description: Remove the waiting room override flag from a given class
+ *      requestBody:
+ *        required: true
+ *        schema:
+ *          type: object
+ *          properties:
+ *            class_id:
+ *              type: integer
+ *      responses:
+ *        200:
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  class_id:
+ *                    type: number
+ *                  removed:
+ *                    type: boolean
+ *                  message:
+ *                    type: string
+ *        400:
+ *          description: The request body has the wrong format
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ *        500:
+ *          description: There was an error while removing the waiting room override for the given class
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ */
 router.delete("/waiting-room-override", async (req, res) => {
   const body = req.body;
   const maybe = S.decodeUnknownEither(WaitingRoomOverrideSchema)(body);
@@ -1711,7 +1965,6 @@ router.delete("/waiting-room-override", async (req, res) => {
   const countRemoved = await removeWaitingRoomOverride(right.class_id);
   const success = !isNaN(countRemoved);
   const responseData = {
-    success,
     removed: success && countRemoved > 0,
     class_id: right.class_id,
   };
@@ -1742,16 +1995,13 @@ router.get("/unchecked-galaxies", async (_req, res) => {
 });
 
 router.post("/mark-tileload-bad", async (req, res) => {
-  const success = await markBad(req, res, markGalaxyTileloadBad);
-
-  if (success) {
-    res.status(204).end();
-  } else {
-    res.status(500).json({
-      error: "Error marking spectrum as bad",
+  const error = "Error reporting bad tile load.";
+  markBadHandler(req, res, error, markGalaxyTileloadBad)
+    .catch(_err => {
+      res.status(500).json({
+        error
+      });
     });
-  }
-
 });
 
 router.post("/set-spectrum-status", async (req, res) => {
