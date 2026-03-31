@@ -353,14 +353,14 @@ router.put("/sample-measurement", async (req, res) => {
  *                    type: integer
  *                  galaxy_id:
  *                    type: integer
- *        404:
- *          description: A measurement for the given student and galaxy was not found
+ *        400:
+ *          description: The given student ID is not a number
  *          content:
  *            application/json:
  *              schema:
  *                $ref: "#/components/schemas/Error"
- *        422:
- *          description: The given student ID is not a number
+ *        404:
+ *          description: A measurement for the given student and galaxy was not found
  *          content:
  *            application/json:
  *              schema:
@@ -371,7 +371,7 @@ router.delete("/measurement/:studentID/:galaxyIdentifier", async (req, res) => {
   const studentID = parseInt(data.studentID);
 
   if (isNaN(studentID)) {
-    res.status(422).json({
+    res.status(400).json({
       error: `The student ID must be a number; received ${studentID}`,
     });
     return;
@@ -435,14 +435,14 @@ router.delete("/measurement/:studentID/:galaxyIdentifier", async (req, res) => {
   *                   enum:
   *                     - first
   *                     - second
-  *       404:
-  *         description: A sample measurement for the given student and galaxy was not found
+  *       400:
+  *         description: At least one of the student ID or measurement number was not of the correct format
   *         content:
   *           application/json:
   *             schema:
   *               $ref: "#/components/schemas/Error"
-  *       422:
-  *         description: At least one of the student ID or measurement number was not of the correct format
+  *       404:
+  *         description: A sample measurement for the given student and galaxy was not found
   *         content:
   *           application/json:
   *             schema:
@@ -454,7 +454,7 @@ router.delete("/sample-measurement/:studentID/:measurementNumber", async (req, r
   const measurementNumber = data.measurementNumber?.toLowerCase();
 
   if (isNaN(studentID) || !(["first", "second"].includes(measurementNumber))) {
-    res.status(422).json({
+    res.status(400).json({
       error: `The student ID must be a number and measurement number must be one of "first", "second",
               received student ID: ${studentID}, measurement number: ${measurementNumber}.`,
     });
@@ -503,14 +503,14 @@ router.delete("/sample-measurement/:studentID/:measurementNumber", async (req, r
  *                    type: array
  *                    items:
  *                      $ref: "#/components/schemas/HubbleMeasurement"
- *        404:
- *          description: No class exists with the given ID
+ *        400:
+ *          description: The given class ID was not a number
  *          content:
  *            application/json:
  *              schema:
  *                $ref: "#/components/schemas/Error"
- *        422:
- *          description: The given class ID was not a number
+ *        404:
+ *          description: No class exists with the given ID
  *          content:
  *            application/json:
  *              schema:
@@ -520,7 +520,7 @@ router.get("/measurements/classes/:classID", async (req, res) => {
   const classID = parseInt(req.params.classID);
 
   if (isNaN(classID)) {
-    res.status(422).json({
+    res.status(400).json({
       error: `The class ID must be a number; received ${classID}`,
     });
     return;
@@ -570,14 +570,14 @@ router.get("/measurements/classes/:classID", async (req, res) => {
  *                    type: array
  *                    items:
  *                      $ref: "#/components/schemas/HubbleMeasurement"
- *        404:
- *          description: No student exists with the given ID
+ *        400:
+ *          description: The given student ID is not a number
  *          content:
  *            application/json:
  *              schema:
  *                $ref: "#/components/schemas/Error"
- *        422:
- *          description: The given student ID is not a number
+ *        404:
+ *          description: No student exists with the given ID
  *          content:
  *            application/json:
  *              schema:
@@ -588,7 +588,7 @@ router.get("/measurements/:studentID", async (req, res) => {
   const studentID = parseInt(params.studentID);
 
   if (isNaN(studentID)) {
-    res.status(422).json({
+    res.status(400).json({
       error: `The student ID must be a number; received ${studentID}`,
     });
     return;
@@ -643,14 +643,14 @@ router.get("/measurements/:studentID", async (req, res) => {
  *                  measurement:
  *                    schema:
  *                      $ref: "#/components/schemas/HubbleMeasurement"
- *        404:
- *          description: No measurement was found for the given student and galaxy
+ *        400:
+ *          description: At least one of the student or galaxy IDs was not an integer
  *          content:
  *            application/json:
  *              schema:
  *                $ref: "#/components/schemas/Error"
- *        422:
- *          description: At least one of the student or galaxy IDs was not an integer
+ *        404:
+ *          description: No measurement was found for the given student and galaxy
  *          content:
  *            application/json:
  *              schema:
@@ -662,7 +662,7 @@ router.get("/measurements/:studentID/:galaxyID", async (req, res) => {
   const galaxyID = parseInt(params.galaxyID);
 
   if (isNaN(studentID) || isNaN(galaxyID)) {
-    res.status(422).json({
+    res.status(400).json({
       error: `Student ID and galaxy ID must both be integers; received student ID: ${studentID}, galaxy ID: ${galaxyID}`
     });
     return;
@@ -710,14 +710,14 @@ router.get("/measurements/:studentID/:galaxyID", async (req, res) => {
  *                  measurement:
  *                    schema:
  *                      $ref: "#/components/schemas/HubbleSampleMeasurement"
- *        404:
- *          description: No student exists with the given ID
+ *        400:
+ *          description: The given student ID is not a number
  *          content:
  *            application/json:
  *              schema:
  *                $ref: "#/components/schemas/Error"
- *        422:
- *          description: The given student ID is not a number
+ *        404:
+ *          description: No student exists with the given ID
  *          content:
  *            application/json:
  *              schema:
@@ -728,7 +728,7 @@ router.get("/sample-measurements/:studentID", async (req, res) => {
   const studentID = parseInt(params.studentID);
 
   if (isNaN(studentID)) {
-    res.status(422).json({
+    res.status(400).json({
       error: `The student ID must be a number; received ${studentID}`,
     });
     return;
@@ -784,14 +784,14 @@ router.get("/sample-measurements/:studentID", async (req, res) => {
  *                  measurement:
  *                    schema:
  *                      $ref: "#/components/schemas/HubbleSampleMeasurement"
- *        404:
- *          description: Either the student does not exist, or the requested measurement was not found
+ *        400:
+ *          description: At least one of the student ID or measurement number was not of the correct format 
  *          content:
  *            application/json:
  *              schema:
  *                $ref: "#/components/schemas/Error"
- *        422:
- *          description: At least one of the student ID or measurement number was not of the correct format 
+ *        404:
+ *          description: Either the student does not exist, or the requested measurement was not found
  *          content:
  *            application/json:
  *              schema:
@@ -803,7 +803,7 @@ router.get("/sample-measurements/:studentID/:measurementNumber", async (req, res
   const measurementNumber = params.measurementNumber?.toLowerCase();
 
   if (isNaN(studentID) || !(["first", "second"].includes(measurementNumber))) {
-    res.status(422).json({
+    res.status(400).json({
       error: `The student ID must be a number and measurement number must be one of "first", "second",
               received student ID: ${studentID}, measurement number: ${measurementNumber}.`,
     });
