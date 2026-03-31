@@ -3,12 +3,17 @@ import { Request, Response as ExpressResponse, NextFunction } from "express";
 import { requestHasPermission } from "./authorization";
 import { ALLOWED_ORIGINS } from "./utils";
 
-
 export async function apiKeyMiddleware(req: Request, res: ExpressResponse, next: NextFunction): Promise<void> {
 
-  const noKeyNeeded = ["/", "/permission", "/docs.json"].includes(req.path)
+  const noKeyNeeded = [
+    "/", 
+    "/permission", 
+    "/docs.json"
+  ].includes(req.path)
     ||
-  req.path.startsWith("/docs");
+  req.path.startsWith("/docs")
+    ||
+  /docs(.json)?/.test(req.path);
 
   if (noKeyNeeded) {
     next();

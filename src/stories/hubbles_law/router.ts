@@ -8,6 +8,8 @@ import {
   GenericResponse
 } from "../../server";
 
+import { OptionalInt, OptionalString } from "../../utils";
+
 import {
   getGalaxyByName,
   getAllGalaxies,
@@ -45,6 +47,10 @@ import {
   resetATWaitingRoomTest,
   mergeNStudentsIntoClass,
   getHubbleMeasurementsForStudents,
+  Measurement,
+  MeasurementType,
+  SampleMeasurement,
+  SampleMeasurementType,
 } from "./database";
 
 import { 
@@ -58,6 +64,14 @@ import { classForStudentStory, findClassById, findStudentById } from "../../data
 import { HubbleClassStudentMerge, HubbleMeasurement, initializeModels } from "./models";
 import { setUpHubbleAssociations } from "./associations";
 import { Story } from "../../models";
+import { Schema } from "@effect/schema";
+
+import { OAS3Options } from "swagger-jsdoc";
+import { COSMICDS_HOST, COSMICDS_OPENAPI_APIKEY_SCHEME, COSMICDS_OPENAPI_TAGS, COSMICDS_OPENAPI_VERSION } from "../../openapi/options";
+import { setupSwaggerDocs } from "../../openapi/utils";
+import { schemas } from "./openapi_schemas";
+
+export const BASE_PATH = "/hubbles_law";
 
 export const router = Router();
 
@@ -69,154 +83,453 @@ export function setup(_app: Express, db: Sequelize) {
     name: "hubbles_law",
     display_name: "Hubble's Law",
   }).catch(error => console.error(error));
+
+  const swaggerOptions: OAS3Options = {
+    apis: [
+      "./dist/src/stories/hubbles_law/router.js",
+    ],
+    definition: {
+      openapi: COSMICDS_OPENAPI_VERSION,
+      info: {
+        title: "CosmicDS API - Hubble's Law",
+        version: "0.1.0",
+        description: "The endpoints on the CosmicDS API server relating to the Hubble's Law story",
+      },
+      tags: [
+        ...COSMICDS_OPENAPI_TAGS,
+        {
+          name: "measurements",
+          description: "Operations relating to students' Hubble measurements",
+        },
+        {
+          name: "galaxies",
+          description: "Operations relating to managing galaxies used for the Hubble's Law story",
+        },
+      ],
+      servers: [
+        { url: `${COSMICDS_HOST}${BASE_PATH}` },
+      ],
+      components: {
+        securitySchemes: {
+          apiKey: COSMICDS_OPENAPI_APIKEY_SCHEME, 
+        },
+        schemas: schemas(),
+      },
+      security: [
+        { apiKey: [] },
+      ],
+    },
+  };
+
+  setupSwaggerDocs({
+    router,
+    swaggerOptions,
+    title: "CosmicDS Database API - Hubble's Law",
+  });
+
 }
 
+/**
+ *  @openapi
+ *  /submit-measurement:
+ *    put:
+ *      tags:
+ *        - students
+ *        - measurements
+ *      description: Submit a Hubble measurement for a student
+ *      requestBody:
+ *        required: true
+ *        content:
+ *          application/json:
+ *            description: At least one of galaxy_id or galaxy_name must be given. If both are given, only galaxy_id is used
+ *            schema:
+ *              $ref: "#/components/schemas/HubbleMeasurementInput"
+ *      responses:
+ *        200:
+ *          description: The measurement was submitted successfully
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                $schema:
+ *                  type: object
+ *                  properties:
+ *                    measurement:
+ *                      schema:
+ *                        $ref: "#/components/schemas/HubbleMeasurement"
+ *        400:
+ *          description: The request body did not have the required form
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ *        422:
+ *          description: Either the student ID or galaxy ID did not correspond to a valid item
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ */
 router.put("/submit-measurement", async (req, res) => {
-  const data = req.body;
-  const valid = (
-    typeof data.student_id === "number" &&
-    ((typeof data.galaxy_id === "number") || (typeof data.galaxy_name === "string")) &&
-    (!data.rest_wave_value || typeof data.rest_wave_value === "number") &&
-    (!data.rest_wave_unit || typeof data.rest_wave_unit === "string") &&
-    (!data.obs_wave_value || typeof data.obs_wave_value === "number") &&
-    (!data.obs_wave_unit || typeof data.obs_wave_unit === "string") &&
-    (!data.velocity_value || typeof data.velocity_value === "number") &&
-    (!data.velocity_unit || typeof data.velocity_unit === "string") &&
-    (!data.ang_size_value || typeof data.ang_size_value === "number") &&
-    (!data.ang_size_unit || typeof data.ang_size_unit === "string") &&
-    (!data.est_dist_value || typeof data.est_dist_value === "number") &&
-    (!data.est_dist_unit || typeof data.est_dist_unit === "string") &&
-    (!data.brightness || typeof data.brightness === "number")
-  );
 
-  if (typeof data.galaxy_id !== "number") {
-    let galaxyName = data.galaxy_name;
+  const schema = S.extend(Measurement, S.struct({
+    galaxy_id: OptionalInt,
+    galaxy_name: OptionalString,
+  })).pipe(
+    Schema.filter(obj => "galaxy_id" in obj || "galaxy_name" in obj,
+    { message: () => "At least one of galaxy_id or galaxy_name must be specified" },
+  ));
+
+  const maybe = S.decodeUnknownEither(schema)(req.body); 
+
+  if (Either.isLeft(maybe)) {
+    res.status(400).json({
+      error: "The request body was malformed",
+    });
+    return;
+  }
+
+  let data: MeasurementType;
+
+  const maybeGalaxyID = maybe.right.galaxy_id;
+  if (typeof maybeGalaxyID === "number") {
+    data = { ...maybe.right, galaxy_id: maybeGalaxyID };
+  } else {
+    const dataToEdit = { ...maybe.right };
+    let galaxyName = dataToEdit.galaxy_name as string;
     if (!galaxyName.endsWith(".fits")) {
       galaxyName += ".fits";
     }
     const galaxy = await getGalaxyByName(galaxyName);
-    data.galaxy_id = galaxy?.id || 0;
-    delete data.galaxy_name;
+    delete dataToEdit.galaxy_name;
+    data = { ...dataToEdit, galaxy_id: galaxy?.id || 0 };
   }
 
-  let result: SubmitHubbleMeasurementResult;
-  if (valid) {
-    result = await submitHubbleMeasurement(data);
+  const result = await submitHubbleMeasurement(data);
+  const status = SubmitHubbleMeasurementResult.statusCode(result);
+
+  res.statusCode = status;
+  if (status >= 400) {
+    res.json({
+      error: status,
+    });
   } else {
-    result = SubmitHubbleMeasurementResult.BadRequest;
-    res.status(400);
+    res.json({
+      measurement: data,
+    });
   }
-  res.json({
-    measurement: data,
-    status: result,
-    success: SubmitHubbleMeasurementResult.success(result)
-  });
 });
 
+/**
+ *  @openapi
+ *  /sample-measurement:
+ *    put:
+ *      description: Submit a sample Hubble measurement for a student
+ *      tags:
+ *        - students
+ *        - measurements
+ *      requestBody:
+ *        required: true
+ *        content:
+ *          application/json:
+ *            description: At least one of galaxy_id or galaxy_name must be given. If both are given, only galaxy_id is used. The identifier must correspond to the sample galaxy
+ *            schema:
+ *              $ref: "#/components/schemas/HubbleSampleMeasurementInput"
+ *      responses:
+ *        200:
+ *          description: The sample measurement was submitted successfully
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  measurement:
+ *                    schema:
+ *                      $ref: "#/components/schemas/HubbleSampleMeasurement"
+ *        400:
+ *          description: The request body did not have the required form
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ *        422:
+ *          description: Either the student ID or galaxy ID did not correspond to a valid item
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ */
 router.put("/sample-measurement", async (req, res) => {
-  const data = req.body;
-  const valid = (
-    typeof data.student_id === "number" &&
-    ((typeof data.galaxy_id === "number") || (typeof data.galaxy_name === "string")) &&
-    (!data.rest_wave_value || typeof data.rest_wave_value === "number") &&
-    (!data.rest_wave_unit || typeof data.rest_wave_unit === "string") &&
-    (!data.obs_wave_value || typeof data.obs_wave_value === "number") &&
-    (!data.obs_wave_unit || typeof data.obs_wave_unit === "string") &&
-    (!data.velocity_value || typeof data.velocity_value === "number") &&
-    (!data.velocity_unit || typeof data.velocity_unit === "string") &&
-    (!data.ang_size_value || typeof data.ang_size_value === "number") &&
-    (!data.ang_size_unit || typeof data.ang_size_unit === "string") &&
-    (!data.est_dist_value || typeof data.est_dist_value === "number") &&
-    (!data.est_dist_unit || typeof data.est_dist_unit === "string") &&
-    (!data.measurement_number || typeof data.measurement_number == "string") &&
-    (!data.brightness || typeof data.brightness === "number")
-  );
 
-  let galaxy;
-  if (typeof data.galaxy_id !== "number") {
-    let galaxyName = data.galaxy_name;
+  const schema = S.extend(SampleMeasurement, S.struct({
+    galaxy_id: OptionalInt,
+    galaxy_name: OptionalString,
+  })).pipe(
+    Schema.filter(obj => "galaxy_id" in obj || "galaxy_name" in obj,
+    { message: () => "At least one of galaxy_id or galaxy_name must be specified" },
+  ));
+
+  const maybe = S.decodeUnknownEither(schema)(req.body);
+
+  if (Either.isLeft(maybe)) {
+    res.status(400).json({
+      error: "The request body was malformed",
+    });
+    return;
+  }
+
+  let data: SampleMeasurementType;
+
+  const maybeGalaxyID = maybe.right.galaxy_id;
+
+  let galaxy: Galaxy | null;
+  if (typeof maybeGalaxyID === "number") {
+    galaxy = await getGalaxyById(maybeGalaxyID);
+    data = { ...maybe.right, galaxy_id: maybeGalaxyID, measurement_number: maybe.right.measurement_number ?? "first" };
+  } else {
+    const dataToEdit = { ...maybe.right };
+    let galaxyName = dataToEdit.galaxy_name as string;
     if (!galaxyName.endsWith(".fits")) {
       galaxyName += ".fits";
     }
     galaxy = await getGalaxyByName(galaxyName);
-    data.galaxy_id = galaxy?.id || 0;
-    delete data.galaxy_name;
-  } else {
-    galaxy = await getGalaxyById(data.galaxy_id);
-  }
+    delete dataToEdit.galaxy_name;
 
-  if (!data.measurement_number) {
-    data.measurement_number = "first";
+    data = { ...dataToEdit, galaxy_id: galaxy?.id || 0, measurement_number: maybe.right.measurement_number ?? "first" };
   }
 
   let result: SubmitHubbleMeasurementResult;
-  if (valid || galaxy === null || galaxy.is_sample === 0) {
+  if (galaxy?.is_sample === 0) {
     result = await submitSampleHubbleMeasurement(data);
   } else {
     result = SubmitHubbleMeasurementResult.BadRequest;
-    res.status(400);
+    res.status(400).json({
+      error: `The given galaxy ID ${galaxy?.id} is not that of the sample galaxy`,
+    });
+    return;
   }
-  res.json({
-    measurement: data,
-    status: result,
-    success: SubmitHubbleMeasurementResult.success(result)
-  });
+
+  const status = SubmitHubbleMeasurementResult.statusCode(result);
+  res.statusCode = status;
+  if (status >= 400) {
+    res.json({
+      error: status,
+    });
+  } else {
+    res.json({
+      measurement: data,
+    });
+  }
 });
 
+/**
+ *  @openapi
+ *  /measurement/{studentID}/{galaxyIdentifier}:
+ *    delete:
+ *      tags:
+ *        - students
+ *        - measurements
+ *      description: Delete a student's measurement for a particular galaxy
+ *      parameters:
+ *        - name: studentID
+ *          in: path
+ *          required: true
+ *          schema:
+ *            type: integer
+ *        - name: galaxyIdentifier
+ *          in: path
+ *          required: true
+ *          schema:
+ *            type: string
+ *      responses:
+ *        200:
+ *          description: The measurement was successfully deleted
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  student_id:
+ *                    type: integer
+ *                  galaxy_id:
+ *                    type: integer
+ *        400:
+ *          description: The given student ID is not a number
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ *        404:
+ *          description: A measurement for the given student and galaxy was not found
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ */
 router.delete("/measurement/:studentID/:galaxyIdentifier", async (req, res) => {
   const data = req.params;
-  const studentID = parseInt(data.studentID) || 0;
+  const studentID = parseInt(data.studentID);
+
+  if (isNaN(studentID)) {
+    res.status(400).json({
+      error: `The student ID must be a number; received ${studentID}`,
+    });
+    return;
+  }
 
   let galaxyID = parseInt(data.galaxyIdentifier) || 0;
   if (galaxyID === 0) {
     const galaxy = await getGalaxyByName(data.galaxyIdentifier);
     galaxyID = galaxy?.id || 0;
   }
-  const valid = (studentID !== 0) && (galaxyID !== 0);
 
-  let result: RemoveHubbleMeasurementResult;
-  if (valid) {
-    result = await removeHubbleMeasurement(studentID, galaxyID);
+  const result = await removeHubbleMeasurement(studentID, galaxyID);
+  res.statusCode = RemoveHubbleMeasurementResult.statusCode(result);
+
+  if (res.statusCode >= 400) {
+    res.json({
+      error: result,
+    });
   } else {
-    result = RemoveHubbleMeasurementResult.BadRequest;
-    res.status(400);
-  }
-  res.status(RemoveHubbleMeasurementResult.statusCode(result))
-    .json({
+    res.json({
       student_id: studentID,
       galaxy_id: galaxyID,
-      status: result,
-      success: RemoveHubbleMeasurementResult.success(result)
     });
+  }
 });
 
+/**
+  * @openapi
+  * /sample-measurement/{studentID}/{measurementNumber}:
+  *   delete:
+  *     tags:
+  *       - students
+  *       - measurements
+  *     description: Delete a student's sample measurement
+  *     parameters:
+  *       - name: studentID
+  *         in: path
+  *         required: true
+  *         schema:
+  *           type: integer
+  *       - name: measurementNumber
+  *         in: path
+  *         required: true
+  *         schema:
+  *           type: string
+  *           enum:
+  *             - first
+  *             - second
+  *     responses:
+  *       200:
+  *         description: The sample measurement was successfully deleted
+  *         content:
+  *           application/json:
+  *             schema:
+  *               type: object
+  *               properties:
+  *                 student_id:
+  *                   type: integer
+  *                 measurement_number:
+  *                   type: string
+  *                   enum:
+  *                     - first
+  *                     - second
+  *       400:
+  *         description: At least one of the student ID or measurement number was not of the correct format
+  *         content:
+  *           application/json:
+  *             schema:
+  *               $ref: "#/components/schemas/Error"
+  *       404:
+  *         description: A sample measurement for the given student and galaxy was not found
+  *         content:
+  *           application/json:
+  *             schema:
+  *               $ref: "#/components/schemas/Error"
+ */
 router.delete("/sample-measurement/:studentID/:measurementNumber", async (req, res) => {
   const data = req.params;
-  const studentID = parseInt(data.studentID) || 0;
-  const measurementNumber = data.measurementNumber;
-  const valid = (studentID !== 0 && (measurementNumber === "first" || measurementNumber === "second"));
+  const studentID = parseInt(data.studentID);
+  const measurementNumber = data.measurementNumber?.toLowerCase();
 
-  let result: RemoveHubbleMeasurementResult;
-  if (valid) {
-    result = await removeSampleHubbleMeasurement(studentID, measurementNumber);
-  } else {
-    result = RemoveHubbleMeasurementResult.BadRequest;
-    res.status(400);
-  }
-  res.status(RemoveHubbleMeasurementResult.statusCode(result))
-    .json({
-      student_id: studentID,
-      status: result,
-      success: RemoveHubbleMeasurementResult.success(result)
+  if (isNaN(studentID) || !(["first", "second"].includes(measurementNumber))) {
+    res.status(400).json({
+      error: `The student ID must be a number and measurement number must be one of "first", "second",
+              received student ID: ${studentID}, measurement number: ${measurementNumber}.`,
     });
+    return;
+  }
+
+  const result = await removeSampleHubbleMeasurement(studentID, measurementNumber);
+  res.statusCode = RemoveHubbleMeasurementResult.statusCode(result);
+
+  if (res.statusCode >= 400) {
+    res.json({
+      error: result,
+    });
+  } else {
+    res.json({
+      student_id: studentID,
+      measurement_number: measurementNumber,
+    });
+  }
 });
 
+/**
+ *  @openapi
+ *  /measurements/classes/{classID}:
+ *    get:
+ *      tags:
+ *        - classes
+ *        - measurements
+ *      description: Get all of the student measurements for a class
+ *      parameters:
+ *        - name: classID
+ *          in: path
+ *          required: true
+ *          schema:
+ *            type: integer
+ *      responses:
+ *        200:
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  class_id:
+ *                    type: integer
+ *                  measurements:
+ *                    type: array
+ *                    items:
+ *                      $ref: "#/components/schemas/HubbleMeasurement"
+ *        400:
+ *          description: The given class ID was not a number
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ *        404:
+ *          description: No class exists with the given ID
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ */
 router.get("/measurements/classes/:classID", async (req, res) => {
   const classID = parseInt(req.params.classID);
+
+  if (isNaN(classID)) {
+    res.status(400).json({
+      error: `The class ID must be a number; received ${classID}`,
+    });
+    return;
+  }
+
   const isValidClass = (await findClassById(classID)) !== null;
   if (!isValidClass) {
     res.status(404).json({
-      message: `No class with ID ${classID}`,
+      error: `No class with ID ${classID}`,
     });
     return;
   }
@@ -230,61 +543,312 @@ router.get("/measurements/classes/:classID", async (req, res) => {
   });
 });
 
+/**
+ *  @openapi
+ *  /measurements/{studentID}:
+ *    get:
+ *      tags:
+ *        - students
+ *        - measurements
+ *      description: Get all of a given student's measurements
+ *      parameters:
+ *        - name: studentID
+ *          in: path
+ *          required: true
+ *          schema:
+ *            type: integer
+ *      responses:
+ *        200:
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  student_id:
+ *                    type: integer
+ *                  measurements:
+ *                    type: array
+ *                    items:
+ *                      $ref: "#/components/schemas/HubbleMeasurement"
+ *        400:
+ *          description: The given student ID is not a number
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ *        404:
+ *          description: No student exists with the given ID
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ */
 router.get("/measurements/:studentID", async (req, res) => {
   const params = req.params;
   const studentID = parseInt(params.studentID);
+
   if (isNaN(studentID)) {
     res.status(400).json({
-      message: "Invalid student ID!",
+      error: `The student ID must be a number; received ${studentID}`,
     });
     return;
   }
+
   const student = await findStudentById(studentID);
-  const measurements = student !== null ?
-    await getStudentHubbleMeasurements(studentID) :
-    null;
-  const status = measurements === null ? 404 : 200;
-  res.status(status).json({
+  if (student === null) {
+    res.status(404).json({
+      error: `No student exists with ID ${studentID}`,
+    });
+    return;
+  }
+    
+  const measurements = await getStudentHubbleMeasurements(studentID);
+
+  res.json({
     student_id: studentID,
     measurements: measurements
   });
 });
 
+/**
+ *  @openapi
+ *  /measurements/{studentID}/{galaxyID}:
+ *    get:
+ *      tags:
+ *        - students
+ *        - measurements
+ *      description: Get a student's measurement for a particular galaxy
+ *      parameters:
+ *        - name: studentID
+ *          in: path
+ *          required: true
+ *          schema:
+ *            type: integer
+ *        - name: galaxyID
+ *          in: path
+ *          required: true
+ *          schema:
+ *            type: integer
+ *      responses:
+ *        200:
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  student_id:
+ *                    type: integer
+ *                  galaxy_id:
+ *                    type: integer
+ *                  measurement:
+ *                    schema:
+ *                      $ref: "#/components/schemas/HubbleMeasurement"
+ *        400:
+ *          description: At least one of the student or galaxy IDs was not an integer
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ *        404:
+ *          description: No measurement was found for the given student and galaxy
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ */
 router.get("/measurements/:studentID/:galaxyID", async (req, res) => {
   const params = req.params;
   const studentID = parseInt(params.studentID);
   const galaxyID = parseInt(params.galaxyID);
+
+  if (isNaN(studentID) || isNaN(galaxyID)) {
+    res.status(400).json({
+      error: `Student ID and galaxy ID must both be integers; received student ID: ${studentID}, galaxy ID: ${galaxyID}`
+    });
+    return;
+  }
+
   const measurement = await getHubbleMeasurement(studentID, galaxyID);
-  const status = measurement === null ? 404 : 200;
-  res.status(status).json({
+
+  if (measurement === null) {
+    res.status(400).json({
+      error: `No measurement found with student ID ${studentID} and galaxy ID ${galaxyID}`
+    });
+    return;
+  }
+
+  res.json({
     student_id: studentID,
     galaxy_id: galaxyID,
     measurement: measurement
   });
 });
 
+/**
+ *  @openapi
+ *  /sample-measurements/{studentID}:
+ *    get:
+ *      tags:
+ *        - students
+ *        - measurements
+ *      description: Get all of a student's sample measurements
+ *      parameters:
+ *        - name: studentID
+ *          in: path
+ *          required: true
+ *          schema:
+ *            type: integer
+ *      responses:
+ *        200:
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  student_id:
+ *                    type: integer
+ *                  measurement:
+ *                    schema:
+ *                      $ref: "#/components/schemas/HubbleSampleMeasurement"
+ *        400:
+ *          description: The given student ID is not a number
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ *        404:
+ *          description: No student exists with the given ID
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ */
 router.get("/sample-measurements/:studentID", async (req, res) => {
   const params = req.params;
   const studentID = parseInt(params.studentID);
+
+  if (isNaN(studentID)) {
+    res.status(400).json({
+      error: `The student ID must be a number; received ${studentID}`,
+    });
+    return;
+  }
+
+  const student = await findStudentById(studentID);
+  if (student === null) {
+    res.status(404).json({
+      error: `No student exists with ID ${studentID}`,
+    });
+    return;
+  }
+
   const measurements = await getSampleHubbleMeasurements(studentID);
-  const status = measurements === null ? 404 : 200;
-  res.status(status).json({
+
+  res.json({
     student_id: studentID,
     measurements: measurements
   });
 });
 
+/**
+ *  @openapi
+ *  /sample-measurements/{studentID}/{measurementNumber}:
+ *    get:
+ *      tags:
+ *        - students
+ *        - measurements
+ *      description: Get a student's sample measurement for a given measurement number
+ *      parameters:
+ *        - name: studentID
+ *          in: path
+ *          required: true
+ *          schema:
+ *            type: integer
+ *        - name: measurementNumber
+ *          in: path
+ *          required: true
+ *          schema:
+ *            type: string
+ *            enum:
+ *              - first
+ *              - second
+ *      responses:
+ *        200:
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  student_id:
+ *                    type: integer
+ *                  measurement:
+ *                    schema:
+ *                      $ref: "#/components/schemas/HubbleSampleMeasurement"
+ *        400:
+ *          description: At least one of the student ID or measurement number was not of the correct format 
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ *        404:
+ *          description: Either the student does not exist, or the requested measurement was not found
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ */
 router.get("/sample-measurements/:studentID/:measurementNumber", async (req, res) => {
   const params = req.params;
   const studentID = parseInt(params.studentID);
+  const measurementNumber = params.measurementNumber?.toLowerCase();
+
+  if (isNaN(studentID) || !(["first", "second"].includes(measurementNumber))) {
+    res.status(400).json({
+      error: `The student ID must be a number and measurement number must be one of "first", "second",
+              received student ID: ${studentID}, measurement number: ${measurementNumber}.`,
+    });
+    return;
+  }
+
+  const student = await findStudentById(studentID);
+  if (student === null) {
+    res.status(404).json({
+      error: `No student exists with ID ${studentID}`,
+    });
+    return;
+  }
+
   const measurement = await getSampleHubbleMeasurement(studentID, params.measurementNumber);
-  const status = measurement === null ? 404 : 200;
-  res.status(status).json({
+
+  if (measurement === null) {
+    res.status(404).json({
+      error: `No measurement found for stuent ID ${studentID}, measurement number ${measurementNumber}`,
+    });
+    return;
+  }
+
+  res.json({
     student_id: studentID,
     measurement: measurement
   });
 });
 
+/**
+ *  @openapi
+ *  /sample-measurements:
+ *    get:
+ *      tags:
+ *        - measurements
+ *      description: Get all sample measurements
+ *      responses:
+ *        200:
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: array
+ *                items:
+ *                  $ref: "#/components/schemas/HubbleSampleMeasurement"
+ */
 router.get("/sample-measurements", async (req, res) => {
   const filterNullString = ((req.query.filter_null as string) ?? "true").toLowerCase();
   const filterNull = filterNullString !== "false";
@@ -292,22 +856,112 @@ router.get("/sample-measurements", async (req, res) => {
   res.json(measurements);
 });
 
+/**
+ *  @openapi
+ *  /sample-measurements/{measurementNumber}:
+ *    get:
+ *      tags:
+ *        - measurements
+ *      description: Get all sample measurements for the given measurement number
+ *      parameters:
+ *        - name: measurementNumber
+ *          in: path
+ *          required: true
+ *          schema:
+ *            type: string
+ *            enum:
+ *              - first
+ *              - second
+ *      responses:
+ *        200:
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: array
+ *                items:
+ *                  $ref: "#/components/schemas/SampleHubbleMeasurement"
+ *        400:
+ *          description: The given measurement number was not either "first" or "second"
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ */
 router.get("/sample-measurements/:measurementNumber", async (req, res) => {
   const params = req.params;
-  const measurementNumber = params.measurementNumber;
+  const measurementNumber = params.measurementNumber?.toLowerCase();
   if (measurementNumber !== "first" && measurementNumber !== "second") {
-    res.status(400).json(null);
+    res.status(400).json({
+      error: `The measurement number must be either "first" or "second", received ${params.measurementNumber}`,
+    });
   } else {
     const measurements = await getAllNthSampleHubbleMeasurements(measurementNumber);
     res.json(measurements);
   }
 });
 
+/**
+ *  @openapi
+ *  /sample-galaxy:
+ *    get:
+ *      tags:
+ *        - galaxies
+ *      description: Return information about the sample galaxy
+ *      content:
+ *        application/json:
+ *          schema:
+ *            $ref: "#/components/schemas/Galaxy"
+ */
 router.get("/sample-galaxy", async (_req, res) => {
   const galaxy = await getSampleGalaxy();
   res.json(galaxy);
 });
 
+/**
+ *  @openapi
+ *  /class-measurements/size/{studentID}/{classID}:
+ *    get:
+ *      tags:
+ *        - measurements
+ *      description: Get the number of class measurements for a given student and class
+ *      parameters:
+ *        - name: studentID
+ *          in: path
+ *          required: true
+ *          schema:
+ *            type: integer
+ *        - name: classID
+ *          in: path
+ *          required: true
+ *          schema:
+ *            type: integer
+ *        - name: complete_only
+ *          in: query
+ *          description: If given as true, only complete measurements are counted
+ *          required: false
+ *          schema:
+ *            type: boolean
+ *            default: false
+ *      responses:
+ *        200:
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  student_id:
+ *                    type: integer
+ *                  class_id:
+ *                    type: integer
+ *                  measurement_count:
+ *                    type: integer
+ *        404:
+ *          description: Either the student or class ID is invalid
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/messages/Error"
+ */
 router.get("/class-measurements/size/:studentID/:classID", async (req, res) => {
   res.header("Cache-Control", "no-cache, no-store, must-revalidate");  // HTTP 1.1
   res.header("Pragma", "no-cache");  // HTTP 1.0
@@ -316,7 +970,7 @@ router.get("/class-measurements/size/:studentID/:classID", async (req, res) => {
   const isValidStudent = (await findStudentById(studentID)) !== null;
   if (!isValidStudent) {
     res.status(404).json({
-      message: "Invalid student ID",
+      error: "Invalid student ID",
     });
     return;
   }
@@ -325,20 +979,58 @@ router.get("/class-measurements/size/:studentID/:classID", async (req, res) => {
   const isValidClass = (await findClassById(classID)) !== null;
   if (!isValidClass) {
     res.status(404).json({
-      message: "Invalid class ID",
+      error: "Invalid class ID",
     });
     return;
   }
 
   const completeOnly = (req.query.complete_only as string)?.toLowerCase() === "true";
   const count = await getClassMeasurementCountForStudent(studentID, classID, completeOnly);
-  res.status(200).json({
+  res.json({
     student_id: studentID,
     class_id: classID,
     measurement_count: count,
   });
 });
 
+/**
+ *  @openapi
+ *  /class-measurements/students-completed/{studentID}/{classID}:
+ *    get:
+ *      tags:
+ *        - measurements
+ *      description: Get the number of students related to the given student and class which have completed measurements
+ *      parameters:
+ *        - name: studentID
+ *          in: path
+ *          required: true
+ *          schema:
+ *            type: integer
+ *        - name: classID
+ *          in: path
+ *          required: true
+ *          schema:
+ *            type: integer
+ *      responses:
+ *        200:
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  student_id:
+ *                    type: integer
+ *                  class_id:
+ *                    type: integer
+ *                  students_completed_measurements:
+ *                    type: integer
+ *        404:
+ *          description: Either the student or class ID is invalid
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/messages/Error"
+ */
 router.get("/class-measurements/students-completed/:studentID/:classID", async (req, res) => {
   res.header("Cache-Control", "no-cache, no-store, must-revalidate");  // HTTP 1.1
   res.header("Pragma", "no-cache");  // HTTP 1.0
@@ -347,7 +1039,7 @@ router.get("/class-measurements/students-completed/:studentID/:classID", async (
   const isValidStudent = (await findStudentById(studentID)) !== null;
   if (!isValidStudent) {
     res.status(404).json({
-      message: "Invalid student ID",
+      error: "Invalid student ID",
     });
     return;
   }
@@ -356,19 +1048,86 @@ router.get("/class-measurements/students-completed/:studentID/:classID", async (
   const isValidClass = (await findClassById(classID)) !== null;
   if (!isValidClass) {
     res.status(404).json({
-      message: "Invalid class ID",
+      error: "Invalid class ID",
     });
     return;
   }
 
   const count = await getStudentsWithCompleteMeasurementsCount(studentID, classID);
-  res.status(200).json({
+  res.json({
     student_id: studentID,
     class_id: classID,
     students_completed_measurements: count,
   });
 });
 
+/**
+ *  @openapi
+ *  /class-measurements/{studentID}/{classID}:
+ *    get:
+ *      tags:
+ *        - students
+ *        - classes
+ *        - measurements
+ *      description: Get the class measurements from a given class, for a given student
+ *      parameters:
+ *        - name: studentID
+ *          in: path
+ *          required: true
+ *          schema:
+ *            type: integer
+ *        - name: classID
+ *          in: path
+ *          required: true
+ *          schema:
+ *            type: integer
+ *        - name: complete_only
+ *          in: query
+ *          required: false
+ *          schema:
+ *            type: boolean
+ *            default: false
+ *        - name: exclude_student
+ *          in: query
+ *          required: false
+ *          schema:
+ *            type: boolean
+ *            default: false
+ *        - name: student_ids
+ *          in: query
+ *          required: false
+ *          schema:
+ *            type: array
+ *            items:
+ *              type: integer
+ *      responses:
+ *        200:
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  student_id:
+ *                    type: integer
+ *                  class_id:
+ *                    type: integer
+ *                  measurements:
+ *                    type: array
+ *                    items:
+ *                      $ref: "#/components/schemas/HubbleMeasurement"
+ *        400:
+ *          description: At least one of the student IDs is not an integer
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ *        404:
+ *          description: At least one of the class or student IDs is invalid
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ */
 router.get(["/class-measurements/:studentID/:classID", "/stage-3-data/:studentID/:classID"], async (req, res) => {
   const lastCheckedStr = req.query.last_checked as string;
   let lastChecked: number | null = parseInt(lastCheckedStr);
@@ -395,9 +1154,9 @@ router.get(["/class-measurements/:studentID/:classID", "/stage-3-data/:studentID
     const invalidItems = [];
     if (invalidStudent) { invalidItems.push("student"); }
     if (invalidClass) { invalidItems.push("class"); }
-    const message = `Invalid ${invalidItems.join(" and ")} ID${invalidItems.length == 2 ? "s": ""}`;
+    const error = `Invalid ${invalidItems.join(" and ")} ID${invalidItems.length == 2 ? "s": ""}`;
     res.status(404).json({
-      message
+      error,
     });
     return;
   }
@@ -410,7 +1169,7 @@ router.get(["/class-measurements/:studentID/:classID", "/stage-3-data/:studentID
 
     if (!valid) {
       res.status(400).json({
-        message: "At least one of your specified student IDs is invalid. Student IDs should be integers.",
+        error: "At least one of your specified student IDs is invalid. Student IDs should be integers.",
       });
       return;
     }
@@ -419,20 +1178,78 @@ router.get(["/class-measurements/:studentID/:classID", "/stage-3-data/:studentID
     measurements = await getClassMeasurementsForStudent(student.id, cls.id, lastChecked, completeOnly, excludeStudent);
   }
 
-  res.status(200).json({
+  res.json({
     student_id: studentID,
     class_id: classID,
     measurements,
   });
 });
 
+/**
+ *  @openapi
+ *  /class-measurements/{studentID}:
+ *    get:
+ *      tags:
+ *        - students
+ *        - classes
+ *        - measurements
+ *      description: Get the class measurements relevant for a given student
+ *      parameters:
+ *        - name: studentID
+ *          in: path
+ *          required: true
+ *          schema:
+ *            type: integer
+ *        - name: student_ids
+ *          in: query
+ *          required: false
+ *          description: If specified, the measurements for these students are returned
+ *          schema:
+ *            type: array
+ *            items:
+ *              type: integer
+ *        - name: exclude_student
+ *          in: query
+ *          required: false
+ *          description: If true, the given student's data is excluded from the returned measurements. Not used if a list of student IDs is specified
+ *          schema:
+ *            type: boolean
+ *            default: false
+ *      responses:
+ *        200:
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  student_id:
+ *                    type: integer
+ *                  class_id:
+ *                    type: null
+ *                  measurements:
+ *                    type: array
+ *                    items:
+ *                      $ref: "#/components/schemas/HubbleMeasurement"
+ *          400:
+ *            description: At least one of the given student IDs is invalid
+ *            content:
+ *              application/json:
+ *                schema:
+ *                  $ref: "#/components/schemas/Error"
+ *          404:
+ *            description: The given student cannot be found or is not in a class signed up for the Hubble's Law story
+ *            content:
+ *              application/json:
+ *                schema:
+ *                  $ref: "#/components/schemas/Error"
+ */
 router.get(["/class-measurements/:studentID", "stage-3-measurements/:studentID"], async (req, res) => {
   const params = req.params;
   const studentID = parseInt(params.studentID);
   const isValidStudent = (await findStudentById(studentID)) !== null;
   if (!isValidStudent) {
     res.status(404).json({
-      message: "Invalid student ID",
+      error: "Invalid student ID",
     });
     return;
   }
@@ -440,7 +1257,7 @@ router.get(["/class-measurements/:studentID", "stage-3-measurements/:studentID"]
   const cls = await classForStudentStory(studentID, "hubbles_law");
   if (cls === null) {
     res.status(404).json({
-      message: `Student ${studentID} is not in a class signed up for the Hubble's Law story`,
+      error: `Student ${studentID} is not in a class signed up for the Hubble's Law story`,
     });
     return;
   }
@@ -453,7 +1270,7 @@ router.get(["/class-measurements/:studentID", "stage-3-measurements/:studentID"]
 
     if (!valid) {
       res.status(400).json({
-        message: "At least one of your specified student IDs is invalid. Student IDs should be integers.",
+        error: "At least one of your specified student IDs is invalid. Student IDs should be integers.",
       });
       return;
     }
@@ -470,6 +1287,47 @@ router.get(["/class-measurements/:studentID", "stage-3-measurements/:studentID"]
   });
 });
 
+/**
+ *  @openapi
+ *  /merge-students:
+ *    put:
+ *      tags:
+ *        - classes
+ *      description: Update a class's merge status to include the given number of merge students
+ *      requestBody:
+ *        required: true
+ *        content:
+ *          application/json:
+ *            schema:
+ *              type: object
+ *              properties:
+ *                class_id:
+ *                  type: integer
+ *                desired_merge_count:
+ *                  type: integer
+ *                  description: This is the intended number of total students to have merged into the class, not an amount to add. Thus repeating this request with the same count will have no additional effect
+ *      responses:
+ *        200:
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  message:
+ *                    type: string
+ *        400:
+ *          description: The request body format was invalid
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ *        404:
+ *          description: No class was found with the given class ID
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ */
 router.put("/merge-students", async (req, res) => {
   const body = req.body;
   const schema = S.struct({
@@ -520,13 +1378,51 @@ router.put("/merge-students", async (req, res) => {
 
 });
 
+/**
+ *  @openapi
+ *  /merged-classes/{classID}:
+ *    get:
+ *      deprecated: true
+ *      tags:
+ *        - classes
+ *      description: Return the list of classes that are merged with a given class. Deprecated as the class-merging system will not be used going forward
+ *      parameters:
+ *        - name: classID
+ *          in: path
+ *          required: true
+ *          schema:
+ *            type: integer
+ *        - name: ignore_merge_order
+ *          in: query
+ *          required: false
+ *          schema:
+ *            type: boolean
+ *            default: false
+ *      responses:
+ *        200:
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  merged_class_ids:
+ *                    type: array
+ *                    items:
+ *                      type: integer
+ *        404:
+ *          description: No class found with the given ID
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ */
 router.get("/merged-classes/:classID", async (req, res) => {
   const classID = Number(req.params.classID);
   const ignoreMergeOrder = (req.query?.ignore_merge_order as string)?.toLowerCase() === "true";
   const cls = await findClassById(classID);
   if (cls === null) {
     res.status(404).json({
-      message: `No class found with ID ${classID}`,
+      error: `No class found with ID ${classID}`,
     });
     return;
   }
@@ -536,6 +1432,57 @@ router.get("/merged-classes/:classID", async (req, res) => {
   });
 });
 
+/**
+ *  @openapi
+ *  /all-data:
+ *    get:
+ *      tags:
+ *        - measurements
+ *      description: Return all Hubble measurements, student summaries, and class summaries
+ *      parameters:
+ *        - name: class_id
+ *          in: query
+ *          required: false
+ *          schema:
+ *            type: integer
+ *        - name: minimal
+ *          in: query
+ *          required: false
+ *          description: If true, only a minimal set of attributes needed for the Hubble's Law story are returned
+ *          schema:
+ *            type: boolean
+ *            default: false
+ *        - name: before
+ *          in: query
+ *          required: false
+ *          description: If specified, only fetch measurements last updated before the given date
+ *          schema:
+ *            type: string
+ *            format: date
+ *      responses:
+ *        200:
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  measurements:
+ *                    type: array
+ *                    items:
+ *                      oneOf:
+ *                        - $ref: "#/components/schemas/HubbleMeasurement"
+ *                        - $ref: "#/components/schemas/MinimalHubbleMeasurement"
+ *                  studentData:
+ *                    type: array
+ *                    items:
+ *                      oneOf:
+ *                        - $ref: "#/components/schemas/HubbleStudentData"
+ *                        - $ref: "#/components/schemas/MinimalHubbleStudentData"
+ *                  classData:
+ *                    type: array
+ *                    items:
+ *                      $ref: "#/components/schemas/HubbleClassData"
+ */
 router.get("/all-data", async (req, res) => {
   const minimal = (req.query?.minimal as string)?.toLowerCase() === "true";
   let classID: number | null = parseInt(req.query.class_id as string);
@@ -559,6 +1506,40 @@ router.get("/all-data", async (req, res) => {
   });
 });
 
+/**
+ *  @openapi
+ *  /galaxies:
+ *    get:
+ *      tags:
+ *        - galaxies
+ *      description: Return information on all valid galaxies. Valid galaxies are those not marking as having some element of bad data
+ *      parameters:
+ *        - name: types
+ *          in: query
+ *          required: false
+ *          description: If specified, only galaxies of the specified types are returned
+ *          schema:
+ *            type: array
+ *            items:
+ *              type: string
+ *        - name: flags
+ *          in: query
+ *          required: false
+ *          description: If specified, return the galaxy flag fields in the response
+ *          schema:
+ *            type: boolean
+ *            default: false
+ *      responses:
+ *        200:
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: array
+ *                items:
+ *                  oneOf:
+ *                    - $ref: "#/components/schemas/Galaxy"
+ *                    - $ref: "#/components/schemas/MinimalGalaxy"
+ */
 router.get("/galaxies", async (req, res) => {
   const types = req.query?.types ?? undefined;
   const flags = (/true/i).test((req.query?.flags as string) ?? undefined);
@@ -577,63 +1558,189 @@ router.get("/galaxies", async (req, res) => {
   res.json(galaxies);
 });
 
-async function markBad(req: GenericRequest, res: GenericResponse, marker: (galaxy: Galaxy) => Promise<boolean>) {
-  const galaxyID = req.body.galaxy_id;
-  const galaxyName = req.body.galaxy_name;
-  if (!(galaxyID || galaxyName)) { 
+async function markBadHandler(
+  req: GenericRequest,
+  res: GenericResponse,
+  errorMessage: string,
+  marker: (galaxy: Galaxy) => Promise<boolean>
+) {
+  const schema = S.struct({
+    galaxy_id: S.optional(S.number.pipe(S.int())),
+    galaxy_name: S.optional(S.string),
+  });
+
+  const maybe = S.decodeUnknownEither(schema)(req.body);
+
+  if (Either.isLeft(maybe)
+        ||
+      (maybe.right.galaxy_id == null && maybe.right.galaxy_name == null)
+     ) {
     res.status(400).json({
-      status: "missing_id_or_name"
+      error: `
+        Request body is malformed.
+        It should have at least one of
+        galaxy_id (integer) or galaxy_name (string)
+      `,
     });
     return;
-   }
-
-  let galaxy: Galaxy | null;
-  if (galaxyID) {
-    galaxy = await Galaxy.findOne({ where: { id : galaxyID }});
-  } else {
-    galaxy = await getGalaxyByName(galaxyName);
   }
+
+  const data = maybe.right;
+  const galaxy = await (data.galaxy_id != null ? getGalaxyById(data.galaxy_id) : getGalaxyByName(data.galaxy_name!));
 
   if (galaxy === null) {
-    res.status(400).json({
-      status: "no_such_galaxy"
+    res.status(404).json({
+      error: "No matching galaxy found",
     });
     return;
   }
 
-  return marker(galaxy);
+  const success = await marker(galaxy);
+  if (success) {
+    res.status(204).end();
+  } else {
+    res.status(500).json({
+      error: errorMessage,
+    });
+  }
+
 }
 
 /**
  * Really should be POST
- * This was previously idempotent, but no longer is
+ *  This was previously idempotent, but no longer is
+ */
+
+/**
+ *  @openapi
+ *  /mark-galaxy-bad:
+ *    put:
+ *      tags:
+ *        - galaxies
+ *      description: Mark a galaxy as "bad", meaning that it won't be an option for future students in the Hubble data story. This was originally idempotent but not is not, so really should be a POST
+ *      requestBody:
+ *        required: true
+ *        content:
+ *          application/json:
+ *            description: Only the galaxy_id is used if both are provided
+ *            schema:
+ *              type: object
+ *              properties:
+ *                galaxy_id:
+ *                  type: integer
+ *                galaxy_name:
+ *                  type: string
+ *      responses:
+ *        204:
+ *          description: The galaxy was successfully marked as bad
+ *        400:
+ *          description: The request body was malformed
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ *        404:
+ *          description: No galaxy matching the given identifier was found
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ *        500:
+ *          description: An error occurred while marking the galaxy as bad in the database
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
  */
 router.put("/mark-galaxy-bad", async (req, res) => {
-  const success = await markBad(req, res, markGalaxyBad);
-
-  if (success) {
-    res.status(204).end();
-  } else {
-    res.status(500).json({
-      error: "Error marking galaxy as bad",
+  const error = "Error marking the galaxy as bad";
+  markBadHandler(req, res, error, markGalaxyBad)
+    .catch(_err => {
+      res.status(500).json({
+        error
+      });
     });
-  }
-
 });
 
+/**
+ *  @openapi
+ *  /mark-spectrum-bad:
+ *    post:
+ *      tags:
+ *        - galaxies
+ *      description: Mark a galaxy's spectrum as "bad", meaning that galaxy won't be an option for future students in the Hubble data story.
+ *      requestBody:
+ *        required: true
+ *        content:
+ *          application/json:
+ *            description: Only the galaxy_id is used if both are provided
+ *            schema:
+ *              type: object
+ *              properties:
+ *                galaxy_id:
+ *                  type: integer
+ *                galaxy_name:
+ *                  type: string
+ *      responses:
+ *        204:
+ *          description: The spectrum was successfully marked as bad
+ *        400:
+ *          description: The request body was malformed
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ *        404:
+ *          description: No galaxy matching the given identifier was found
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ *        500:
+ *          description: An error occurred while marking the spectrum as bad in the database
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ */
 router.post("/mark-spectrum-bad", async (req, res) => {
-  const success = await markBad(req, res, markGalaxySpectrumBad);
-
-  if (success) {
-    res.status(204).end();
-  } else {
-    res.status(500).json({
-      error: "Error marking spectrum as bad",
+  const error = "Error marking the spectrum as bad";
+  markBadHandler(req, res, error, markGalaxySpectrumBad)
+    .catch(_err => {
+      res.status(500).json({
+        error
+      });
     });
-  }
 
 });
 
+/**
+ *  @openapi
+ *  /spectra/{type}/{name}:
+ *    get:
+ *      tags:
+ *        - galaxies
+ *      parameters:
+ *        - name: type
+ *          in: path
+ *          required: true
+ *          schema:
+ *            type: string
+ *            enum:
+ *              - spiral
+ *              - elliptical
+ *              - irregular
+ *        - name: name
+ *          in: path
+ *          required: true
+ *          schema:
+ *            type: string
+ *      responses:
+ *        302:
+ *          description: Redirect to where the given galaxy's spectrum is stored on AWS
+ *          content:
+ *            binary/octet-stream
+ */
 router.get("/spectra/:type/:name", async (req, res) => {
   res.redirect(`https://cosmicds.s3.us-east-1.amazonaws.com/spectra/${req.params.type}/${req.params.name}`);
 });
@@ -643,6 +1750,41 @@ const WaitingRoomOverrideSchema = S.struct({
   class_id: S.number.pipe(S.int()),
 });
 
+/**
+ *  @openapi
+ *  /waiting-room-override/{classID}:
+ *    get:
+ *      tags:
+ *        - classes
+ *      description: Get the waiting room override for a class
+ *      parameters:
+ *        - name: classID
+ *          in: path
+ *          required: true
+ *          schema:
+ *            type: integer
+ *    responses:
+ *      200:
+ *        content:
+ *          application/json:
+ *            schema:
+ *              type: object
+ *              properties:
+ *                class_id:
+ *                  type: integer
+ *                override_status:
+ *                  type: boolean
+ *      404:
+ *        content:
+ *          application/json:
+ *            schema:
+ *              $ref: "#/components/schemas/Error"
+ *      500:
+ *        content:
+ *          application/json:
+ *            schema:
+ *              $ref: "#/components/schemas/Error"
+ */
 router.get("/waiting-room-override/:classID", async (req, res) => {
   const classID = Number(req.params.classID);
   const cls = await findClassById(classID);
@@ -668,6 +1810,62 @@ router.get("/waiting-room-override/:classID", async (req, res) => {
 
 });
 
+/**
+ *  @openapi
+ *  /waiting-room-override:
+ *    put:
+ *      tags:
+ *        - classes
+ *      description: Set a class to allow overriding the waiting room
+ *      requestBody:
+ *        required: true
+ *        schema:
+ *          type: object
+ *          properties:
+ *            class_id:
+ *              type: integer
+ *      responses:
+ *        200:
+ *          description: The waiting room override was already set
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  class_id:
+ *                    type: integer
+ *                  message:
+ *                    type: string
+ *        201:
+ *          description: The waiting room override for the class was successfully set
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  class_id:
+ *                    type: integer
+ *                  message:
+ *                    type: string
+ *        400:
+ *          description: The request body has the wrong format
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ *        404:
+ *          description: No class was found with the given ID
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ *        500:
+ *          description: There was an error while setting the waiting room override
+ *          content:
+ *            application/json:
+ *              schemas:
+ *                $ref: "#/components/schemas/Error"
+ */
 router.put("/waiting-room-override", async (req, res) => {
   const body = req.body;
   const maybe = S.decodeUnknownEither(WaitingRoomOverrideSchema)(body);
@@ -682,7 +1880,6 @@ router.put("/waiting-room-override", async (req, res) => {
   const result = await setWaitingRoomOverride(right.class_id);
   const success = !(result instanceof Error); 
   const responseData = {
-    success,
     class_id: right.class_id,
   };
   if (!success) {
@@ -696,12 +1893,10 @@ router.put("/waiting-room-override", async (req, res) => {
     } else if (result instanceof UniqueConstraintError) {
       res.status(200).json({
         class_id: right.class_id,
-        success: true,
         message: `The waiting room override for class ${right.class_id} was already set`,
       });
     } else {
       res.status(500).json({
-        ...responseData,
         error: `An error occurred while setting the waiting room override for class ${right.class_id}`,
       });
     }
@@ -721,6 +1916,46 @@ router.put("/waiting-room-override", async (req, res) => {
 });
 
 
+/**
+ *  @openapi
+ *  /waiting-room-override:
+ *    delete:
+ *      tags:
+ *        - classes
+ *      description: Remove the waiting room override flag from a given class
+ *      requestBody:
+ *        required: true
+ *        schema:
+ *          type: object
+ *          properties:
+ *            class_id:
+ *              type: integer
+ *      responses:
+ *        200:
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  class_id:
+ *                    type: number
+ *                  removed:
+ *                    type: boolean
+ *                  message:
+ *                    type: string
+ *        400:
+ *          description: The request body has the wrong format
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ *        500:
+ *          description: There was an error while removing the waiting room override for the given class
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ */
 router.delete("/waiting-room-override", async (req, res) => {
   const body = req.body;
   const maybe = S.decodeUnknownEither(WaitingRoomOverrideSchema)(body);
@@ -735,7 +1970,6 @@ router.delete("/waiting-room-override", async (req, res) => {
   const countRemoved = await removeWaitingRoomOverride(right.class_id);
   const success = !isNaN(countRemoved);
   const responseData = {
-    success,
     removed: success && countRemoved > 0,
     class_id: right.class_id,
   };
@@ -766,16 +2000,13 @@ router.get("/unchecked-galaxies", async (_req, res) => {
 });
 
 router.post("/mark-tileload-bad", async (req, res) => {
-  const success = await markBad(req, res, markGalaxyTileloadBad);
-
-  if (success) {
-    res.status(204).end();
-  } else {
-    res.status(500).json({
-      error: "Error marking spectrum as bad",
+  const error = "Error reporting bad tile load.";
+  markBadHandler(req, res, error, markGalaxyTileloadBad)
+    .catch(_err => {
+      res.status(500).json({
+        error
+      });
     });
-  }
-
 });
 
 router.post("/set-spectrum-status", async (req, res) => {

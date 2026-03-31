@@ -3,7 +3,7 @@ import { Class, Educator, Stage, StageState, StoryState, Student } from "../mode
 import { modelToSchema } from "./utils";
 import { Question } from "../models/question";
 
-type Schemas = OAS3Definition["schemas"];
+export type Schemas = OAS3Definition["schemas"];
 
 export function schemas(): Schemas {
   return {
