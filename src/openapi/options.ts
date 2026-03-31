@@ -1,6 +1,6 @@
 import type { SecurityScheme, Tag } from "swagger-jsdoc";
 
-export const COSMICDS_HOST = "api.cosmicds.cfa.harvard.edu";
+export const COSMICDS_HOST = "https://api.cosmicds.cfa.harvard.edu";
 
 export const COSMICDS_OPENAPI_VERSION = "3.1.0";
 

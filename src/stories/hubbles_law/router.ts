@@ -86,7 +86,7 @@ export function setup(_app: Express, db: Sequelize) {
 
   const swaggerOptions: OAS3Options = {
     apis: [
-      "dist/src/stories/hubbles_law/router.js",
+      "./dist/src/stories/hubbles_law/router.js",
     ],
     definition: {
       openapi: COSMICDS_OPENAPI_VERSION,
@@ -106,8 +106,9 @@ export function setup(_app: Express, db: Sequelize) {
           description: "Operations relating to managing galaxies used for the Hubble's Law story",
         },
       ],
-      host: COSMICDS_HOST,
-      basePath: BASE_PATH,
+      servers: [
+        { url: `${COSMICDS_HOST}${BASE_PATH}` },
+      ],
       components: {
         securitySchemes: {
           apiKey: COSMICDS_OPENAPI_APIKEY_SCHEME, 

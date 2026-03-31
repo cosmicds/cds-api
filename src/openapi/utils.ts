@@ -1,4 +1,4 @@
-import { Express, IRouter, Router } from "express";
+import { IRouter } from "express";
 import { DataTypes, type Model, type ModelAttributeColumnOptions, type ModelStatic } from "sequelize";
 import swaggerJSDoc, { OAS3Options, Schema } from "swagger-jsdoc";
 import swaggerUi, { SwaggerUiOptions } from "swagger-ui-express";
