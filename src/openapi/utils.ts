@@ -94,6 +94,6 @@ export function setupSwaggerDocs(options: SwaggerSetupOptions) {
     customCss: theme.getBuffer(options.theme ?? SwaggerThemeNameEnum.GRUVBOX),
   };
 
-  router.use(docsPath, swaggerUi.serve);
+  router.use(docsPath, swaggerUi.serveFiles(swaggerSpec, swaggerUIOptions));
   router.get(docsPath, swaggerUi.setup(swaggerSpec, swaggerUIOptions));
 }
