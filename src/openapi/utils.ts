@@ -4,7 +4,6 @@ import swaggerJSDoc, { OAS3Options, Schema } from "swagger-jsdoc";
 import swaggerUi, { SwaggerUiOptions } from "swagger-ui-express";
 import { SwaggerTheme, SwaggerThemeNameEnum } from "swagger-themes";
 import { GenericRequest, GenericResponse } from "../utils";
-import { COSMICDS_HOST } from "./options";
 
 
 function typeInfoForAttribute<M extends Model>(attribute: ModelAttributeColumnOptions<M>): Record<string, unknown> | null{
@@ -92,7 +91,7 @@ export function setupSwaggerDocs() {
   const urls = swaggerOptions.map(options => {
     const docsPath = options.docsPath ?? defaultDocsPath;
     return {
-      url: `${COSMICDS_HOST}${options.basePath}${docsPath}.json`,
+      url: `${options.basePath}${docsPath}.json`,
       name: options.name,
     };
   });
@@ -101,10 +100,6 @@ export function setupSwaggerDocs() {
     const router = options.router;
     const swaggerSpec = swaggerJSDoc(options.swaggerOptions);
 
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    swaggerSpec.urls = urls;
-    
     const docsPath = options.docsPath ?? defaultDocsPath;
     router.get(`${docsPath}.json`, (_req: GenericRequest, res: GenericResponse) => {
       res.setHeader("Content-Type", "application/json");
@@ -113,13 +108,17 @@ export function setupSwaggerDocs() {
 
     const theme = new SwaggerTheme();
     const swaggerUIOptions: SwaggerUiOptions = {
-      explorer: false,
+      explorer: true,
       customSiteTitle: options.title ?? "CosmicDS Database API",
       customCss: theme.getBuffer(options.theme ?? SwaggerThemeNameEnum.GRUVBOX),
+      swaggerOptions: {
+        urls,
+        "urls.primaryName": "Base",
+      }
     };
 
-    router.use(docsPath, swaggerUi.serveFiles(swaggerSpec, swaggerUIOptions));
-    router.get(docsPath, swaggerUi.setup(swaggerSpec, swaggerUIOptions));
+    router.use(docsPath, swaggerUi.serveFiles(undefined, swaggerUIOptions));
+    router.get(docsPath, swaggerUi.serve, swaggerUi.setup(null, swaggerUIOptions));
   });
 
 }

@@ -106,9 +106,6 @@ export function setup(_app: Express, db: Sequelize) {
           description: "Operations relating to managing galaxies used for the Hubble's Law story",
         },
       ],
-      servers: [
-        { url: `${COSMICDS_HOST}${BASE_PATH}` },
-      ],
       components: {
         securitySchemes: {
           apiKey: COSMICDS_OPENAPI_APIKEY_SCHEME, 
