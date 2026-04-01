@@ -1,26 +1,37 @@
-import { promises } from "fs";
+import { readdirSync } from "fs";
 import { join } from "path";
 import { createApp } from "./server";
 import { getDatabaseConnection } from "./database";
 import { storyRouter } from "./story_router";
+import { setupSwaggerDocs } from "./openapi/utils";
 
 const STORIES_DIR = join(__dirname, "stories");
 const MAIN_FILE = "main.js";
 
 const db = getDatabaseConnection();
 const app = createApp(db);
-promises.readdir(STORIES_DIR, { withFileTypes: true }).then(entries => {
-  entries.forEach(async (entry) => {
+
+const setupPromises: Promise<void>[] = [];
+
+const entries = readdirSync(STORIES_DIR, { withFileTypes: true });
+entries.forEach(entry => {
+  const promise = new Promise<void>((resolve, _reject) => {
     if (entry.isDirectory()) {
       const file = join(STORIES_DIR, entry.name, MAIN_FILE);
-      const data = await import(file);
-      data.setup(app, db);
-      app.use(data.path, data.router);
+      import(file).then(data => {
+        data.setup(app, db);
+        app.use(data.path, data.router);
+        resolve();
+      }).catch(_err => {});
+    } else {
+      resolve();
     }
   });
-})
+  setupPromises.push(promise);
+});
 
-// We should just fail if this step doesn't succeed
+Promise.all(setupPromises)
+.then(() => setupSwaggerDocs(app))
 .catch(error => {
   console.error(error);
   throw new Error("Error setting up sub-routers!");

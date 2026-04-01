@@ -1,4 +1,4 @@
-import { IRouter } from "express";
+import type { Express, IRouter } from "express";
 import { DataTypes, type Model, type ModelAttributeColumnOptions, type ModelStatic } from "sequelize";
 import swaggerJSDoc, { OAS3Options, Schema } from "swagger-jsdoc";
 import swaggerUi, { SwaggerUiOptions } from "swagger-ui-express";
@@ -72,28 +72,55 @@ export function modelToSchema<M extends Model>(modelType: ModelStatic<M>): Schem
 export interface SwaggerSetupOptions {
   router: IRouter;
   swaggerOptions: OAS3Options;
+  name: string;
+  basePath: string;
   docsPath?: string;
   title?: string;
   theme?: SwaggerThemeNameEnum;
 }
 
-export function setupSwaggerDocs(options: SwaggerSetupOptions) {
-  const router = options.router;
-  const swaggerSpec = swaggerJSDoc(options.swaggerOptions);
-  
-  const docsPath = options.docsPath ?? "/docs";
-  router.get(`${docsPath}.json`, (_req: GenericRequest, res: GenericResponse) => {
-    res.setHeader("Content-Type", "application/json");
-    res.send(swaggerSpec);
+const swaggerOptions: SwaggerSetupOptions[] = [];
+
+export function registerSwaggerDocs(options: SwaggerSetupOptions) {
+  swaggerOptions.push(options);
+}
+
+export function setupSwaggerDocs(app: Express) {
+
+  const defaultDocsPath = "/docs";
+  const urls = swaggerOptions.map(options => {
+    const docsPath = options.docsPath ?? defaultDocsPath;
+    return {
+      url: `${options.basePath}${docsPath}.json`,
+      name: options.name,
+    };
   });
 
+  swaggerOptions.forEach(options => {
+    const router = options.router;
+    const swaggerSpec = swaggerJSDoc(options.swaggerOptions);
+
+    const docsPath = options.docsPath ?? defaultDocsPath;
+    router.get(`${docsPath}.json`, (_req: GenericRequest, res: GenericResponse) => {
+      res.setHeader("Content-Type", "application/json");
+      res.send(swaggerSpec);
+    });
+  });
+
+  const baseOptions = swaggerOptions[0];
   const theme = new SwaggerTheme();
   const swaggerUIOptions: SwaggerUiOptions = {
-    explorer: false,
-    customSiteTitle: options.title ?? "CosmicDS Database API",
-    customCss: theme.getBuffer(options.theme ?? SwaggerThemeNameEnum.GRUVBOX),
+    explorer: true,
+    customSiteTitle: baseOptions.title ?? "CosmicDS Database API",
+    customCss: theme.getBuffer(baseOptions.theme ?? SwaggerThemeNameEnum.GRUVBOX),
+    swaggerOptions: {
+      urls,
+      "urls.primaryName": "Base",
+    }
   };
 
-  router.use(docsPath, swaggerUi.serveFiles(swaggerSpec, swaggerUIOptions));
-  router.get(docsPath, swaggerUi.setup(swaggerSpec, swaggerUIOptions));
+  const docsPath = baseOptions.docsPath ?? defaultDocsPath;
+  app.use(docsPath, swaggerUi.serveFiles(undefined, swaggerUIOptions));
+  app.get(docsPath, swaggerUi.serve, swaggerUi.setup(null, swaggerUIOptions));
+
 }

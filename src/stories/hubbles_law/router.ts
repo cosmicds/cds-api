@@ -68,7 +68,7 @@ import { Schema } from "@effect/schema";
 
 import { OAS3Options } from "swagger-jsdoc";
 import { COSMICDS_HOST, COSMICDS_OPENAPI_APIKEY_SCHEME, COSMICDS_OPENAPI_TAGS, COSMICDS_OPENAPI_VERSION } from "../../openapi/options";
-import { setupSwaggerDocs } from "../../openapi/utils";
+import { registerSwaggerDocs } from "../../openapi/utils";
 import { schemas } from "./openapi_schemas";
 
 export const BASE_PATH = "/hubbles_law";
@@ -106,9 +106,6 @@ export function setup(_app: Express, db: Sequelize) {
           description: "Operations relating to managing galaxies used for the Hubble's Law story",
         },
       ],
-      servers: [
-        { url: `${COSMICDS_HOST}${BASE_PATH}` },
-      ],
       components: {
         securitySchemes: {
           apiKey: COSMICDS_OPENAPI_APIKEY_SCHEME, 
@@ -121,9 +118,11 @@ export function setup(_app: Express, db: Sequelize) {
     },
   };
 
-  setupSwaggerDocs({
+  registerSwaggerDocs({
     router,
     swaggerOptions,
+    name: "Hubble's Law",
+    basePath: "/hubbles_law",
     title: "CosmicDS Database API - Hubble's Law",
   });
 
