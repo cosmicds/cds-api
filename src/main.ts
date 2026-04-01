@@ -31,7 +31,7 @@ entries.forEach(entry => {
 });
 
 Promise.all(setupPromises)
-.then(setupSwaggerDocs)
+.then(() => setupSwaggerDocs(app))
 .catch(error => {
   console.error(error);
   throw new Error("Error setting up sub-routers!");
