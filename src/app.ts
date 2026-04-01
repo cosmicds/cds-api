@@ -13,7 +13,7 @@ import { OAS3Options } from "swagger-jsdoc";
 
 import { schemas } from "./openapi/schemas";
 import { COSMICDS_OPENAPI_VERSION, COSMICDS_HOST, COSMICDS_OPENAPI_APIKEY_SCHEME, COSMICDS_OPENAPI_TAGS } from "./openapi/options";
-import { setupSwaggerDocs } from "./openapi/utils";
+import { registerSwaggerDocs } from "./openapi/utils";
 
 export function setupApp(app: Express, db: Sequelize) {
 
@@ -87,7 +87,7 @@ export function setupApp(app: Express, db: Sequelize) {
         description: "An API server for interacting with the CosmicDS database.",
       },
       tags: COSMICDS_OPENAPI_TAGS,
-      servers: [
+      urls: [
         { url: `${COSMICDS_HOST}/` },
       ],
       components: {
@@ -102,9 +102,11 @@ export function setupApp(app: Express, db: Sequelize) {
     },
   };
 
-  setupSwaggerDocs({
+  registerSwaggerDocs({
     router: app,
+    basePath: "",
     swaggerOptions,
+    name: "Base",
   });
 
   app.use(function(req, res, next) {
