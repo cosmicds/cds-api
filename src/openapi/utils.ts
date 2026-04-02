@@ -1,6 +1,6 @@
 import type { Express, IRouter } from "express";
 import { DataTypes, type Model, type ModelAttributeColumnOptions, type ModelStatic } from "sequelize";
-import swaggerJSDoc, { OAS3Options, Schema } from "swagger-jsdoc";
+import swaggerJSDoc, { OAS3Options, PathItem, Schema } from "swagger-jsdoc";
 import swaggerUi, { SwaggerUiOptions } from "swagger-ui-express";
 import { SwaggerTheme, SwaggerThemeNameEnum } from "swagger-themes";
 import { GenericRequest, GenericResponse } from "../utils";
@@ -85,6 +85,34 @@ export function registerSwaggerDocs(options: SwaggerSetupOptions) {
   swaggerOptions.push(options);
 }
 
+const pathTypes: (keyof PathItem)[] = ["get", "put", "post", "delete", "options", "head"];
+
+type GenericObject = Record<string, unknown>;
+function filterTags(spec: GenericObject) {
+
+  const tags = spec.tags as { name: string; description: string; }[] | undefined;
+  if (!tags) {
+    return;
+  }
+
+  const paths = spec.paths as GenericObject[] | undefined;
+  if (!paths) {
+    return;
+  }
+
+  const usedTags = new Set<string>();
+  Object.values(paths).forEach((path: GenericObject) => {
+    const type = pathTypes.find(type => type in path);
+    if (type) {
+      const typeData = path[type] as GenericObject;
+      const tags = typeData.tags as string[];
+      tags?.forEach((tag: string) => usedTags.add(tag));
+    }
+  });
+
+  spec.tags = tags.filter(tag => usedTags.has(tag["name"]));
+}
+
 export function setupSwaggerDocs(app: Express) {
 
   const defaultDocsPath = "/docs";
@@ -99,6 +127,7 @@ export function setupSwaggerDocs(app: Express) {
   swaggerOptions.forEach(options => {
     const router = options.router;
     const swaggerSpec = swaggerJSDoc(options.swaggerOptions);
+    filterTags(swaggerSpec as GenericObject);
 
     const docsPath = options.docsPath ?? defaultDocsPath;
     router.get(`${docsPath}.json`, (_req: GenericRequest, res: GenericResponse) => {
@@ -122,5 +151,4 @@ export function setupSwaggerDocs(app: Express) {
   const docsPath = baseOptions.docsPath ?? defaultDocsPath;
   app.use(docsPath, swaggerUi.serveFiles(undefined, swaggerUIOptions));
   app.get(docsPath, swaggerUi.serve, swaggerUi.setup(null, swaggerUIOptions));
-
 }
