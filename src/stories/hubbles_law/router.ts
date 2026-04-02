@@ -171,7 +171,7 @@ export function setup(_app: Express, db: Sequelize) {
  */
 router.put("/submit-measurement", async (req, res) => {
 
-  const schema = S.extend(Measurement, S.struct({
+  const schema = S.extend(Measurement.pipe(Schema.omit("galaxy_id")), S.struct({
     galaxy_id: OptionalInt,
     galaxy_name: OptionalString,
   })).pipe(
@@ -260,7 +260,7 @@ router.put("/submit-measurement", async (req, res) => {
  */
 router.put("/sample-measurement", async (req, res) => {
 
-  const schema = S.extend(SampleMeasurement, S.struct({
+  const schema = S.extend(SampleMeasurement.pipe(Schema.omit("galaxy_id")), S.struct({
     galaxy_id: OptionalInt,
     galaxy_name: OptionalString,
   })).pipe(
