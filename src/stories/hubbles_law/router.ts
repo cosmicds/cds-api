@@ -959,7 +959,7 @@ router.get("/sample-galaxy", async (_req, res) => {
  *          content:
  *            application/json:
  *              schema:
- *                $ref: "#/components/messages/Error"
+ *                $ref: "#/components/schemas/Error"
  */
 router.get("/class-measurements/size/:studentID/:classID", async (req, res) => {
   res.header("Cache-Control", "no-cache, no-store, must-revalidate");  // HTTP 1.1
@@ -1028,7 +1028,7 @@ router.get("/class-measurements/size/:studentID/:classID", async (req, res) => {
  *          content:
  *            application/json:
  *              schema:
- *                $ref: "#/components/messages/Error"
+ *                $ref: "#/components/schemas/Error"
  */
 router.get("/class-measurements/students-completed/:studentID/:classID", async (req, res) => {
   res.header("Cache-Control", "no-cache, no-store, must-revalidate");  // HTTP 1.1
