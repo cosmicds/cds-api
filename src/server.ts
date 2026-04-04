@@ -538,6 +538,7 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
    *      description: Return information about all existing students
    *      responses:
    *        200:
+   *          description: A list of Student objects, one for each existing student
    *          content:
    *            application/json:
    *              schema:
@@ -559,6 +560,7 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
    *      description: Return information about all existing educators
    *      responses:
    *        200:
+   *          description: A list of Educator objects, one for each existing educator
    *          content:
    *            application/json:
    *              schema:
@@ -581,6 +583,7 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
    *      description: Return information about all existing students and educators
    *      responses:
    *        200:
+   *          description: A list of User objects, one for each existing student and educator
    *          content:
    *            application/json:
    *              schema:
@@ -606,6 +609,7 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
   *         in: path
   *         required: true
   *         schema:
+  *           type: object
   *           oneOf:
   *             - type: string
   *             - type: integer
@@ -1246,6 +1250,7 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
    *            type: integer
    *      responses:
    *        200:
+   *          description: Returns an object containing the class ID and its size
    *          content:
    *            application/json:
    *              schema:
@@ -1293,6 +1298,7 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
    *            type: integer
    *      responses:
    *        200:
+   *          description: Returns an object containing the class ID and the class's expected size
    *          content:
    *            application/json:
    *              schema:
@@ -1340,6 +1346,7 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
    *            type: integer
    *      responses:
    *        200:
+   *          description: A list of Student objects, one for each student in the class
    *          content:
    *            application/json:
    *              schema:
@@ -1584,6 +1591,7 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
    *            type: string
    *      responses:
    *        200:
+   *          description: Returns an object containing the student ID, the story name, and the story state (as a JSON object)
    *          content:
    *            application/json:
    *              schema:
@@ -1651,6 +1659,7 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
    *              type: object
    *      responses:
    *        200:
+   *          description: The story state was successfully submitted. Returns an object containing the student ID, the story name, and the story state (as a JSON object)
    *          content:
    *            application/json:
    *              schema:
@@ -1719,6 +1728,7 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
    *              type: object
    *      responses:
    *        200:
+   *          description: Returns an object containing the student ID, the story name, and the updated story state (as a JSON object)
    *          content:
    *            application/json:
    *              schema:
@@ -1773,6 +1783,7 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
    *            type: string
    *      responses:
    *        200:
+   *          description: Returns a list of Stage object, one for each stage in the story
    *          content:
    *            application/json:
    *              schema:
@@ -1922,6 +1933,7 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
    *            type: string
    *      responses:
    *        200:
+   *          description: Returns an object containing the student ID, the story name, the stage name, and the stage state (as a JSON object)
    *          content:
    *            application/json:
    *              schema:
@@ -2000,6 +2012,7 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
    *              type: object
    *      responses:
    *        200:
+   *          description: The stage state was successfully submitted. Returns an object containing the student ID, the story name, the stage name, and the stage state (as a JSON object)
    *          content:
    *            application/json:
    *              schema:
@@ -2113,6 +2126,7 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
    *            type: integer
    *      responses:
    *        200:
+   *          description: The given educator exists. Returns an object containing the educator ID and a list of Class objects 
    *          content:
    *            application/json:
    *              schema:
@@ -2164,6 +2178,7 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
    *            type: integer
    *      responses:
    *        200:
+   *          description: Returns an object containing the student ID, as well as a list of Class items, one for each of the student's classes
    *          content:
    *            application/json:
    *              schema:
@@ -2219,6 +2234,7 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
    *            type: string
    *      responses:
    *        200:
+   *          description: Return a list of story states for the given story for students in the class
    *          content:
    *            application/json:
    *              schema:
@@ -2282,6 +2298,7 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
    *            type: string
    *      responses:
    *        200:
+   *          description: A question with the given tag exists. Returns its information
    *          content:
    *            application/json:
    *              schema:
@@ -2345,10 +2362,13 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
    *            type: string
    *      requestBody:
    *        required: true
-   *        schema:
-   *          $ref: "#/components/schemas/QuestionCreationInfo"
+   *        content:
+   *          application/json:
+   *            schema:
+   *              $ref: "#/components/schemas/QuestionCreationInfo"
    *      responses:
    *        200:
+   *          description: The question was succesfully created. Returns its info
    *          content:
    *            application/json:
    *              schema:
@@ -2417,6 +2437,7 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
    *            type: string
    *      responses:
    *        200:
+   *          description: Returns a list of Question objects, one for each question associated with the story
    *          content:
    *            application/json:
    *              schema:

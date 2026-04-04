@@ -87,9 +87,6 @@ export function setupApp(app: Express, db: Sequelize) {
         description: "An API server for interacting with the CosmicDS database.",
       },
       tags: COSMICDS_OPENAPI_TAGS,
-      urls: [
-        { url: `${COSMICDS_HOST}/` },
-      ],
       components: {
         securitySchemes: {
           apiKey: COSMICDS_OPENAPI_APIKEY_SCHEME, 

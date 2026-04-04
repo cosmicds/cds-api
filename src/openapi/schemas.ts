@@ -15,10 +15,12 @@ export function schemas(): Schemas {
     StoryState: modelToSchema(StoryState),
     Question: modelToSchema(Question),
     User: {
-      oneOf: [
-        "#/components/schemas/Educator",
-        "#/components/schemas/Student"
-      ],
+      schema: {
+        oneOf: [
+          "#/components/schemas/Educator",
+          "#/components/schemas/Student"
+        ],
+      },
     },
     EducatorCreationInfo: {
       type: "object",
