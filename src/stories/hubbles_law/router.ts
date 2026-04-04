@@ -67,7 +67,7 @@ import { Story } from "../../models";
 import { Schema } from "@effect/schema";
 
 import { OAS3Options } from "swagger-jsdoc";
-import { COSMICDS_HOST, COSMICDS_OPENAPI_APIKEY_SCHEME, COSMICDS_OPENAPI_TAGS, COSMICDS_OPENAPI_VERSION } from "../../openapi/options";
+import { COSMICDS_OPENAPI_APIKEY_SCHEME, COSMICDS_OPENAPI_TAGS, COSMICDS_OPENAPI_VERSION } from "../../openapi/options";
 import { registerSwaggerDocs } from "../../openapi/utils";
 import { schemas } from "./openapi_schemas";
 
@@ -137,10 +137,10 @@ export function setup(_app: Express, db: Sequelize) {
  *        - measurements
  *      description: Submit a Hubble measurement for a student
  *      requestBody:
+ *        description: At least one of galaxy_id or galaxy_name must be given. If both are given, only galaxy_id is used
  *        required: true
  *        content:
  *          application/json:
- *            description: At least one of galaxy_id or galaxy_name must be given. If both are given, only galaxy_id is used
  *            schema:
  *              $ref: "#/components/schemas/HubbleMeasurementInput"
  *      responses:
@@ -229,9 +229,9 @@ router.put("/submit-measurement", async (req, res) => {
  *        - measurements
  *      requestBody:
  *        required: true
+ *        description: At least one of galaxy_id or galaxy_name must be given. If both are given, only galaxy_id is used. The identifier must correspond to the sample galaxy
  *        content:
  *          application/json:
- *            description: At least one of galaxy_id or galaxy_name must be given. If both are given, only galaxy_id is used. The identifier must correspond to the sample galaxy
  *            schema:
  *              $ref: "#/components/schemas/HubbleSampleMeasurementInput"
  *      responses:
@@ -491,6 +491,7 @@ router.delete("/sample-measurement/:studentID/:measurementNumber", async (req, r
  *            type: integer
  *      responses:
  *        200:
+ *          description: The class exists. Returns an object with the class ID and a list of measurements
  *          content:
  *            application/json:
  *              schema:
@@ -558,6 +559,7 @@ router.get("/measurements/classes/:classID", async (req, res) => {
  *            type: integer
  *      responses:
  *        200:
+ *          description: The student exists. Returns an object containing the student ID and a list of measurements
  *          content:
  *            application/json:
  *              schema:
@@ -630,6 +632,7 @@ router.get("/measurements/:studentID", async (req, res) => {
  *            type: integer
  *      responses:
  *        200:
+ *          description: Returns an object containing the student ID, the galaxy ID, and the measurement as a JSON object
  *          content:
  *            application/json:
  *              schema:
@@ -699,6 +702,7 @@ router.get("/measurements/:studentID/:galaxyID", async (req, res) => {
  *            type: integer
  *      responses:
  *        200:
+ *          description: The student exists. Returns an object containing the student ID and a list of measurements
  *          content:
  *            application/json:
  *              schema:
@@ -706,8 +710,9 @@ router.get("/measurements/:studentID/:galaxyID", async (req, res) => {
  *                properties:
  *                  student_id:
  *                    type: integer
- *                  measurement:
- *                    schema:
+ *                  measurements:
+ *                    type: array
+ *                    items:
  *                      $ref: "#/components/schemas/HubbleSampleMeasurement"
  *        400:
  *          description: The given student ID is not a number
@@ -773,6 +778,7 @@ router.get("/sample-measurements/:studentID", async (req, res) => {
  *              - second
  *      responses:
  *        200:
+ *          description: The student exists and has a measurement with the given number. Returns an object containing the student ID and the measurement of a JSON object
  *          content:
  *            application/json:
  *              schema:
@@ -841,6 +847,7 @@ router.get("/sample-measurements/:studentID/:measurementNumber", async (req, res
  *      description: Get all sample measurements
  *      responses:
  *        200:
+ *          description: Returns a list of HubbleSampleMeasurement objects, one for each measurement
  *          content:
  *            application/json:
  *              schema:
@@ -873,12 +880,13 @@ router.get("/sample-measurements", async (req, res) => {
  *              - second
  *      responses:
  *        200:
+ *          description: Returns a list of HubbleSampleMeasurement objects, one for each measurement with the given measurement number
  *          content:
  *            application/json:
  *              schema:
  *                type: array
  *                items:
- *                  $ref: "#/components/schemas/SampleHubbleMeasurement"
+ *                  $ref: "#/components/schemas/HubbleSampleMeasurement"
  *        400:
  *          description: The given measurement number was not either "first" or "second"
  *          content:
@@ -906,10 +914,13 @@ router.get("/sample-measurements/:measurementNumber", async (req, res) => {
  *      tags:
  *        - galaxies
  *      description: Return information about the sample galaxy
- *      content:
- *        application/json:
- *          schema:
- *            $ref: "#/components/schemas/Galaxy"
+ *      responses:
+ *        200:
+ *          description: Returns a Galaxy JSON object describing the sample galaxy
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Galaxy"
  */
 router.get("/sample-galaxy", async (_req, res) => {
   const galaxy = await getSampleGalaxy();
@@ -943,6 +954,7 @@ router.get("/sample-galaxy", async (_req, res) => {
  *            default: false
  *      responses:
  *        200:
+ *          description: Returns an object containing the student ID, the class ID, and the count of relevant class measurements
  *          content:
  *            application/json:
  *              schema:
@@ -959,7 +971,7 @@ router.get("/sample-galaxy", async (_req, res) => {
  *          content:
  *            application/json:
  *              schema:
- *                $ref: "#/components/messages/Error"
+ *                $ref: "#/components/schemas/Error"
  */
 router.get("/class-measurements/size/:studentID/:classID", async (req, res) => {
   res.header("Cache-Control", "no-cache, no-store, must-revalidate");  // HTTP 1.1
@@ -1012,6 +1024,7 @@ router.get("/class-measurements/size/:studentID/:classID", async (req, res) => {
  *            type: integer
  *      responses:
  *        200:
+ *          description: The student and class IDs are both valid. Returns an object containing the student ID, the class ID, and the number of relevant students who have completed their measurements
  *          content:
  *            application/json:
  *              schema:
@@ -1028,7 +1041,7 @@ router.get("/class-measurements/size/:studentID/:classID", async (req, res) => {
  *          content:
  *            application/json:
  *              schema:
- *                $ref: "#/components/messages/Error"
+ *                $ref: "#/components/schemas/Error"
  */
 router.get("/class-measurements/students-completed/:studentID/:classID", async (req, res) => {
   res.header("Cache-Control", "no-cache, no-store, must-revalidate");  // HTTP 1.1
@@ -1101,6 +1114,7 @@ router.get("/class-measurements/students-completed/:studentID/:classID", async (
  *              type: integer
  *      responses:
  *        200:
+ *          description: All of the student IDs and the class ID are valid. Returns an object containing the student ID, the class ID, and a list of relevant measurements
  *          content:
  *            application/json:
  *              schema:
@@ -1216,6 +1230,7 @@ router.get(["/class-measurements/:studentID/:classID", "/stage-3-data/:studentID
  *            default: false
  *      responses:
  *        200:
+ *          description: The student ID is valid, as are any student IDs if specified. Returns an object containing the student ID and a list of measurements. For consistency with /class-measurements/{studentID}/{classID}, this object also contains a class ID field whose value is null
  *          content:
  *            application/json:
  *              schema:
@@ -1229,18 +1244,18 @@ router.get(["/class-measurements/:studentID/:classID", "/stage-3-data/:studentID
  *                    type: array
  *                    items:
  *                      $ref: "#/components/schemas/HubbleMeasurement"
- *          400:
- *            description: At least one of the given student IDs is invalid
- *            content:
- *              application/json:
- *                schema:
- *                  $ref: "#/components/schemas/Error"
- *          404:
- *            description: The given student cannot be found or is not in a class signed up for the Hubble's Law story
- *            content:
- *              application/json:
- *                schema:
- *                  $ref: "#/components/schemas/Error"
+ *        400:
+ *          description: At least one of the given student IDs is invalid
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ *        404:
+ *          description: The given student cannot be found or is not in a class signed up for the Hubble's Law story
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
  */
 router.get(["/class-measurements/:studentID", "stage-3-measurements/:studentID"], async (req, res) => {
   const params = req.params;
@@ -1307,6 +1322,7 @@ router.get(["/class-measurements/:studentID", "stage-3-measurements/:studentID"]
  *                  description: This is the intended number of total students to have merged into the class, not an amount to add. Thus repeating this request with the same count will have no additional effect
  *      responses:
  *        200:
+ *          description: The merge was successful. The class now has the requested number of students merged into it
  *          content:
  *            application/json:
  *              schema:
@@ -1399,6 +1415,7 @@ router.put("/merge-students", async (req, res) => {
  *            default: false
  *      responses:
  *        200:
+ *          description: The class exists. Return a list of IDs of classes merged with it
  *          content:
  *            application/json:
  *              schema:
@@ -1460,6 +1477,7 @@ router.get("/merged-classes/:classID", async (req, res) => {
  *            format: date
  *      responses:
  *        200:
+ *          description: Return an object containing lists of relevant measurements, student summaries, and class summaries. The schema of each is determined by the minimal query parameter
  *          content:
  *            application/json:
  *              schema:
@@ -1530,6 +1548,7 @@ router.get("/all-data", async (req, res) => {
  *            default: false
  *      responses:
  *        200:
+ *          description: Return a list of objects, one for each galaxy (only of the relevant types if specified). The schema is determined by the flags query parameter
  *          content:
  *            application/json:
  *              schema:
@@ -1619,9 +1638,9 @@ async function markBadHandler(
  *      description: Mark a galaxy as "bad", meaning that it won't be an option for future students in the Hubble data story. This was originally idempotent but not is not, so really should be a POST
  *      requestBody:
  *        required: true
+ *        description: Only the galaxy_id is used if both are provided
  *        content:
  *          application/json:
- *            description: Only the galaxy_id is used if both are provided
  *            schema:
  *              type: object
  *              properties:
@@ -1670,9 +1689,9 @@ router.put("/mark-galaxy-bad", async (req, res) => {
  *      description: Mark a galaxy's spectrum as "bad", meaning that galaxy won't be an option for future students in the Hubble data story.
  *      requestBody:
  *        required: true
+ *        description: Only the galaxy_id is used if both are provided
  *        content:
  *          application/json:
- *            description: Only the galaxy_id is used if both are provided
  *            schema:
  *              type: object
  *              properties:
@@ -1738,7 +1757,10 @@ router.post("/mark-spectrum-bad", async (req, res) => {
  *        302:
  *          description: Redirect to where the given galaxy's spectrum is stored on AWS
  *          content:
- *            binary/octet-stream
+ *            binary/octet-stream:
+ *              schema:
+ *                type: string
+ *                format: binary
  */
 router.get("/spectra/:type/:name", async (req, res) => {
   res.redirect(`https://cosmicds.s3.us-east-1.amazonaws.com/spectra/${req.params.type}/${req.params.name}`);
@@ -1762,27 +1784,30 @@ const WaitingRoomOverrideSchema = S.struct({
  *          required: true
  *          schema:
  *            type: integer
- *    responses:
- *      200:
- *        content:
- *          application/json:
- *            schema:
- *              type: object
- *              properties:
- *                class_id:
- *                  type: integer
- *                override_status:
- *                  type: boolean
- *      404:
- *        content:
- *          application/json:
- *            schema:
- *              $ref: "#/components/schemas/Error"
- *      500:
- *        content:
- *          application/json:
- *            schema:
- *              $ref: "#/components/schemas/Error"
+ *      responses:
+ *        200:
+ *          description: The class exists. Returns an object containing the class ID and its override status
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  class_id:
+ *                    type: integer
+ *                  override_status:
+ *                    type: boolean
+ *        404:
+ *          description: No class was found with the given ID
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ *        500:
+ *          description: There was a server error while determining the class's waiting room override status
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
  */
 router.get("/waiting-room-override/:classID", async (req, res) => {
   const classID = Number(req.params.classID);
@@ -1818,11 +1843,13 @@ router.get("/waiting-room-override/:classID", async (req, res) => {
  *      description: Set a class to allow overriding the waiting room
  *      requestBody:
  *        required: true
- *        schema:
- *          type: object
- *          properties:
- *            class_id:
- *              type: integer
+ *        content:
+ *          application/json:
+ *            schema:
+ *              type: object
+ *              properties:
+ *                class_id:
+ *                  type: integer
  *      responses:
  *        200:
  *          description: The waiting room override was already set
@@ -1862,7 +1889,7 @@ router.get("/waiting-room-override/:classID", async (req, res) => {
  *          description: There was an error while setting the waiting room override
  *          content:
  *            application/json:
- *              schemas:
+ *              schema:
  *                $ref: "#/components/schemas/Error"
  */
 router.put("/waiting-room-override", async (req, res) => {
@@ -1924,13 +1951,16 @@ router.put("/waiting-room-override", async (req, res) => {
  *      description: Remove the waiting room override flag from a given class
  *      requestBody:
  *        required: true
- *        schema:
- *          type: object
- *          properties:
- *            class_id:
- *              type: integer
+ *        content:
+ *          application/json:
+ *            schema:
+ *              type: object
+ *              properties:
+ *                class_id:
+ *                  type: integer
  *      responses:
  *        200:
+ *          description: The waiting room override was successfully removed, or no waiting room override existed. Returns an object containing the class ID, a flag indicating whether the override was removed, and a message describing the result
  *          content:
  *            application/json:
  *              schema:
