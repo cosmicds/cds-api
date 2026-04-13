@@ -5,10 +5,10 @@ import request, { Response } from "supertest";
 import type { Express } from "express";
 import { Op, type Sequelize } from "sequelize";
 
-import { authorize, createTestApp, getTestDatabaseConnection, createRandomClassWithStudents, randomStudent, randomBetween, randomClassForEducator } from "../../../../tests/utils";
+import { authorize, createTestApp, getTestDatabaseConnection, createRandomClassWithStudents, randomStudent, randomBetween, randomClassForEducator, expectToMatchModel } from "../../../../tests/utils";
 import { HubbleClassStudentMerge } from "../models/hubble_class_student_merges";
 import { globalRoutePath, createRandomHubbleDataForStudent, createRandomHubbleMeasurementForStudent, createRandomGalaxies } from "./utils";
-import { Class, Educator, IgnoreStudent, Student } from "../../../models";
+import { Class, ClassStories, Educator, IgnoreStudent, Student } from "../../../models";
 import { HubbleMeasurement, HubbleStudentData } from "../models";
 import { addStudentToClass, findClassByIdOrCode } from "../../../database";
 import { mergeStudentIntoClass } from "../database";
@@ -54,6 +54,10 @@ describe("Test student/class merge functionality", () => {
     }
 
     const otherClass = await randomClassForEducator(educator.id);
+
+    // Sign the classes up for the Hubble's Law story
+    await ClassStories.create({ class_id: cls.id, story_name: "hubbles_law" });
+    await ClassStories.create({ class_id: otherClass.id, story_name: "hubbles_law" });
 
     studentsToMerge = [];
     studentsToNotMerge = [];
@@ -213,4 +217,69 @@ describe("Test student/class merge functionality", () => {
 
     await HubbleClassStudentMerge.destroy({ where: { student_id: { [Op.in]: studentIDs } } });
   });
+
+  it("Should return the list of student IDs merged into a given class", async () => {
+    const route = globalRoutePath(`/merge-students/${cls.id}`);
+
+    await authorize(request(testApp).get(route))
+      .expect(200)
+      .expect("Content-Type", /json/)
+      .then(async res => {
+        const body = res.body;
+        const mergedStudentIDs = body.students;
+        expect(Array.isArray(mergedStudentIDs)).toEqual(true);
+        expect(mergedStudentIDs.length).toEqual(mergedCount);
+
+        expect(mergedStudentIDs.sort()).toEqual(studentsToMerge.map(student => student.id).sort());
+
+      });
+  });
+
+  it("Should return the list of student JSON merged into a given class", async () => {
+
+    const route = globalRoutePath(`/merge-students/${cls.id}?full=true`);
+    await authorize(request(testApp).get(route))
+      .expect(200)
+      .expect("Content-Type", /json/)
+      .then(async res => {
+        const body = res.body;
+        const mergedStudents = body.students;
+        expect(Array.isArray(mergedStudents)).toEqual(true);
+        expect(mergedStudents.length).toEqual(mergedCount);
+
+        const studentsComparator = (s1: Student, s2: Student) => s1.id - s2.id;
+        mergedStudents.sort(studentsComparator);
+        for (let i = 0; i < mergedCount; i++) {
+          expectToMatchModel(mergedStudents[i], studentsToMerge[i], ["profile_created", "last_visit"]);
+        }
+      });
+  });
+
+  it("Should return a 404 if requesting merge students or a class that doesn't exist", async () => {
+    const badID = -1;
+    const route = globalRoutePath(`/merge-students/${badID}`);
+    await authorize(request(testApp).get(route))
+      .expect(404)
+      .expect("Content-Type", /json/)
+      .then(res => {
+        const error = res.body.error;
+        expect(typeof error).toEqual("string");
+        expect(error).toEqual(`No class exists with ID ${badID}`);
+      });
+  });
+
+  it("Should return a 422 if the class hasn't been signed up for Hubble's Law", async () => {
+    const data = await createRandomClassWithStudents(classSize);
+    const cls = data.class;
+    const route = globalRoutePath(`/merge-students/${cls.id}`);
+    await authorize(request(testApp).get(route))
+      .expect(422)
+      .expect("Content-Type", /json/)
+      .then(res => {
+        const error = res.body.error;
+        expect(typeof error).toEqual("string");
+        expect(error).toEqual(`The class with ID ${cls.id} is not signed up for Hubble's Law`);
+      });
+  });
+
 });
