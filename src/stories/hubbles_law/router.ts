@@ -63,7 +63,7 @@ import { Sequelize, ForeignKeyConstraintError, UniqueConstraintError } from "seq
 import { classForStudentStory, findClassById, findStudentById } from "../../database";
 import { HubbleClassStudentMerge, HubbleMeasurement, initializeModels } from "./models";
 import { setUpHubbleAssociations } from "./associations";
-import { ClassStories, Story } from "../../models";
+import { ClassStories, Story, Student } from "../../models";
 import { Schema } from "@effect/schema";
 
 import { OAS3Options } from "swagger-jsdoc";
@@ -1463,14 +1463,19 @@ router.get("/merge-students/:classID", async (req, res) => {
     return;
   }
 
-  const mergedStudents = await HubbleClassStudentMerge.findAll({
-    where: {
-      class_id: classID,
-    }
+  const full = (req.query.full as string)?.toLowerCase() === "true";
+
+  const mergedStudents = await Student.findAll({
+    include: [{
+      model: HubbleClassStudentMerge,
+      where: {
+        class_id: classID,
+      }
+    }],
   });
 
   res.json({
-    students: mergedStudents,
+    students: full ? mergedStudents : mergedStudents.map(student => student.id),
   });
 });
 
