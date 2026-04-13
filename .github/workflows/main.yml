@@ -39,3 +39,19 @@ jobs:
           DB_TEST_PASSWORD: root
           CDS_API_KEY: TEST_API_KEY
         run: npm run test
+
+      - name: Run app
+        run: npm run start
+
+      - name: Check OpenAPI specs
+        run: |
+          specs = ("" "/hubbles_law")
+          for spec in "${specs[@]}"; do
+            DATA=$(curl http://localhost:8080${spec}/docs.json)
+            RESULT=$(curl -X "POST" \
+              https://validator.swagger.io/validator/debug
+              -H "Content-Type: application/json"
+              -d $DATA)
+            echo $RESULT
+            echo $RESULT | jq -e '. == {}'
+          done 
