@@ -40,11 +40,9 @@ jobs:
           CDS_API_KEY: TEST_API_KEY
         run: npm run test
 
-      - name: Run app
-        run: npm run start
-
       - name: Check OpenAPI specs
         run: |
+          npm run start &
           specs = ("" "/hubbles_law")
           for spec in "${specs[@]}"; do
             DATA=$(curl http://localhost:8080${spec}/docs.json)
@@ -55,3 +53,4 @@ jobs:
             echo $RESULT
             echo $RESULT | jq -e '. == {}'
           done 
+          pkill -f node
