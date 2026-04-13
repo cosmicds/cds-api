@@ -1393,8 +1393,8 @@ router.put("/merge-students", async (req, res) => {
 
 });
 
-/*
- * @openapi
+/**
+ *  @openapi
  *  /merge-students/{classID}:
  *    get:
  *      tags:
