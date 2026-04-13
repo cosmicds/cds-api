@@ -89,7 +89,7 @@ export function setUpHubbleAssociations() {
   });
 
   HubbleClassStudentMerge.belongsTo(Student, {
-    as: "merge",
+    as: "student",
     targetKey: "id",
     foreignKey: "student_id",
   });
@@ -98,7 +98,7 @@ export function setUpHubbleAssociations() {
   });
 
   HubbleClassStudentMerge.belongsTo(Class, {
-    as: "merge",
+    as: "class",
     targetKey: "id",
     foreignKey: "class_id",
   });
