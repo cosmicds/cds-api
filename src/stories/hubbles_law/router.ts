@@ -63,7 +63,7 @@ import { Sequelize, ForeignKeyConstraintError, UniqueConstraintError } from "seq
 import { classForStudentStory, findClassById, findStudentById } from "../../database";
 import { HubbleClassStudentMerge, HubbleMeasurement, initializeModels } from "./models";
 import { setUpHubbleAssociations } from "./associations";
-import { Story } from "../../models";
+import { ClassStories, Story } from "../../models";
 import { Schema } from "@effect/schema";
 
 import { OAS3Options } from "swagger-jsdoc";
@@ -1392,6 +1392,88 @@ router.put("/merge-students", async (req, res) => {
   }
 
 });
+
+/*
+ * @openapi
+ *  /merge-students/{classID}:
+ *    get:
+ *      tags:
+ *        - classes
+ *      description: Return a list of information about the students merged into a given class
+ *      parameters:
+ *        - name: classID
+ *          in: path
+ *          required: true
+ *          schema:
+ *            type: integer
+ *        - name: full
+ *          in: query
+ *          required: false
+ *          schema:
+ *            type: boolean
+ *            default: false
+ *      responses:
+ *        200:
+ *          description: The class exists. If `full` is true, this is a list of `Student` objects; otherwise this is a list of student IDs
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  students:
+ *                    type: array
+ *                    schema:
+ *                      items:
+ *                        oneOf:
+ *                          - $ref: "#/components/schemas/Student"
+ *                          - $ref: integer
+ *        404:
+ *          description: The class does not exist
+ *          content:
+ *            application/json:
+ *              schema:
+ *               $ref: "#/components/schemas/Error"
+ *        422:
+ *          description: The class exists but is not signed up for Hubble's Law
+ *          content:
+ *            application/json:
+ *              schema:
+ *                $ref: "#/components/schemas/Error"
+ */
+router.get("/merge-students/:classID", async (req, res) => {
+  const classID = Number(req.params.classID);
+  const cls = await findClassById(classID);
+  if (cls == null) {
+    res.status(404).json({
+      error: `No class exists with ID ${classID}`,
+    });
+    return;
+  }
+
+  const signedUp = await ClassStories.findOne({
+    where: {
+      class_id: classID,
+      story_name: "hubbles_law",
+    }
+  });
+  if (signedUp == null) {
+    res.status(422).json({
+      error: `The class with ID ${classID} is not signed up for Hubble's Law`,
+    });
+    return;
+  }
+
+  const mergedStudents = await HubbleClassStudentMerge.findAll({
+    where: {
+      class_id: classID,
+    }
+  });
+
+  res.json({
+    students: mergedStudents,
+  });
+});
+
 
 /**
  *  @openapi
