@@ -18,14 +18,14 @@ jobs:
         with:
           node-version: '22.14.0'
 
-      - name: Install modules
-        run: npm install
+      - name: Install dependencies
+        run: yarn install
 
-      - name: Run ESLint
-        run: npm run lint
+      - name: Lint
+        run: yarn lint
         
       - name: Build
-        run: npm run build
+        run: yarn build
 
       - name: Start MySQL service
         run: sudo systemctl start mysql.service
@@ -38,7 +38,7 @@ jobs:
           DB_TEST_USERNAME: root
           DB_TEST_PASSWORD: root
           CDS_API_KEY: TEST_API_KEY
-        run: npm run test
+        run: yarn test
 
       - name: Check OpenAPI specs
         env:
@@ -51,7 +51,7 @@ jobs:
           mysql -u ${DB_USERNAME} -p"${DB_PASSWORD}" -e "CREATE DATABASE IF NOT EXISTS ${DB_NAME};"
           mysql -u ${DB_USERNAME} -p"${DB_PASSWORD}" ${DB_NAME} < src/sql/create_story_table.sql
 
-          npm run start &
+          yarn start &
           sleep 10  # Give the app time to start up
           specs=("" "/hubbles_law")
           for spec in "${specs[@]}"; do
