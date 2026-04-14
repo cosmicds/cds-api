@@ -41,16 +41,29 @@ jobs:
         run: npm run test
 
       - name: Check OpenAPI specs
+        env:
+          DB_HOSTNAME: 127.0.0.1
+          DB_USERNAME: root
+          DB_PASSWORD: root
+          DB_NAME: test
+          CDS_API_KEY: TEST_API_KEY
         run: |
+          mysql -u ${DB_USERNAME} -p"${DB_PASSWORD}" -e "CREATE DATABASE IF NOT EXISTS ${DB_NAME};"
+          mysql -u ${DB_USERNAME} -p"${DB_PASSWORD}" ${DB_NAME} < src/sql/create_story_table.sql
+
           npm run start &
-          specs = ("" "/hubbles_law")
+          sleep 10  # Give the app time to start up
+          specs=("" "/hubbles_law")
           for spec in "${specs[@]}"; do
-            DATA=$(curl http://localhost:8080${spec}/docs.json)
+            url="http://localhost:8080${spec}/docs.json"
+            echo $url
+            DATA=$(curl $url)
             RESULT=$(curl -X "POST" \
-              https://validator.swagger.io/validator/debug
-              -H "Content-Type: application/json"
-              -d $DATA)
+              -H "Content-Type: application/json" \
+              -d "$DATA" \
+              https://validator.swagger.io/validator/debug)
             echo $RESULT
             echo $RESULT | jq -e '. == {}'
           done 
           pkill -f node
+          mysql -u ${DB_USERNAME} -p"${DB_PASSWORD}" -e "DROP DATABASE ${DB_NAME};"
