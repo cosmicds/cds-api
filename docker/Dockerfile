@@ -6,8 +6,9 @@ COPY .eslintrc.json package*.json tsconfig.json ./
 COPY src ./src
 COPY tests ./tests
 
-RUN npm ci
-RUN npm run build
+RUN npm install -g yarn
+RUN yarn
+RUN yarn build
 
 ARG port=8080
 EXPOSE $port
