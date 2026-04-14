@@ -150,12 +150,10 @@ export function setup(_app: Express, db: Sequelize) {
  *            application/json:
  *              schema:
  *                type: object
- *                $schema:
- *                  type: object
- *                  properties:
- *                    measurement:
- *                      schema:
- *                        $ref: "#/components/schemas/HubbleMeasurement"
+ *                properties:
+ *                  measurement:
+ *                    schema:
+ *                      $ref: "#/components/schemas/HubbleMeasurement"
  *        400:
  *          description: The request body did not have the required form
  *          content:

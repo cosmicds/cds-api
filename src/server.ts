@@ -629,10 +629,10 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
   *         content:
   *           application/json:
   *             schema:
-  *               type: "object"
+  *               type: object
   *               properties:
-  *               student:
-  *                 type: null
+  *                 student:
+  *                   type: null
   */
   app.get([
     "/students/:identifier",
@@ -1753,6 +1753,8 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
    *                  story_name:
    *                    type: string
    *                  state:
+   *                    description: The story state
+   *                    type: object
    */
   app.patch("/story-state/:studentID/:storyName", async (req, res) => {
     const params = req.params;
@@ -1822,6 +1824,11 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
    *      tags:
    *        - students
    *      parameters:
+   *        - name: storyName
+   *          in: path
+   *          required: true
+   *          schema:
+   *            type: string
    *        - name: studentID
    *          in: query
    *          schema:

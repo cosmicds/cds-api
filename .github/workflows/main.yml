@@ -39,3 +39,31 @@ jobs:
           DB_TEST_PASSWORD: root
           CDS_API_KEY: TEST_API_KEY
         run: npm run test
+
+      - name: Check OpenAPI specs
+        env:
+          DB_HOSTNAME: 127.0.0.1
+          DB_USERNAME: root
+          DB_PASSWORD: root
+          DB_NAME: test
+          CDS_API_KEY: TEST_API_KEY
+        run: |
+          mysql -u ${DB_USERNAME} -p"${DB_PASSWORD}" -e "CREATE DATABASE IF NOT EXISTS ${DB_NAME};"
+          mysql -u ${DB_USERNAME} -p"${DB_PASSWORD}" ${DB_NAME} < src/sql/create_story_table.sql
+
+          npm run start &
+          sleep 10  # Give the app time to start up
+          specs=("" "/hubbles_law")
+          for spec in "${specs[@]}"; do
+            url="http://localhost:8080${spec}/docs.json"
+            echo $url
+            DATA=$(curl $url)
+            RESULT=$(curl -X "POST" \
+              -H "Content-Type: application/json" \
+              -d "$DATA" \
+              https://validator.swagger.io/validator/debug)
+            echo $RESULT
+            echo $RESULT | jq -e '. == {}'
+          done 
+          pkill -f node
+          mysql -u ${DB_USERNAME} -p"${DB_PASSWORD}" -e "DROP DATABASE ${DB_NAME};"
