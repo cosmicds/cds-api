@@ -1,5 +1,5 @@
 import type { OAS3Definition } from "swagger-jsdoc";
-import { Class, Educator, Stage, StageState, StoryState, Student } from "../models";
+import { Class, ClassStories, Educator, Stage, StageState, StoryState, Student } from "../models";
 import { modelToSchema } from "./utils";
 import { Question } from "../models/question";
 
@@ -14,6 +14,7 @@ export function schemas(): Schemas {
     StageState: modelToSchema(StageState),
     StoryState: modelToSchema(StoryState),
     Question: modelToSchema(Question),
+    ClassStories: modelToSchema(ClassStories),
     User: {
       schema: {
         oneOf: [
