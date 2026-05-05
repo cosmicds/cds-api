@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-floating-promises */
 
-import { beforeAll, afterAll, describe, it } from "@jest/globals";
+import { beforeAll, afterAll, describe, it, expect } from "@jest/globals";
 import request from "supertest";
 import type { Sequelize } from "sequelize";
 import type { Express } from "express";
@@ -17,6 +17,7 @@ async function setupClassesWithStories() {
   const story2 = await randomStory();
   const story3 = await randomStory();
   const stories = [story1, story2, story3];
+  console.log(stories);
 
   const cs1 = await ClassStories.create({ class_id: cls.id, story_name: story1.name, active: true });
   const cs2 = await ClassStories.create({ class_id: cls.id, story_name: story2.name, active: true });
@@ -49,8 +50,9 @@ describe("Test class-story routes", () => {
   });
 
   it("Should return the correct story information for the given class", async () => {
-    const { class: cls, classStories, cleanup } = await setupClassesWithStories();
+    const { class: cls, stories, classStories, cleanup } = await setupClassesWithStories();
     const identifiers = [cls.id, cls.code];
+    const storyNames = stories.map(story => story.name);
 
     for (const idf of identifiers) {
       await authorize(request(testApp).get(`/classes/${idf}/stories`))
@@ -58,7 +60,14 @@ describe("Test class-story routes", () => {
         .expect("Content-Type", /json/)
         .then(res => {
           const resStories = res.body.stories as Record<string, unknown>[];
-          resStories.forEach((story, index) => expectToMatchModel(story, classStories[index]));
+          resStories.forEach(story => {
+            // We don't know what the order of the stories returned from the endpoint will be
+            // nor do we expect to.
+            // So we just need to make sure that we compare against the correct model
+            expect(story).toHaveProperty("story_name");
+            const index = storyNames.indexOf(story.story_name as string);
+            expectToMatchModel(story, classStories[index]);
+          });
         });
     }
 
