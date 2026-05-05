@@ -62,7 +62,7 @@ import {
   VerificationResult,
 } from "./request_results";
 
-import { CosmicDSSession, StudentsClasses, Class, IgnoreStudent } from "./models";
+import { CosmicDSSession, StudentsClasses, Class, IgnoreStudent, ClassStories } from "./models";
 
 import { ParsedQs } from "qs";
 import express, { Express, Request, Response as ExpressResponse } from "express";
@@ -1568,6 +1568,52 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
       active,
     });
 
+  });
+
+  /**
+   *  @openapi
+   *  /classes/{classIdentifier}/stories:
+   *    get:
+   *      tags:
+   *        - classes
+   *        - stories
+   *      description: Get the stories associated with a given class, including whether each is active or not
+   *      parameters:
+   *        - name: classIdentifier
+   *          in: path
+   *          required: true
+   *          schema:
+   *            oneOf:
+   *              - type: string
+   *              - type: integer
+   *      responses:
+   *        200:
+   *          description: Returns a list whose entries give the story name and active status for each story associated with the given class
+   *          content:
+   *            application/json:
+   *              schema:
+   *                type: array
+   *                items:
+   *                  $ref: "#/components/schemas/ClassStories"
+   *        404:
+   *          description: No class exists with the given ID
+   *          content:
+   *            application/json:
+   *              schema:
+   *                $ref: "#/components/schemas/Error"
+   */
+  app.get("/classes/:classIdentifier/stories", async (req, res) => {
+    const classIdentifier = req.params.classIdentifier;
+    const cls = await findClassByIdOrCode(classIdentifier);
+    if (cls === null) {
+      res.status(404).json({
+        error: `No class found: ${classIdentifier}`,
+      });
+      return;
+    }
+
+    const stories = await ClassStories.findAll({ where: { class_id: cls.id } });
+    res.json({ stories });
   });
 
   /**

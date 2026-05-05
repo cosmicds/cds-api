@@ -10,6 +10,7 @@ import { InferAttributes, CreationAttributes, Model, Sequelize, UniqueConstraint
 import { setUpAssociations } from "../src/associations";
 import {
   APIKeyRole,
+  ClassStories,
   Educator,
   IgnoreClass,
   IgnoreStudent,
@@ -97,6 +98,7 @@ export async function syncTables(force=false): Promise<void> {
   await APIKeyRole.sync(options);
   await StudentsClasses.sync(options);
   await Story.sync(options);
+  await ClassStories.sync(options);
   await StoryState.sync(options);
   await StageState.sync(options);
   await IgnoreStudent.sync(options);
