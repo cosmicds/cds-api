@@ -52,7 +52,7 @@ export const CLASS_ATTRIBUTES = {
   active: {
     type: DataTypes.BOOLEAN,
     allowNull: false,
-    defaultValue: false
+    defaultValue: true,
   },
   code: {
     type: DataTypes.STRING,
