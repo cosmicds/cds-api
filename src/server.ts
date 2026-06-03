@@ -1225,7 +1225,7 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
       return;
     }
 
-    cls.destroy()
+    cls.update({ active: false })
       .then(() => res.status(204).end())
       .catch(error => {
         console.log(error);
