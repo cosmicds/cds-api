@@ -651,16 +651,18 @@ export async function deleteStageState(studentID: number, storyName: string, sta
   });
 }
 
-export async function getClassesForEducator(educatorID: number): Promise<Class[]> {
-  return Class.findAll({
+export async function getClassesForEducator(educatorID: number, activeOnly=true): Promise<Class[]> {
+  const model = activeOnly ? ActiveClass : Class;
+  return model.findAll({
     where: {
       educator_id: educatorID
     }
   });
 }
 
-export async function getClassesForStudent(studentID: number): Promise<Class[]> {
-  return Class.findAll({
+export async function getClassesForStudent(studentID: number, activeOnly=true): Promise<Class[]> {
+  const model = activeOnly ? ActiveClass : Class;
+  return model.findAll({
     include: [{
       model: Student,
       where: {

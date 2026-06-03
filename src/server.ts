@@ -2177,6 +2177,10 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
    *          required: true
    *          schema:
    *            type: integer
+   *        - name: active_only
+   *          in: query
+   *          schema:
+   *            type: boolean
    *      responses:
    *        200:
    *          description: The given educator exists. Returns an object containing the educator ID and a list of Class objects 
@@ -2200,6 +2204,8 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
    */
   app.get("/educator-classes/:educatorID", async (req, res) => {
     const params = req.params;
+    const activeString = req.query.active as string | undefined;
+    const active = activeString?.toLowerCase() === "true";
     const educatorID = Number(params.educatorID);
     const educator = await findEducatorById(educatorID);
     if (educator === null) {
@@ -2208,7 +2214,7 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
       });
       return;
     }
-    const classes = await getClassesForEducator(educatorID);
+    const classes = await getClassesForEducator(educatorID, active);
     res.json({
       educator_id: educatorID,
       classes,
