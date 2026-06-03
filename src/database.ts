@@ -5,6 +5,7 @@ import { createNamespace } from "cls-hooked";
 import * as S from "@effect/schema/Schema";
 
 import {
+  ActiveClass,
   Class,
   Educator,
   ClassStories,
