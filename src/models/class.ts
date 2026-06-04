@@ -16,7 +16,7 @@ export class Class extends Model<InferAttributes<Class>, InferCreationAttributes
   declare test: CreationOptional<boolean>;
   declare seed: CreationOptional<boolean>;
   declare expected_size: CreationOptional<number>;
-  declare small_class: CreationOptional<boolean>;
+  declare readonly small_class: CreationOptional<boolean>;
   declare status: CreationOptional<ClassStatus>;
 }
 
@@ -80,7 +80,7 @@ export const CLASS_ATTRIBUTES = {
   small_class: {
     type: DataTypes.VIRTUAL,
     // type: "tinyint(1) GENERATED ALWAYS AS (expected_size < 15) VIRTUAL",
-    get() {
+    get(this: Class): boolean {
       return this.expected_size < 15; 
     }
   },
