@@ -683,30 +683,41 @@ export async function getStudentsForClass(classID: number): Promise<Student[]> {
   });
 }
 
+export async function deactivateClass(cls: Class): Promise<Class> {
+  return cls.update({ active: false });
+}
+
+export async function deactiveClassByID(id: number): Promise<boolean> {
+  return Class.update({ active: false }, { where: { id } })
+    .then(result => result[0] > 0);
+}
+
 export async function deleteClass(id: number): Promise<number> {
   return Class.destroy({
     where: { id }
   });
 }
 
-export async function findClassByCode(code: string): Promise<Class | null> {
-  return Class.findOne({
+export async function findClassByCode(code: string, activeOnly=false): Promise<Class | null> {
+  const model = activeOnly ? ActiveClass : Class;
+  return model.findOne({
     where: { code }
   });
 }
 
-export async function findClassById(id: number): Promise<Class | null> {
-  return Class.findOne({
+export async function findClassById(id: number, activeOnly=false): Promise<Class | null> {
+  const model = activeOnly ? ActiveClass : Class;
+  return model.findOne({
     where: { id }
   });
 }
 
-export async function findClassByIdOrCode(identifier: string): Promise<Class | null> {
+export async function findClassByIdOrCode(identifier: string, activeOnly=false): Promise<Class | null> {
   const id = Number(identifier);
   if (isNaN(id)) {
-    return findClassByCode(identifier);
+    return findClassByCode(identifier, activeOnly);
   } else {
-    return findClassById(id);
+    return findClassById(id, activeOnly);
   }
 }
 
@@ -918,7 +929,7 @@ export async function isClassStoryActive(classID: number, storyName: string): Pr
 
 export async function setClassStoryActive(classID: number, storyName: string, active: boolean): Promise<boolean> {
   const result = await ClassStories.update(
-    { active  },
+    { active },
     {
       where: {
         class_id: classID,

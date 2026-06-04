@@ -34,6 +34,7 @@ import {
   updateStageState,
   deleteStageState,
   findClassById,
+  deactivateClass,
   getStages,
   getStory,
   getStageStates,
@@ -1225,7 +1226,7 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
       return;
     }
 
-    cls.update({ active: false })
+    deactivateClass(cls)
       .then(() => res.status(204).end())
       .catch(error => {
         console.log(error);
