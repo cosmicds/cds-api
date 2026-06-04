@@ -1,5 +1,6 @@
 import { 
-    APIKeyRole,
+  APIKeyRole,
+  ActiveClass,
   Class,
   ClassStories,
   IgnoreClass,
@@ -34,6 +35,26 @@ export function setUpAssociations() {
     onUpdate: "CASCADE",
     onDelete: "CASCADE"
   });
+
+  Student.belongsToMany(ActiveClass, {
+    through: StudentsClasses,
+    sourceKey: "id",
+    targetKey: "id",
+    foreignKey: "student_id",
+    otherKey: "class_id",
+    onUpdate: "CASCADE",
+    onDelete: "CASCADE"
+  });
+  ActiveClass.belongsToMany(Student, {
+    through: StudentsClasses,
+    sourceKey: "id",
+    targetKey: "id",
+    foreignKey: "class_id",
+    otherKey: "student_id",
+    onUpdate: "CASCADE",
+    onDelete: "CASCADE"
+  });
+
 
   Story.belongsToMany(Class, {
     through: ClassStories,
