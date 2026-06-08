@@ -32,7 +32,7 @@ export function initializeEducatorModel(sequelize: Sequelize) {
       unique: true
     },
     verified: {
-      type: DataTypes.TINYINT,
+      type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: 0
     },
