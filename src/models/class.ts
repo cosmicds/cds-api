@@ -91,17 +91,13 @@ export const CLASS_ATTRIBUTES = {
   },
 };
 
-export function classOptions(sequelize: Sequelize) {
-  return {
+export function initializeClassModel(sequelize: Sequelize) {
+  Class.init(CLASS_ATTRIBUTES, {
     sequelize,
     indexes: [
       {
         fields: ["code"],
       }
     ]
-  };
-}
-
-export function initializeClassModel(sequelize: Sequelize) {
-  Class.init(CLASS_ATTRIBUTES, classOptions(sequelize));
+  });
 }

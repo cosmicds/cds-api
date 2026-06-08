@@ -1,4 +1,4 @@
-import { Class, CLASS_ATTRIBUTES, classOptions } from "./class";
+import { Class, CLASS_ATTRIBUTES } from "./class";
 import { Sequelize } from "sequelize";
 
 // NB: This model is actually a view defined on the Classes table
@@ -6,5 +6,5 @@ import { Sequelize } from "sequelize";
 export class ActiveClass extends Class {}
 
 export function initializeActiveClassModel(sequelize: Sequelize) {
-  ActiveClass.init(CLASS_ATTRIBUTES, classOptions(sequelize));
+  ActiveClass.init(CLASS_ATTRIBUTES, { sequelize });
 }

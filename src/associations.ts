@@ -17,25 +17,6 @@ import { APIKey } from "./models/api_key";
 
 export function setUpAssociations() {
 
-  Student.belongsToMany(Class, {
-    through: StudentsClasses,
-    sourceKey: "id",
-    targetKey: "id",
-    foreignKey: "student_id",
-    otherKey: "class_id",
-    onUpdate: "CASCADE",
-    onDelete: "CASCADE"
-  });
-  Class.belongsToMany(Student, {
-    through: StudentsClasses,
-    sourceKey: "id",
-    targetKey: "id",
-    foreignKey: "class_id",
-    otherKey: "student_id",
-    onUpdate: "CASCADE",
-    onDelete: "CASCADE"
-  });
-
   Student.belongsToMany(ActiveClass, {
     through: StudentsClasses,
     sourceKey: "id",
@@ -55,6 +36,24 @@ export function setUpAssociations() {
     onDelete: "CASCADE"
   });
 
+  Student.belongsToMany(Class, {
+    through: StudentsClasses,
+    sourceKey: "id",
+    targetKey: "id",
+    foreignKey: "student_id",
+    otherKey: "class_id",
+    onUpdate: "CASCADE",
+    onDelete: "CASCADE"
+  });
+  Class.belongsToMany(Student, {
+    through: StudentsClasses,
+    sourceKey: "id",
+    targetKey: "id",
+    foreignKey: "class_id",
+    otherKey: "student_id",
+    onUpdate: "CASCADE",
+    onDelete: "CASCADE"
+  });
 
   Story.belongsToMany(Class, {
     through: ClassStories,
