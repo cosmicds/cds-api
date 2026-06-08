@@ -76,7 +76,7 @@ export async function setupTestDatabase(): Promise<Sequelize> {
   // See https://github.com/sequelize/sequelize/issues/7953
   // and https://stackoverflow.com/a/45114507
   // db.sync({ force: true, match: /test/ }).finally(() => db.close());
-  await syncTables();
+  await syncTables(db);
 
   return db;
 }
@@ -86,7 +86,7 @@ export async function teardownTestDatabase(): Promise<void> {
   await connection.query("DROP DATABASE test;");
 }
 
-export async function syncTables(force=false): Promise<void> {
+export async function syncTables(db: Sequelize, force=false): Promise<void> {
   const options = { force, alter: false };
   await APIKey.sync(options);
   await Student.sync(options);
@@ -103,6 +103,15 @@ export async function syncTables(force=false): Promise<void> {
   await StageState.sync(options);
   await IgnoreStudent.sync(options);
   await IgnoreClass.sync(options);
+
+  // ActiveClasses is a view, which Sequelize is not great at handling
+  // so we just create it ourselves here
+  await db.query(`
+    CREATE VIEW ActiveClasses AS
+    SELECT *
+    FROM Classes
+    WHERE active = 1;
+  `);
 }
 
 export async function addAdminAPIKey(): Promise<APIKey | void> {

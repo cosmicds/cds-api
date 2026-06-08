@@ -1,5 +1,6 @@
 import { APIKeyRole, initializeAPIKeyRoleModel } from "./api_key_role";
 import { Class, initializeClassModel } from "./class";
+import { ActiveClass, initializeActiveClassModel } from "./active_class";
 import { DashboardClassGroup, initializeDashboardClassGroupModel } from "./dashboard_class_group";
 import { DummyClass, initializeDummyClassModel } from "./dummy_class";
 import { Educator, initializeEducatorModel } from "./educator";
@@ -26,6 +27,7 @@ import { initializeUserExperienceRatingModel } from "./user_experience";
 export {
   APIKeyRole,
   Class,
+  ActiveClass,
   ClassStories,
   CosmicDSSession,
   DashboardClassGroup,
@@ -54,6 +56,7 @@ export function initializeModels(db: Sequelize) {
   initializeSessionModel(db);
   initializeEducatorModel(db);
   initializeClassModel(db);
+  initializeActiveClassModel(db);
   initializeStudentModel(db);
   initializeStoryModel(db);
   initializeClassStoryModel(db);

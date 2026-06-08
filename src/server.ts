@@ -34,6 +34,7 @@ import {
   updateStageState,
   deleteStageState,
   findClassById,
+  deactivateClass,
   getStages,
   getStory,
   getStageStates,
@@ -1225,7 +1226,7 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
       return;
     }
 
-    cls.destroy()
+    deactivateClass(cls)
       .then(() => res.status(204).end())
       .catch(error => {
         console.log(error);
@@ -2177,6 +2178,10 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
    *          required: true
    *          schema:
    *            type: integer
+   *        - name: active_only
+   *          in: query
+   *          schema:
+   *            type: boolean
    *      responses:
    *        200:
    *          description: The given educator exists. Returns an object containing the educator ID and a list of Class objects 
@@ -2200,6 +2205,8 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
    */
   app.get("/educator-classes/:educatorID", async (req, res) => {
     const params = req.params;
+    const activeOnlyString = req.query.active_only as string | undefined;
+    const activeOnly = activeOnlyString?.toLowerCase() !== "false";
     const educatorID = Number(params.educatorID);
     const educator = await findEducatorById(educatorID);
     if (educator === null) {
@@ -2208,7 +2215,7 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
       });
       return;
     }
-    const classes = await getClassesForEducator(educatorID);
+    const classes = await getClassesForEducator(educatorID, activeOnly);
     res.json({
       educator_id: educatorID,
       classes,
@@ -2229,6 +2236,10 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
    *          required: true
    *          schema:
    *            type: integer
+   *        - name: active_only
+   *          in: query
+   *          schema:
+   *            type: boolean
    *      responses:
    *        200:
    *          description: Returns an object containing the student ID, as well as a list of Class items, one for each of the student's classes
@@ -2252,8 +2263,10 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
    */
   app.get("/student-classes/:studentID", async (req, res) => {
     const params = req.params;
+    const activeOnlyString = req.query.active_only as string | undefined;
+    const activeOnly = activeOnlyString?.toLowerCase() !== "false";
     const studentID = Number(params.studentID);
-    const classes = await getClassesForStudent(studentID);
+    const classes = await getClassesForStudent(studentID, activeOnly);
     res.json({
       student_id: studentID,
       classes: classes
