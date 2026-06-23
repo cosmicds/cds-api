@@ -193,7 +193,7 @@ export async function getStudentsWithCompleteMeasurements(): Promise<Student[]> 
     }],
 
     group: ["id"],
-    having: Sequelize.where(Sequelize.fn("count", Sequelize.col("count")), { [Op.gte]: 5 })
+    having: Sequelize.where(Sequelize.col("count"), { [Op.gte]: 5 })
   });
 }
 
