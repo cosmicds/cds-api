@@ -51,6 +51,7 @@ import {
   MeasurementType,
   SampleMeasurement,
   SampleMeasurementType,
+  getStudentsWithCompleteMeasurements,
 } from "./database";
 
 import { 
@@ -72,6 +73,29 @@ import { registerSwaggerDocs } from "../../openapi/utils";
 import { schemas } from "./openapi_schemas";
 
 export const BASE_PATH = "/hubbles_law";
+
+const DEFAULT_CLASS_STUDENT_IDS = [
+  3761,
+  3873,
+  4131,
+  4390,
+  4100,
+  3079,
+  5473,
+  5313,
+  4213,
+  4361,
+  3981,
+  3170,
+  3842,
+  5212,
+  5470,
+  5287,
+  5606,
+  5379,
+  5498,
+  3151,
+];
 
 export const router = Router();
 
@@ -127,6 +151,27 @@ export function setup(_app: Express, db: Sequelize) {
   });
 
 }
+
+router.get("/test", async (req, res) => {
+  const students = await getStudentsWithCompleteMeasurements().then(students => students.filter(student => student.id >= 3000));
+
+  let classStudents: Student[] = [];
+  let used = new Set<number>();
+  while (used.size < 20) {
+    const index = Math.floor(Math.random() * students.length);
+    if (used.has(index)) {
+      continue;
+    }
+
+    used.add(index);
+    classStudents.push(students[index]);
+  }
+
+  res.json({
+    student_ids: classStudents.map(student => student.id),
+    count: used.size,
+  });
+});
 
 /**
  *  @openapi
@@ -1249,7 +1294,7 @@ router.get(["/class-measurements/:studentID/:classID", "/stage-3-data/:studentID
  *              schema:
  *                $ref: "#/components/schemas/Error"
  *        404:
- *          description: The given student cannot be found or is not in a class signed up for the Hubble's Law story
+ *          description: The given student cannot be found
  *          content:
  *            application/json:
  *              schema:
@@ -1267,12 +1312,6 @@ router.get(["/class-measurements/:studentID", "stage-3-measurements/:studentID"]
   }
 
   const cls = await classForStudentStory(studentID, "hubbles_law");
-  if (cls === null) {
-    res.status(404).json({
-      error: `Student ${studentID} is not in a class signed up for the Hubble's Law story`,
-    });
-    return;
-  }
 
   let measurements: HubbleMeasurement[];
   if ("student_ids" in req.query) {
@@ -1287,9 +1326,11 @@ router.get(["/class-measurements/:studentID", "stage-3-measurements/:studentID"]
       return;
     }
     measurements = await getHubbleMeasurementsForStudents(studentIDs);
-  } else {
+  } else if (cls !== null) {
     const excludeStudent = (req.query.exclude_student as string)?.toLowerCase() === "true";
     measurements = await getClassMeasurementsForStudent(studentID, cls.id, null, excludeStudent);
+  } else {
+    measurements = await getHubbleMeasurementsForStudents(DEFAULT_CLASS_STUDENT_IDS);
   }
 
   res.status(200).json({
