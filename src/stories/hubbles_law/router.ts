@@ -85,16 +85,16 @@ const DEFAULT_CLASS_STUDENT_IDS = [
   5313,
   4213,
   4361,
-  3981,
   3170,
   3842,
-  5212,
+  5577,
   5470,
   5287,
   5606,
   5379,
   5498,
   3151,
+  5338,
 ];
 
 export const router = Router();
