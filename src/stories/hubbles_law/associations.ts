@@ -17,6 +17,13 @@ export function setUpHubbleAssociations() {
     foreignKey: "student_id",
   });
 
+  Student.hasMany(HubbleMeasurement, {
+    foreignKey: "student_id",
+  });
+  Student.hasMany(SampleHubbleMeasurement, {
+    foreignKey: "student_id",
+  });
+
   Galaxy.hasMany(HubbleMeasurement, {
     foreignKey: "galaxy_id"
   });
