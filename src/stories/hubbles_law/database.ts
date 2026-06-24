@@ -565,6 +565,7 @@ const MINIMAL_MEASUREMENT_FIELDS = ["student_id", "galaxy_id", "velocity_value",
 
 export async function getAllHubbleMeasurements(before: Date | null = null,
   minimal = false,
+  classID: number | null = null,
   excludeWithNull = true): Promise<HubbleMeasurement[]> {
   const whereOptions: WhereOptions = [
     { "$student.IgnoreStudents.student_id$": null },
@@ -577,6 +578,10 @@ export async function getAllHubbleMeasurements(before: Date | null = null,
     for (const [key, condition] of Object.entries(EXCLUDE_MEASUREMENTS_WITH_NULL_CONDITION)) {
       whereOptions.push({ [key]: condition });
     }
+  }
+  const classesWhere: WhereOptions<Class> = [];
+  if (classID !== null) {
+    classesWhere.push({ id: { [Op.ne]: classID } });
   }
   const exclude = minimal ? Object.keys(HubbleMeasurement.getAttributes()).filter(key => !MINIMAL_MEASUREMENT_FIELDS.includes(key)) : [];
 
@@ -608,6 +613,7 @@ export async function getAllHubbleMeasurements(before: Date | null = null,
         model: Class,
         attributes: [],
         through: { attributes: [] },
+        where: classesWhere,
         include: [{
           model: IgnoreClass,
           required: false,
