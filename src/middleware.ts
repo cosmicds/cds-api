@@ -9,7 +9,6 @@ export async function apiKeyMiddleware(req: Request, res: ExpressResponse, next:
     "/", 
     "/permission", 
     "/docs.json",
-    "/hubbles_law/test",
   ].includes(req.path)
     ||
   req.path.startsWith("/docs")

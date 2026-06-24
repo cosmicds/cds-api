@@ -152,27 +152,6 @@ export function setup(_app: Express, db: Sequelize) {
 
 }
 
-router.get("/test", async (req, res) => {
-  const students = await getStudentsWithCompleteMeasurements().then(students => students.filter(student => student.id >= 3000));
-
-  let classStudents: Student[] = [];
-  let used = new Set<number>();
-  while (used.size < 20) {
-    const index = Math.floor(Math.random() * students.length);
-    if (used.has(index)) {
-      continue;
-    }
-
-    used.add(index);
-    classStudents.push(students[index]);
-  }
-
-  res.json({
-    student_ids: classStudents.map(student => student.id),
-    count: used.size,
-  });
-});
-
 /**
  *  @openapi
  *  /submit-measurement:
