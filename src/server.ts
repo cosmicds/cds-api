@@ -1662,7 +1662,7 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
       });
       return;
     }
-    res.json({ state });
+    res.json(state);
   });
 
   /**
@@ -1717,7 +1717,7 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
       });
       return;
     }
-    res.json({ state });
+    res.json(state);
   });
 
   /**
@@ -1772,7 +1772,7 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
       });
       return;
     }
-    res.json({ state });
+    res.json(state);
   });
 
   /**
