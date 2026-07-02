@@ -8,7 +8,7 @@ export async function apiKeyMiddleware(req: Request, res: ExpressResponse, next:
   const noKeyNeeded = [
     "/", 
     "/permission", 
-    "/docs.json"
+    "/docs.json",
   ].includes(req.path)
     ||
   req.path.startsWith("/docs")

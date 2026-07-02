@@ -193,7 +193,7 @@ export async function getStudentsWithCompleteMeasurements(): Promise<Student[]> 
     }],
 
     group: ["id"],
-    having: Sequelize.where(Sequelize.fn("count", Sequelize.col("count")), { [Op.gte]: 5 })
+    having: Sequelize.where(Sequelize.col("count"), { [Op.gte]: 5 })
   });
 }
 
@@ -581,8 +581,7 @@ export async function getAllHubbleMeasurements(before: Date | null = null,
   }
   const classesWhere: WhereOptions<Class> = [];
   if (classID !== null) {
-    const classIDs = await getMergedIDsForClass(classID, true);
-    classesWhere.push({ id: { [Op.notIn]: classIDs } });
+    classesWhere.push({ id: { [Op.ne]: classID } });
   }
   const exclude = minimal ? Object.keys(HubbleMeasurement.getAttributes()).filter(key => !MINIMAL_MEASUREMENT_FIELDS.includes(key)) : [];
 
@@ -759,12 +758,10 @@ export async function getAllHubbleStudentData(includeClasses: number[] = [], min
     ` ;
   }
 
-  console.log(sqlQuery);
   const results = await database.query(sqlQuery, {
     type: QueryTypes.SELECT,
     model: HubbleStudentData,
   });
-  console.log("GOT THE RESULTS!");
   const studentIDs = new Set(results.map(res => res.student_id));
 
   const resultsById: Record<number, HubbleStudentData> = {};
