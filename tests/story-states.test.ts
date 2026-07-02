@@ -109,9 +109,7 @@ describe("Test story state routes", () => {
       .expect(404)
       .expect("Content-Type", /json/)
       .expect({
-        student_id: badID,
-        story_name: story.name,
-        state: null,
+        error: `No state found for student ${badID} and story ${story.name}`,
       });
 
     await cleanup();
@@ -124,9 +122,7 @@ describe("Test story state routes", () => {
       .expect(404)
       .expect("Content-Type", /json/)
       .expect({
-        student_id: badID,
-        story_name: badStory,
-        state: null,
+        error: `No state found for student ${badID} and story ${badStory}`,
       });
 
   });
