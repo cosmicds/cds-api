@@ -25,7 +25,7 @@ async function setupStoryAndStudentStates() {
   const storyState1 = await StoryState.create({
     student_id: student1.id,
     story_name: story.name,
-    story_state: {
+    state: {
       a: 1,
       b: "x",
       flag: true,
@@ -35,7 +35,7 @@ async function setupStoryAndStudentStates() {
   const storyState2 = await StoryState.create({
     student_id: student2.id,
     story_name: story.name,
-    story_state: {
+    state: {
       a: 5,
       b: "y",
       flag: false,
@@ -134,7 +134,7 @@ describe("Test story state routes", () => {
   it("Should correctly update the story state", async () => {
     const { story, student1, storyState2, cleanup } = await setupStoryAndStudentStates();
 
-    const newStoryState = storyState2.story_state;
+    const newStoryState = storyState2.state;
 
     await authorize(request(testApp).put(`/story-state/${student1.id}/${story.name}`))
       .send(newStoryState)

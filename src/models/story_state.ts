@@ -5,7 +5,7 @@ import { Student } from "./student";
 export class StoryState extends Model<InferAttributes<StoryState>, InferCreationAttributes<StoryState>> {
   declare student_id: CreationOptional<number>;
   declare story_name: string;
-  declare story_state: JSON;
+  declare state: JSON;
   declare last_modified: CreationOptional<Date>;
 }
 
@@ -29,7 +29,7 @@ export function initializeStoryStateModel(sequelize: Sequelize) {
           key: "name"
         }
       },
-      story_state: {
+      state: {
         type: DataTypes.JSON,
         allowNull: false
       },

@@ -494,7 +494,7 @@ export async function updateStoryState(studentID: number, storyName: string, new
     return null;
   });
 
-  const storyData = { ...query, story_state: newState };
+  const storyData = { ...query, state: newState };
   if (result !== null) {
     result?.update(storyData).catch(error => {
       console.log(error);
@@ -539,16 +539,16 @@ export async function patchStoryState(studentID: number, storyName: string, patc
   });
 
   if (result !== null) {
-    const state = result.story_state;
+    const state = result.state;
     patchState(state, patch);
-    // TODO: For some reason, doing a regular `await result.update({ story_state: state })...`
+    // TODO: For some reason, doing a regular `await result.update({ state: state })...`
     // did not produce an update to the database. Something about how JSON-type fields are handled?
     // Until we figure this out, just force-update
-    result.story_state = state;
-    result.changed("story_state", true);
+    result.state = state;
+    result.changed("state", true);
     await result.save();
   } else {
-    const storyData = { ...query, story_state: patch };
+    const storyData = { ...query, state: patch };
     result = await StoryState.create(storyData).catch(error => {
       console.log(error);
       return null;
