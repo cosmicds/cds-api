@@ -467,7 +467,7 @@ export async function getStages(storyName: string): Promise<Stage[]> {
   });
 }
 
-export async function getStoryState(studentID: number, storyName: string): Promise<JSON | null> {
+export async function getStoryState(studentID: number, storyName: string): Promise<StoryState | null> {
   const result = await StoryState.findOne({
     where: {
       student_id: studentID,
@@ -478,10 +478,10 @@ export async function getStoryState(studentID: number, storyName: string): Promi
     console.log(error);
     return null;
   });
-  return result?.story_state ?? null;
+  return result ?? null;
 }
 
-export async function updateStoryState(studentID: number, storyName: string, newState: JSON): Promise<JSON | null> {
+export async function updateStoryState(studentID: number, storyName: string, newState: JSON): Promise<StoryState | null> {
   const query = {
     student_id: studentID,
     story_name: storyName,
@@ -494,7 +494,7 @@ export async function updateStoryState(studentID: number, storyName: string, new
     return null;
   });
 
-  const storyData = { ...query, story_state: newState };
+  const storyData = { ...query, state: newState };
   if (result !== null) {
     result?.update(storyData).catch(error => {
       console.log(error);
@@ -506,7 +506,7 @@ export async function updateStoryState(studentID: number, storyName: string, new
       return null;
     });
   }
-  return result?.story_state ?? null;
+  return result ?? null;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -525,7 +525,7 @@ function patchState(state: Record<string,any>, patch: Record<string,any>) {
   });
 }
 
-export async function patchStoryState(studentID: number, storyName: string, patch: JSON): Promise<JSON | null> {
+export async function patchStoryState(studentID: number, storyName: string, patch: JSON): Promise<StoryState | null> {
   const query = {
     student_id: studentID,
     story_name: storyName,
@@ -539,22 +539,22 @@ export async function patchStoryState(studentID: number, storyName: string, patc
   });
 
   if (result !== null) {
-    const state = result.story_state;
+    const state = result.state;
     patchState(state, patch);
-    // TODO: For some reason, doing a regular `await result.update({ story_state: state })...`
+    // TODO: For some reason, doing a regular `await result.update({ state: state })...`
     // did not produce an update to the database. Something about how JSON-type fields are handled?
     // Until we figure this out, just force-update
-    result.story_state = state;
-    result.changed("story_state", true);
+    result.state = state;
+    result.changed("state", true);
     await result.save();
   } else {
-    const storyData = { ...query, story_state: patch };
+    const storyData = { ...query, state: patch };
     result = await StoryState.create(storyData).catch(error => {
       console.log(error);
       return null;
     });
   }
-  return result?.story_state ?? null;
+  return result ?? null;
 }
 
 export async function getStudentStageState(studentID: number, storyName: string, stageName: string): Promise<JSON | null> {

@@ -469,7 +469,7 @@ export async function getClassDataIDsForStudent(studentID: number): Promise<numb
   const state = (await StoryState.findOne({
     where: { student_id: studentID },
     attributes: [
-      [fn("JSON_EXTRACT", col("story_state"), literal("'$.class_data_students'")), "class_data_students"]
+      [fn("JSON_EXTRACT", col("state"), literal("'$.class_data_students'")), "class_data_students"]
     ]
   }));
   // TODO: Remove the need for ts-ignore here

@@ -4,7 +4,7 @@ import fs from "fs";
 import { join } from "path";
 import type { Express } from "express";
 import type { Server } from "http";
-import type { Test } from "supertest";
+import type { Response, Test } from "supertest";
 import { InferAttributes, CreationAttributes, Model, Sequelize, UniqueConstraintError } from "sequelize";
 
 import { setUpAssociations } from "../src/associations";
@@ -293,6 +293,17 @@ export function expectToMatchModel<T extends Model>(object: any, expected: T, ex
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
   expect(object).toMatchObject(json);
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function expectBodyToMatch(response: Response, expected: any) {
+  // We don't import this from @jest/globals because Jest will throw an error if we try to import a Jest global
+  // outside of the testing environment
+  // But the globals will still be available, so this works
+
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  expect(response.body).toMatchObject(expected);
 }
 
 export function randomBetween(low: number, high: number) {

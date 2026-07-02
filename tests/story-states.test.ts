@@ -5,7 +5,7 @@ import request from "supertest";
 import type { Sequelize } from "sequelize";
 import type { Express } from "express";
 
-import { authorize, createTestApp, getTestDatabaseConnection, randomClassForEducator, randomEducator, randomStory, randomStudent } from "./utils";
+import { authorize, createTestApp, expectBodyToMatch, getTestDatabaseConnection, randomClassForEducator, randomEducator, randomStory, randomStudent } from "./utils";
 import { Student, StoryState, StudentsClasses } from "../src/models";
 
 async function setupStoryAndStudentStates() {
@@ -25,7 +25,7 @@ async function setupStoryAndStudentStates() {
   const storyState1 = await StoryState.create({
     student_id: student1.id,
     story_name: story.name,
-    story_state: {
+    state: {
       a: 1,
       b: "x",
       flag: true,
@@ -35,7 +35,7 @@ async function setupStoryAndStudentStates() {
   const storyState2 = await StoryState.create({
     student_id: student2.id,
     story_name: story.name,
-    story_state: {
+    state: {
       a: 5,
       b: "y",
       flag: false,
@@ -91,10 +91,13 @@ describe("Test story state routes", () => {
       authorize(request(testApp).get(`/story-state/${student.id}/${story.name}`))
         .expect(200)
         .expect("Content-Type", /json/)
-        .expect({
-          student_id: student.id,
-          story_name: story.name,
-          state,
+        .expect(res => {
+          const expected = {
+            student_id: student.id,
+            story_name: story.name,
+            state,
+          };
+          expectBodyToMatch(res, expected);
         });
 
     }
@@ -109,9 +112,7 @@ describe("Test story state routes", () => {
       .expect(404)
       .expect("Content-Type", /json/)
       .expect({
-        student_id: badID,
-        story_name: story.name,
-        state: null,
+        error: `No state found for student ${badID} and story ${story.name}`,
       });
 
     await cleanup();
@@ -124,9 +125,7 @@ describe("Test story state routes", () => {
       .expect(404)
       .expect("Content-Type", /json/)
       .expect({
-        student_id: badID,
-        story_name: badStory,
-        state: null,
+        error: `No state found for student ${badID} and story ${badStory}`,
       });
 
   });
@@ -134,16 +133,19 @@ describe("Test story state routes", () => {
   it("Should correctly update the story state", async () => {
     const { story, student1, storyState2, cleanup } = await setupStoryAndStudentStates();
 
-    const newStoryState = storyState2.story_state;
+    const newStoryState = storyState2.state;
 
     await authorize(request(testApp).put(`/story-state/${student1.id}/${story.name}`))
       .send(newStoryState)
       .expect(200)
       .expect("Content-Type", /json/)
-      .expect({
-        student_id: student1.id,
-        story_name: story.name,
-        state: newStoryState,
+      .expect(res => {
+        const expected = {
+          student_id: student1.id,
+          story_name: story.name,
+          state: newStoryState,
+        };
+        expectBodyToMatch(res, expected);
       });
 
     await cleanup();
@@ -162,15 +164,19 @@ describe("Test story state routes", () => {
       .send(patch1)
       .expect(200)
       .expect("Content-Type", /json/)
-      .expect({
-        student_id: student1.id,
-        story_name: story.name,
-        state: {
-          a: 2,
-          b: "w",
-          flag: true,
-          arr: [6, 2, 3, 5],
-        }
+      .expect(res => {
+        const expected = {
+          student_id: student1.id,
+          story_name: story.name,
+          state: {
+            a: 2,
+            b: "w",
+            flag: true,
+            arr: [6, 2, 3, 5],
+          }
+        };
+
+        expectBodyToMatch(res, expected);
       });
 
     const patch2 = {
@@ -183,16 +189,19 @@ describe("Test story state routes", () => {
       .send(patch2)
       .expect(200)
       .expect("Content-Type", /json/)
-      .expect({
-        student_id: student2.id,
-        story_name: story.name,
-        state: {
-          a: 5,
-          b: "y",
-          flag: true,
-          arr: [2, 7],
-          c: "test",
-        }
+      .expect(res => {
+        const expected = {
+          student_id: student2.id,
+          story_name: story.name,
+          state: {
+            a: 5,
+            b: "y",
+            flag: true,
+            arr: [2, 7],
+            c: "test",
+          }
+        };
+        expectBodyToMatch(res, expected);
       });
 
     await cleanup();
