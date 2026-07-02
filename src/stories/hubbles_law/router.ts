@@ -51,7 +51,6 @@ import {
   MeasurementType,
   SampleMeasurement,
   SampleMeasurementType,
-  getStudentsWithCompleteMeasurements,
 } from "./database";
 
 import { 
