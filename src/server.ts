@@ -1642,40 +1642,27 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
    *          content:
    *            application/json:
    *              schema:
-   *                type: object
-   *                properties:
-   *                  student_id:
-   *                    type: integer
-   *                  story_name:
-   *                    type: string
-   *                  state:
-   *                    description: The story state
-   *                    type: object
+   *                $ref: "#/components/schemas/StoryState" 
    *        404:
    *          description: The student does not have a story state for the given story
    *          content:
    *            application/json:
    *              schema:
-   *                type: object
-   *                properties:
-   *                  student_id:
-   *                    type: integer
-   *                  story_name:
-   *                    type: string
-   *                  state:
-   *                    type: null
+   *                $ref: "#/components/schemas/Error"
+   *
    */
   app.get("/story-state/:studentID/:storyName", async (req, res) => {
     const params = req.params;
     const studentID = Number(params.studentID);
     const storyName = params.storyName;
     const state = await getStoryState(studentID, storyName);
-    const status = state !== null ? 200 : 404;
-    res.status(status).json({
-      student_id: studentID,
-      story_name: storyName,
-      state
-    });
+    if (state === null) {
+      res.status(404).json({
+        error: `No state found for student ${studentID} and story ${storyName}`,
+      });
+      return;
+    }
+    res.json({ state });
   });
 
   /**
@@ -1710,28 +1697,13 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
    *          content:
    *            application/json:
    *              schema:
-   *                type: object
-   *                properties:
-   *                  student_id:
-   *                    type: integer
-   *                  story_name:
-   *                    type: string
-   *                  state:
-   *                    description: The story state
-   *                    type: object
+   *                $ref: "#/components/schemas/StoryState"
    *        500:
-   *          description: The student does not have a story state for the given story
+   *          description: There was an error updating the story state for the given student ID and story name
    *          content:
    *            application/json:
    *              schema:
-   *                type: object
-   *                properties:
-   *                  student_id:
-   *                    type: integer
-   *                  story_name:
-   *                    type: string
-   *                  state:
-   *                    type: null
+   *                $ref: "#/components/schemas/Error"
    */
   app.put("/story-state/:studentID/:storyName", async (req, res) => {
     const params = req.params;
@@ -1739,12 +1711,13 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     const storyName = params.storyName;
     const newState = req.body;
     const state = await updateStoryState(studentID, storyName, newState);
-    const status = state !== null ? 200 : 500;
-    res.status(status).json({
-      student_id: studentID,
-      story_name: storyName,
-      state
-    });
+    if (state === null) {
+      res.status(500).json({
+        error: `There was an error creating or updating the story state for student ${studentID} and story ${storyName}`,
+      });
+      return;
+    }
+    res.json({ state });
   });
 
   /**
@@ -1779,29 +1752,13 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
    *          content:
    *            application/json:
    *              schema:
-   *                type: object
-   *                properties:
-   *                  student_id:
-   *                    type: integer
-   *                  story_name:
-   *                    type: string
-   *                  state:
-   *                    description: The story state
-   *                    type: object
+   *                $ref: "#/components/schemas/StoryState" 
    *        404:
    *          description: The student does not have a story state for the given story
    *          content:
    *            application/json:
    *              schema:
-   *                type: object
-   *                properties:
-   *                  student_id:
-   *                    type: integer
-   *                  story_name:
-   *                    type: string
-   *                  state:
-   *                    description: The story state
-   *                    type: object
+                    $ref: "#/components/schemas/Error" 
    */
   app.patch("/story-state/:studentID/:storyName", async (req, res) => {
     const params = req.params;
@@ -1809,12 +1766,13 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     const storyName = params.storyName;
     const patch = req.body;
     const state = await patchStoryState(studentID, storyName, patch);
-    const status = state !== null ? 200 : 404;
-    res.status(status).json({
-      student_id: studentID,
-      story_name: storyName,
-      state
-    });
+    if (state === null) {
+      res.status(404).json({
+        error: `No state found for student ${studentID} and story ${storyName}`,
+      });
+      return;
+    }
+    res.json({ state });
   });
 
   /**

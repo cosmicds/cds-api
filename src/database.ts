@@ -467,7 +467,7 @@ export async function getStages(storyName: string): Promise<Stage[]> {
   });
 }
 
-export async function getStoryState(studentID: number, storyName: string): Promise<JSON | null> {
+export async function getStoryState(studentID: number, storyName: string): Promise<StoryState | null> {
   const result = await StoryState.findOne({
     where: {
       student_id: studentID,
@@ -478,10 +478,10 @@ export async function getStoryState(studentID: number, storyName: string): Promi
     console.log(error);
     return null;
   });
-  return result?.story_state ?? null;
+  return result ?? null;
 }
 
-export async function updateStoryState(studentID: number, storyName: string, newState: JSON): Promise<JSON | null> {
+export async function updateStoryState(studentID: number, storyName: string, newState: JSON): Promise<StoryState | null> {
   const query = {
     student_id: studentID,
     story_name: storyName,
@@ -506,7 +506,7 @@ export async function updateStoryState(studentID: number, storyName: string, new
       return null;
     });
   }
-  return result?.story_state ?? null;
+  return result ?? null;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -525,7 +525,7 @@ function patchState(state: Record<string,any>, patch: Record<string,any>) {
   });
 }
 
-export async function patchStoryState(studentID: number, storyName: string, patch: JSON): Promise<JSON | null> {
+export async function patchStoryState(studentID: number, storyName: string, patch: JSON): Promise<StoryState | null> {
   const query = {
     student_id: studentID,
     story_name: storyName,
@@ -554,7 +554,7 @@ export async function patchStoryState(studentID: number, storyName: string, patc
       return null;
     });
   }
-  return result?.story_state ?? null;
+  return result ?? null;
 }
 
 export async function getStudentStageState(studentID: number, storyName: string, stageName: string): Promise<JSON | null> {
