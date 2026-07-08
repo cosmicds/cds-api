@@ -9,7 +9,7 @@
     "test-quiet": "DB_TEST_LOGGING=false jest --config jest.config.ts --forceExit --verbose"
   },
   "dependencies": {
-    "@effect/schema": "^0.63.2",
+    "@effect/schema": "^0.75.5",
     "@jest/globals": "^29.7.0",
     "@types/body-parser": "^1.19.2",
     "@types/cls-hooked": "^4.3.9",
