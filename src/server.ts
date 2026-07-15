@@ -2611,7 +2611,7 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
 
   /**
    * @openapi
-   * /temp/{uuid}
+   * /temp/{uuid}:
    *   patch:
    *     tags:
    *       - temporary
@@ -2740,7 +2740,7 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     *     200:
     *       description: The requested temporary file exists and its content has been returned. The MIME type will match the file's contents.
     *       content:
-    *         * / *:
+    *         application/octet-stream:
     *           schema:
     *             type: string
     *             format: binary
@@ -2757,7 +2757,7 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     *           schema:
     *             $ref: "#/components/schemas/Error"
     *       
-   */
+    */
   app.get("/temp/:uuid", async (req, res) => {
     const uuid = req.params.uuid;
     if (!validateUUID(uuid)) {
