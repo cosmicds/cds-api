@@ -1,0 +1,8 @@
+CREATE TABLE TemporaryFiles (
+    id BINARY(16) NOT NULL DEFAULT (UUID_TO_BIN(UUID(), 1)),
+    content BLOB NOT NULL,
+    mime_type VARCHAR(255) NOT NULL,
+    filename TEXT DEFAULT NULL,
+
+    PRIMARY KEY(id)
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci PACK_KEYS=0;
