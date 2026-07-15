@@ -2775,13 +2775,10 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
       return;
     }
 
-    let filename = tempFile.filename;
-    if (filename == null) {
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-expect-error `getExtension` exists
-      const extension = mime.getExtension(tempFile.mime_type);
-      filename = `file.${extension}`;
-    }
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error `getExtension` exists
+    const extension = mime.getExtension(tempFile.mime_type);
+    const filename = `file.${extension}`;
 
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
     res.setHeader("Content-Type", tempFile.mime_type);
