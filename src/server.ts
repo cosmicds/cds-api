@@ -2530,6 +2530,26 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
   *     responses:
   *       201:
   *         description: The temporary file was successfully created 
+  *         content:
+  *           application/json:
+  *             schema:
+  *               type: object
+  *               properties:
+  *                 id:
+  *                   type: string
+  *                   description: The UUID associated with the temporary file
+  *                 url:
+  *                   type: string
+  *                   description: The URL at which the temporary file can be located
+  *                 expires_at:
+  *                   type: string
+  *                   description: A datetime string string indicating when the file is no longer guaranteed to exist
+  *                 expires_in:
+  *                   type: number
+  *                   description: Gives the time, in seconds, until the file is no longer guaranteed to exist
+  *                 content_type:
+  *                   type: string
+  *                   description: The MIME type of the temporary file
   *         headers:
   *           Expires:
   *             description: A datetime string indicating when the file is no longer guaranteed to exist
@@ -2580,8 +2600,15 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     res.setHeader("Expires", expirationTime.toString());
     const timeToExpiry = Math.floor((expirationTime.getTime() - Date.now()) / 1000);
     res.setHeader("Cache-Control", `max-age=${timeToExpiry}, must-revalidate`);
-    res.setHeader("Location", `${req.protocol}://${req.get('host')}/temp/${tempFile.id}`);
-    res.status(201).send();
+    const location = `${req.protocol}://${req.get('host')}/temp/${tempFile.id}`;
+    res.setHeader("Location", location);
+    res.status(201).json({
+      id: tempFile.id,
+      url: location,
+      expires_at: expirationTime.toString(),
+      expires_in: timeToExpiry,
+      content_type: tempFile.mime_type,
+    });
   });
 
   /**
@@ -2694,7 +2721,7 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     const timeToExpiry = Math.floor((expirationTime.getTime() - Date.now()) / 1000);
     res.setHeader("Cache-Control", `max-age=${timeToExpiry}, must-revalidate`);
     res.setHeader("Location", `${req.protocol}://${req.get('host')}/temp/${tempFile.id}`);
-    res.status(204).send();
+    res.status(204).end();
   });
 
 
