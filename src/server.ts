@@ -2548,13 +2548,13 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
   *         content:
   *           application/json:
   *             schema:
-  *               ref: "#/components/schemas/Error"
+  *               $ref: "#/components/schemas/Error"
   *       500:
   *         description: There was an error creating the temporary file
   *         content:
   *           application/json:
   *             schema:
-  *               ref: "#/components/schemas/Error"
+  *               $ref: "#/components/schemas/Error"
   */
   app.post("/temp", uploader.single('file'), async (req, res) => {
     const file = req.file;
@@ -2591,6 +2591,12 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
    *     tags:
    *       - temporary
    *     description: Update an already existing temporary file. The new content must have the same MIME type as the original
+   *     parameters:
+   *       - name: uuid
+   *         in: path
+   *         required: true
+   *         schema:
+   *           type: string
    *     requestBody:
    *       required: true
    *       content:
@@ -2623,19 +2629,19 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
    *         content:
    *           application/json:
    *             schema:
-   *               ref: "#/components/schemas/Error"
+   *               $ref: "#/components/schemas/Error"
    *       404:
    *         description: No temporary file was found with the given UUID
    *         content:
    *           application/json:
    *             schema:
-   *               ref: "#/components/schemas/Error"
+   *               $ref: "#/components/schemas/Error"
    *       500:
    *         description: There was an error updating the file content
    *         content:
    *           application/json:
    *             schema:
-   *               ref: "#/components/schemas/Error"
+   *               $ref: "#/components/schemas/Error"
    * 
    */
   app.patch("/temp/:uuid", uploader.single('file'), async (req, res) => {
@@ -2691,6 +2697,42 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     res.status(204).send();
   });
 
+
+  /**
+    * @openapi
+    * /temp/{uuid}:
+    *   get:
+    *     tags:
+    *       - temporary
+    *   description: Get the content of a temporary file
+    *   parameters:
+    *     - name: uuid
+    *       in: path
+    *       required: true
+    *       schema:
+    *         type: string
+    *   responses:
+    *     200:
+    *       description: The requested temporary file exists and its content has been returned. The MIME type will match the file's contents.
+    *       content:
+    *         * / *:
+    *           schema:
+    *             type: string
+    *             format: binary
+    *     400:
+    *       description: The given UUID was invalid
+    *       content:
+    *         application/json:
+    *           schema:
+    *             $ref: "#/components/schemas/Error"
+    *     404:
+    *       description: No temporary file was found for the given UUID
+    *       content:
+    *         application/json:
+    *           schema:
+    *             $ref: "#/components/schemas/Error"
+    *       
+   */
   app.get("/temp/:uuid", async (req, res) => {
     const uuid = req.params.uuid;
     if (!validateUUID(uuid)) {
@@ -2727,6 +2769,35 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     res.send(tempFile.content);
   });
 
+  /**
+   * @openapi
+   * /temp/{uuid}:
+   *   delete:
+   *     tags:
+   *       - temporary
+   *     description: Manually delete a temporary file
+   *     parameters:
+   *       - name: uuid
+   *         in: path
+   *         required: true
+   *         schema:
+   *           type: string
+   *     responses:
+   *       204:
+   *         description: The temporary file was successfully deleted
+   *       400:
+   *         description: The given UUID was invalid
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: "#/components/schemas/Error"
+   *       404:
+   *         description: No temporary file was found for the given UUID
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: "#/components/schemas/Error"
+   */
   app.delete("/temp/:uuid", async (req, res) => {
     const uuid = req.params.uuid;
     if (!validateUUID(uuid)) {
