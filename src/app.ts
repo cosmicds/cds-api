@@ -89,7 +89,7 @@ export function setupApp(app: Express, db: Sequelize) {
         }
       }
       return jsonParser(req, res, next);
-    }
+    };
   }
   app.use(skipForEndpoints([
     ["/temp", ["post", "patch"]],
