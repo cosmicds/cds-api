@@ -54,6 +54,8 @@ import {
   patchStoryState,
   getUserExperienceForStory,
   setExperienceInfoForStory,
+  CreateTemporaryFileSchema,
+  getTemporaryFile,
 } from "./database";
 
 import {
@@ -70,6 +72,8 @@ import express, { Express, Request, Response as ExpressResponse } from "express"
 import { Response } from "express-serve-static-core";
 import session from "express-session";
 import jwt from "jsonwebtoken";
+import mime from "mime";
+import { validate as validateUUID } from "uuid";
 
 import { isStudentOption } from "./models/student_options";
 import { ExperienceRating } from "./models/user_experience";
@@ -2493,6 +2497,75 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     res.json({
       questions
     });
+  });
+
+  /** Temporary files **/
+
+  app.put("/temp", async (req, res) => {
+    const data = req.body;
+    const maybe = S.decodeUnknownEither(CreateTemporaryFileSchema)(data);
+    if (Either.isLeft(maybe)) {
+      res.status(400).json({
+        error: `
+          Invalid request body, should have form {
+            mime_type: <string>,
+            content: <data>,
+            filename: <string>,  // optional
+          }
+        `,
+      });
+      return;
+    }
+
+  });
+
+  app.get("/temp/:uuid", async (req, res) => {
+    const uuid = req.params.uuid;
+    if (!validateUUID(uuid)) {
+      res.status(400).json({
+        error: "ID is not a valid UUID",
+      });
+      return;
+    }
+
+    const tempFile = await getTemporaryFile(uuid);
+    if (tempFile == null) {
+      res.status(404).json({
+        error: `No temporary file found with ID ${uuid}`,
+      });
+      return;
+    }
+
+    let filename = tempFile.filename;
+    if (filename == null) {
+      const extension = mime.getExtension(tempFile.mime_type);
+      filename = `file.${extension}`;
+    }
+
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.setHeader("Content-Type", tempFile.mime_type);
+    res.send(tempFile.content);
+  });
+
+  app.delete("/temp/:uuid", async (req, res) => {
+    const uuid = req.params.uuid;
+    if (!validateUUID(uuid)) {
+      res.status(400).json({
+        error: "ID is not a valid UUID",
+      });
+      return;
+    }
+
+    const tempFile = await getTemporaryFile(uuid);
+    if (tempFile == null) {
+      res.status(404).json({
+        error: `No temporary file found with ID ${uuid}`,
+      });
+      return;
+    }
+
+    await tempFile.destroy();
+    res.status(204).send();
   });
 
   /** Testing Endpoints

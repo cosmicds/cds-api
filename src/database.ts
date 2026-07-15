@@ -47,6 +47,7 @@ import { logger } from "./logger";
 import { Stage } from "./models/stage";
 import { ClassSetupParams, classSetupRegistry } from "./registries";
 import { UserExperienceRating } from "./models/user_experience";
+import { TemporaryFile } from "./models/temporary_file";
 
 export type LoginResponse = {
   type: "none" | "student" | "educator" | "admin",
@@ -1091,4 +1092,29 @@ export async function getUserExperienceForStory(uuid: string, storyName: string)
       story_name: storyName,
     }
   });
+}
+
+/** Temporary files */
+export const CreateTemporaryFileSchema = S.struct({
+  mime_type: S.string,
+  content: S.Uint8Array,
+  filename: S.optional(S.string),
+});
+export type CreateTemporaryFileOptions = S.Schema.To<typeof CreateTemporaryFileSchema>;
+
+
+export async function createTemporaryFile(options: CreateTemporaryFileOptions): Promise<TemporaryFile | null> {
+  const content = options.content;
+  return TemporaryFile.create({
+    ...options,
+    content: Buffer.from(
+      content.buffer,
+      content.byteOffset,
+      content.byteLength,
+    ),
+  }).catch(_error => null);
+}
+
+export async function getTemporaryFile(id: ): Promise<TemporaryFile | null> {
+  return TemporaryFile.findOne({ where: { id } }).catch(_error => null);
 }
