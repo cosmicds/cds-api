@@ -54,10 +54,8 @@ import {
   patchStoryState,
   getUserExperienceForStory,
   setExperienceInfoForStory,
-  CreateTemporaryFileSchema,
   getTemporaryFile,
   createTemporaryFile,
-  UpdateTemporaryFileSchema,
   updateTemporaryFile,
 } from "./database";
 
@@ -2576,11 +2574,11 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
   *             schema:
   *               $ref: "#/components/schemas/Error"
   */
-  app.post("/temp", uploader.single('file'), async (req, res) => {
+  app.post("/temp", uploader.single("file"), async (req, res) => {
     const file = req.file;
     if (file == null) {
       res.status(400).json({
-        error: `File content is missing`,
+        error: "File content is missing",
       });
       return;
     }
@@ -2600,7 +2598,7 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     res.setHeader("Expires", expirationTime.toString());
     const timeToExpiry = Math.floor((expirationTime.getTime() - Date.now()) / 1000);
     res.setHeader("Cache-Control", `max-age=${timeToExpiry}, must-revalidate`);
-    const location = `${req.protocol}://${req.get('host')}/temp/${tempFile.id}`;
+    const location = `${req.protocol}://${req.get("host")}/temp/${tempFile.id}`;
     res.setHeader("Location", location);
     res.status(201).json({
       id: tempFile.id,
@@ -2671,7 +2669,7 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
    *               $ref: "#/components/schemas/Error"
    * 
    */
-  app.patch("/temp/:uuid", uploader.single('file'), async (req, res) => {
+  app.patch("/temp/:uuid", uploader.single("file"), async (req, res) => {
     const uuid = req.params.uuid;
     if (!validateUUID(uuid)) {
       res.status(400).json({
@@ -2691,7 +2689,7 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     const file = req.file;
     if (file == null) {
       res.status(400).json({
-        error: `File content is missing`,
+        error: "File content is missing",
       });
       return;
     }
@@ -2720,7 +2718,7 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     res.setHeader("Expires", expirationTime.toString());
     const timeToExpiry = Math.floor((expirationTime.getTime() - Date.now()) / 1000);
     res.setHeader("Cache-Control", `max-age=${timeToExpiry}, must-revalidate`);
-    res.setHeader("Location", `${req.protocol}://${req.get('host')}/temp/${tempFile.id}`);
+    res.setHeader("Location", `${req.protocol}://${req.get("host")}/temp/${tempFile.id}`);
     res.status(204).end();
   });
 
