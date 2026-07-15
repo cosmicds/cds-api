@@ -1,4 +1,4 @@
-import { Express } from "express";
+import { Express, RequestHandler } from "express";
 import session from "express-session";
 import bodyParser from "body-parser";
 import cookieParser from "cookie-parser";
@@ -16,7 +16,13 @@ import { schemas } from "./openapi/schemas";
 import { COSMICDS_OPENAPI_VERSION, COSMICDS_OPENAPI_APIKEY_SCHEME, COSMICDS_OPENAPI_TAGS } from "./openapi/options";
 import { registerSwaggerDocs } from "./openapi/utils";
 
-export const uploader = multer({ storage: multer.memoryStorage() });
+const MAX_SIZE_MB = 5;
+export const uploader = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: MAX_SIZE_MB * 1024 * 1024,
+  }
+});
 
 export function setupApp(app: Express, db: Sequelize) {
 
@@ -72,7 +78,22 @@ export function setupApp(app: Express, db: Sequelize) {
   app.use(apiKeyMiddleware);
 
   // parse requests of content-type - application/json
-  app.use(bodyParser.json());
+  // Skip paths where we aren't going to be uploading JSON
+  // e.g. temporary file paths
+  const jsonParser = bodyParser.json();
+  function skipForEndpoints(endpoints: [string, string[]][]): RequestHandler {
+    return function (req, res, next) {
+      for (const [path, methods] of endpoints) {
+        if (req.path.startsWith(path) && methods.some(method => req.method.toLowerCase() == method)) {
+          return next();
+        }
+      }
+      return jsonParser(req, res, next);
+    }
+  }
+  app.use(skipForEndpoints([
+    ["/temp", ["post", "patch"]],
+  ]));
 
   // parse requests of content-type - application/x-www-form-urlencoded
   app.use(bodyParser.urlencoded({ extended: true }));
