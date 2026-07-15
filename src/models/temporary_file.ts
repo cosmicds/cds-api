@@ -5,6 +5,9 @@ export class TemporaryFile extends Model<InferAttributes<TemporaryFile>, InferCr
   declare content: Buffer;
   declare mime_type: string;
   declare filename: CreationOptional<string | null>;
+  declare created_at: CreationOptional<Date>;
+  declare last_modified: CreationOptional<Date>;
+  declare expires_at: CreationOptional<Date>;
 }
 
 export function initializeTemporaryFileModel(sequelize: Sequelize) {
@@ -12,8 +15,8 @@ export function initializeTemporaryFileModel(sequelize: Sequelize) {
     id: {
       type: DataTypes.UUID,
       allowNull: false,
-      defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
+      defaultValue: DataTypes.UUIDV4,
     },
     content: {
       type: DataTypes.BLOB,
@@ -27,7 +30,22 @@ export function initializeTemporaryFileModel(sequelize: Sequelize) {
       type: DataTypes.TEXT,
       allowNull: true,
       defaultValue: null,
-    }
+    },
+    created_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: Sequelize.literal("CURRENT_TIMESTAMP"),
+    },
+   last_modified: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: Sequelize.literal("CURRENT_TIMESTAMP"),
+    },
+    expires_at: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: Sequelize.literal("(NOW() + INTERVAL 30 MINUTE)"),
+    },
   }, {
     sequelize,
   });
