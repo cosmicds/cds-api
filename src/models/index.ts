@@ -23,6 +23,7 @@ import { Sequelize } from "sequelize/types";
 import { initializeStudentOptionsModel } from "./student_options";
 import { initializeAPIKeyModel } from "./api_key";
 import { initializeUserExperienceRatingModel } from "./user_experience";
+import { initializeTemporaryFileModel } from "./temporary_file";
 
 export {
   APIKeyRole,
@@ -72,4 +73,5 @@ export function initializeModels(db: Sequelize) {
   initializeDashboardClassGroupModel(db);
   initializeStoryVisitInfoModel(db);
   initializeUserExperienceRatingModel(db);
+  initializeTemporaryFileModel(db);
 }

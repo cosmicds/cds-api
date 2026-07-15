@@ -54,6 +54,9 @@ import {
   patchStoryState,
   getUserExperienceForStory,
   setExperienceInfoForStory,
+  getTemporaryFile,
+  createTemporaryFile,
+  updateTemporaryFile,
 } from "./database";
 
 import {
@@ -70,6 +73,8 @@ import express, { Express, Request, Response as ExpressResponse } from "express"
 import { Response } from "express-serve-static-core";
 import session from "express-session";
 import jwt from "jsonwebtoken";
+import mime from "mime";
+import { validate as validateUUID } from "uuid";
 
 import { isStudentOption } from "./models/student_options";
 import { ExperienceRating } from "./models/user_experience";
@@ -78,7 +83,7 @@ import * as S from "@effect/schema/Schema";
 import * as Either from "effect/Either";
 import { JSONSchema } from "@effect/schema";
 
-import { setupApp } from "./app";
+import { setupApp, uploader } from "./app";
 import { getAPIKey, hasPermission } from "./authorization";
 import { Sequelize } from "sequelize";
 import { sendEmail } from "./email";
@@ -2493,6 +2498,347 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     res.json({
       questions
     });
+  });
+
+  /** 
+   * Temporary files
+   *
+   * Currently, all temporary files expire after 30 minutes.
+   * Maybe in the future we change that?
+   * **/
+
+  /**
+  * @openapi
+  * /temp:
+  *   post:
+  *     tags:
+  *       - temporary
+  *     description: Create a temporary file in the CosmicDS database
+  *     requestBody:
+  *       required: true
+  *       content:
+  *         multipart/form-data:
+  *           schema:
+  *             type: object
+  *             properties:
+  *               file:
+  *                 type: string
+  *                 format: binary
+  *                 description: The content of the temporary file
+  *     responses:
+  *       201:
+  *         description: The temporary file was successfully created 
+  *         content:
+  *           application/json:
+  *             schema:
+  *               type: object
+  *               properties:
+  *                 id:
+  *                   type: string
+  *                   description: The UUID associated with the temporary file
+  *                 url:
+  *                   type: string
+  *                   description: The URL at which the temporary file can be located
+  *                 expires_at:
+  *                   type: string
+  *                   description: A datetime string string indicating when the file is no longer guaranteed to exist
+  *                 expires_in:
+  *                   type: number
+  *                   description: Gives the time, in seconds, until the file is no longer guaranteed to exist
+  *                 content_type:
+  *                   type: string
+  *                   description: The MIME type of the temporary file
+  *         headers:
+  *           Expires:
+  *             description: A datetime string indicating when the file is no longer guaranteed to exist
+  *             schema:
+  *               type: string
+  *           Cache-Control:
+  *             description: max-age gives the time, in seconds, until the file is no longer guaranteed to exist
+  *             schema:
+  *               type: string
+  *           Location:
+  *             description: Gives the URL at which the temporary file can be located
+  *             schema:
+  *               type: string
+  *       400:
+  *         description: The file content was missing
+  *         content:
+  *           application/json:
+  *             schema:
+  *               $ref: "#/components/schemas/Error"
+  *       500:
+  *         description: There was an error creating the temporary file
+  *         content:
+  *           application/json:
+  *             schema:
+  *               $ref: "#/components/schemas/Error"
+  */
+  app.post("/temp", uploader.single("file"), async (req, res) => {
+    const file = req.file;
+    if (file == null) {
+      res.status(400).json({
+        error: "File content is missing",
+      });
+      return;
+    }
+
+    const tempFile = await createTemporaryFile({
+      mime_type: file.mimetype,
+      content: file.buffer,
+    });
+    if (tempFile === null) {
+      res.status(500).json({
+        error: "There was an issue creating the temporary file",
+      });
+      return;
+    }
+
+    const expirationTime = tempFile.get("expires_at");
+    res.setHeader("Expires", expirationTime.toString());
+    const timeToExpiry = Math.floor((expirationTime.getTime() - Date.now()) / 1000);
+    res.setHeader("Cache-Control", `max-age=${timeToExpiry}, must-revalidate`);
+    const location = `${req.protocol}://${req.get("host")}/temp/${tempFile.id}`;
+    res.setHeader("Location", location);
+    res.status(201).json({
+      id: tempFile.id,
+      url: location,
+      expires_at: expirationTime.toString(),
+      expires_in: timeToExpiry,
+      content_type: tempFile.mime_type,
+    });
+  });
+
+  /**
+   * @openapi
+   * /temp/{uuid}
+   *   patch:
+   *     tags:
+   *       - temporary
+   *     description: Update an already existing temporary file. The new content must have the same MIME type as the original
+   *     parameters:
+   *       - name: uuid
+   *         in: path
+   *         required: true
+   *         schema:
+   *           type: string
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         multipart/form-data:
+   *           schema:
+   *             type: object
+   *             properties:
+   *               file:
+   *                 type: string
+   *                 format: binary
+   *                 description: The updated content of the temporary file
+   *     responses:
+   *       204:
+   *         description: The temporary file was succesfully updated
+   *         headers:
+   *           Expires:
+   *             description: A datetime string indicating when the file is no longer guaranteed to exist
+   *             schema:
+   *                type: string
+   *           Cache-Control:
+   *             description: max-age gives the time, in seconds, until the file is no longer guaranteed to exist
+   *             schema:
+   *               type: string
+   *           Location:
+   *             description: Gives the URL at which the temporary file can be located
+   *             schema:
+   *               type: string
+   *       400:
+   *         description: The given UUID was invalid, the file content was missing, or the file content's MIME type did not match the existing file
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: "#/components/schemas/Error"
+   *       404:
+   *         description: No temporary file was found with the given UUID
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: "#/components/schemas/Error"
+   *       500:
+   *         description: There was an error updating the file content
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: "#/components/schemas/Error"
+   * 
+   */
+  app.patch("/temp/:uuid", uploader.single("file"), async (req, res) => {
+    const uuid = req.params.uuid;
+    if (!validateUUID(uuid)) {
+      res.status(400).json({
+        error: "ID is not a valid v4 UUID",
+      });
+      return;
+    }
+
+    const tempFile = await getTemporaryFile(uuid);
+    if (tempFile == null) {
+      res.status(404).json({
+        error: `No temporary file found with ID ${uuid}`,
+      });
+      return;
+    }
+
+    const file = req.file;
+    if (file == null) {
+      res.status(400).json({
+        error: "File content is missing",
+      });
+      return;
+    }
+
+    if (file.mimetype != tempFile.mime_type) {
+      res.status(400).json({
+        error: `Changing MIME type is not allowed. This temporary file has MIME type ${tempFile.mime_type}`,
+      });
+      return;
+    }
+
+    let success = true;
+    await updateTemporaryFile(tempFile, { content: file.buffer })
+      .catch(_error => {
+        success = false;
+      });
+
+    if (!success) {
+      res.status(500).json({
+        error: "There was an error updating the temporary file",
+      });
+      return;
+    }
+
+    const expirationTime = tempFile.get("expires_at");
+    res.setHeader("Expires", expirationTime.toString());
+    const timeToExpiry = Math.floor((expirationTime.getTime() - Date.now()) / 1000);
+    res.setHeader("Cache-Control", `max-age=${timeToExpiry}, must-revalidate`);
+    res.setHeader("Location", `${req.protocol}://${req.get("host")}/temp/${tempFile.id}`);
+    res.status(204).end();
+  });
+
+
+  /**
+    * @openapi
+    * /temp/{uuid}:
+    *   get:
+    *     tags:
+    *       - temporary
+    *   description: Get the content of a temporary file
+    *   parameters:
+    *     - name: uuid
+    *       in: path
+    *       required: true
+    *       schema:
+    *         type: string
+    *   responses:
+    *     200:
+    *       description: The requested temporary file exists and its content has been returned. The MIME type will match the file's contents.
+    *       content:
+    *         * / *:
+    *           schema:
+    *             type: string
+    *             format: binary
+    *     400:
+    *       description: The given UUID was invalid
+    *       content:
+    *         application/json:
+    *           schema:
+    *             $ref: "#/components/schemas/Error"
+    *     404:
+    *       description: No temporary file was found for the given UUID
+    *       content:
+    *         application/json:
+    *           schema:
+    *             $ref: "#/components/schemas/Error"
+    *       
+   */
+  app.get("/temp/:uuid", async (req, res) => {
+    const uuid = req.params.uuid;
+    if (!validateUUID(uuid)) {
+      res.status(400).json({
+        error: "ID is not a valid v4 UUID",
+      });
+      return;
+    }
+
+    const tempFile = await getTemporaryFile(uuid);
+    if (tempFile == null) {
+      res.status(404).json({
+        error: `No temporary file found with ID ${uuid}`,
+      });
+      return;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error `getExtension` exists
+    const extension = mime.getExtension(tempFile.mime_type);
+    const filename = `file.${extension}`;
+
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.setHeader("Content-Type", tempFile.mime_type);
+    const timeToExpiry = Math.floor((tempFile.expires_at.getTime() - Date.now()) / 1000);
+    res.setHeader("Expires", tempFile.expires_at.toString());
+    res.setHeader("Cache-Control", `max-age=${timeToExpiry}, must-revalidate`);
+    res.setHeader("Last-Modified", tempFile.last_modified.toString());
+    const age = Math.round((Date.now() - tempFile.created_at.getTime()) / 1000);
+    res.setHeader("Age", age);
+    res.send(tempFile.content);
+  });
+
+  /**
+   * @openapi
+   * /temp/{uuid}:
+   *   delete:
+   *     tags:
+   *       - temporary
+   *     description: Manually delete a temporary file
+   *     parameters:
+   *       - name: uuid
+   *         in: path
+   *         required: true
+   *         schema:
+   *           type: string
+   *     responses:
+   *       204:
+   *         description: The temporary file was successfully deleted
+   *       400:
+   *         description: The given UUID was invalid
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: "#/components/schemas/Error"
+   *       404:
+   *         description: No temporary file was found for the given UUID
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: "#/components/schemas/Error"
+   */
+  app.delete("/temp/:uuid", async (req, res) => {
+    const uuid = req.params.uuid;
+    if (!validateUUID(uuid)) {
+      res.status(400).json({
+        error: "ID is not a valid UUID",
+      });
+      return;
+    }
+
+    const tempFile = await getTemporaryFile(uuid);
+    if (tempFile == null) {
+      res.status(404).json({
+        error: `No temporary file found with ID ${uuid}`,
+      });
+      return;
+    }
+
+    await tempFile.destroy();
+    res.status(204).send();
   });
 
   /** Testing Endpoints

@@ -120,6 +120,13 @@ export async function createClassCode(length: number = 6): Promise<string> {
   return code;
 }
 
+export function bufferFromUint8array(array: Uint8Array): Buffer {
+  return Buffer.from(
+    array.buffer,
+    array.byteOffset,
+    array.byteLength,
+  );
+}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function isArrayThatSatisfies<T extends Array<any>>(array: any, condition: (t: Array<any>) => boolean): array is T {

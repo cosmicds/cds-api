@@ -2,7 +2,7 @@ import * as S from "@effect/schema/Schema";
 
 import { SeasonsData } from "./models";
 import { logger } from "../../logger";
-import { OptionalInt, OptionalNumberArray, OptionalNumberPair, OptionalNumberPairArray, OptionalStringArray, StringArray, UpdateAttributes, arrayType } from "../../utils";
+import { OptionalInt, OptionalNumberArray, OptionalNumberPair, OptionalNumberPairArray, OptionalStringArray, StringArray, UpdateAttributes } from "../../utils";
 import { CreationAttributes } from "sequelize";
 
 type SeasonsDataUpdateAttributes = UpdateAttributes<SeasonsData>;

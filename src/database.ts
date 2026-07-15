@@ -2,6 +2,7 @@ import { BaseError, Options, Model, Op, QueryTypes, Sequelize, UniqueConstraintE
 import dotenv from "dotenv";
 import { createNamespace } from "cls-hooked";
 
+import * as AST from "@effect/schema/AST";
 import * as S from "@effect/schema/Schema";
 
 import {
@@ -27,6 +28,7 @@ import {
   Either,
   Mutable,
   creationToUpdateAttributes,
+  bufferFromUint8array,
 } from "./utils";
 
 
@@ -47,6 +49,7 @@ import { logger } from "./logger";
 import { Stage } from "./models/stage";
 import { ClassSetupParams, classSetupRegistry } from "./registries";
 import { UserExperienceRating } from "./models/user_experience";
+import { TemporaryFile } from "./models/temporary_file";
 
 export type LoginResponse = {
   type: "none" | "student" | "educator" | "admin",
@@ -1091,4 +1094,63 @@ export async function getUserExperienceForStory(uuid: string, storyName: string)
       story_name: storyName,
     }
   });
+}
+
+/** Temporary files */
+export const CreateTemporaryFileSchema = S.struct({
+  mime_type: S.string,
+  content: S.Uint8Array.pipe(
+    S.annotations({
+      [AST.JSONSchemaAnnotationId]: {
+        description: "<data>",
+      },
+    }),
+  ),
+  filename: S.optional(S.string),
+});
+export type CreateTemporaryFileOptions = S.Schema.To<typeof CreateTemporaryFileSchema>;
+
+// For now, let's say that only the content (not the MIME type or filename) can be updated
+export const UpdateTemporaryFileSchema = S.struct({
+  content: S.Uint8Array.pipe(
+    S.annotations({
+      [AST.JSONSchemaAnnotationId]: {
+        description: "<data>",
+      },
+    }),
+  ),
+});
+export type UpdateTemporaryFileOptions = S.Schema.To<typeof UpdateTemporaryFileSchema>;
+
+
+export async function createTemporaryFile(options: CreateTemporaryFileOptions): Promise<TemporaryFile | null> {
+  const file = await TemporaryFile.create({
+    ...options,
+    content: bufferFromUint8array(options.content),
+  }).catch(error => {
+    console.error(error);
+    return null;
+  });
+  
+  if (file != null) {
+    await file.reload();
+  }
+
+  return file;
+}
+
+export async function getTemporaryFile(id: string): Promise<TemporaryFile | null> {
+  return TemporaryFile.findOne({ where: { id } }).catch(_error => null);
+}
+
+export async function updateTemporaryFile(file: TemporaryFile, options: UpdateTemporaryFileOptions): Promise<TemporaryFile | null> {
+  const now = new Date();
+  const expiresAt = new Date(now);
+  expiresAt.setMinutes(expiresAt.getMinutes() + 30);
+  return file.update({
+      content: bufferFromUint8array(options.content),
+      expires_at: expiresAt,
+      last_modified: now,
+    },
+  );
 }

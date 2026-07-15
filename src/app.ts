@@ -2,6 +2,7 @@ import { Express } from "express";
 import session from "express-session";
 import bodyParser from "body-parser";
 import cookieParser from "cookie-parser";
+import multer from "multer";
 import cors, { CorsOptions } from "cors";
 import { Sequelize } from "sequelize";
 import sequelizeStore from "connect-session-sequelize";
@@ -12,8 +13,10 @@ import { ALLOWED_ORIGINS } from "./utils";
 import { OAS3Options } from "swagger-jsdoc";
 
 import { schemas } from "./openapi/schemas";
-import { COSMICDS_OPENAPI_VERSION, COSMICDS_HOST, COSMICDS_OPENAPI_APIKEY_SCHEME, COSMICDS_OPENAPI_TAGS } from "./openapi/options";
+import { COSMICDS_OPENAPI_VERSION, COSMICDS_OPENAPI_APIKEY_SCHEME, COSMICDS_OPENAPI_TAGS } from "./openapi/options";
 import { registerSwaggerDocs } from "./openapi/utils";
+
+export const uploader = multer({ storage: multer.memoryStorage() });
 
 export function setupApp(app: Express, db: Sequelize) {
 
