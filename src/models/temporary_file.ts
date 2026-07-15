@@ -4,7 +4,6 @@ export class TemporaryFile extends Model<InferAttributes<TemporaryFile>, InferCr
   declare id: CreationOptional<string>;
   declare content: Buffer;
   declare mime_type: string;
-  declare filename: CreationOptional<string | null>;
   declare created_at: CreationOptional<Date>;
   declare last_modified: CreationOptional<Date>;
   declare expires_at: CreationOptional<Date>;
@@ -25,11 +24,6 @@ export function initializeTemporaryFileModel(sequelize: Sequelize) {
     mime_type: {
       type: DataTypes.STRING,
       allowNull: false,
-    },
-    filename: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-      defaultValue: null,
     },
     created_at: {
       type: DataTypes.DATE,

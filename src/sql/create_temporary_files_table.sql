@@ -2,7 +2,6 @@ CREATE TABLE TemporaryFiles (
     id CHAR(36) NOT NULL DEFAULT (UUID()),
     content BLOB NOT NULL,
     mime_type VARCHAR(255) NOT NULL,
-    filename TEXT DEFAULT NULL,
     expires_at DATETIME NOT NULL DEFAULT (NOW() + INTERVAL 30 MINUTE),
 
     PRIMARY KEY(id)
