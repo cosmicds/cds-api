@@ -2788,6 +2788,9 @@ export function createApp(db: Sequelize, options?: AppOptions): Express {
     res.setHeader("Last-Modified", tempFile.last_modified.toString());
     const age = Math.round((Date.now() - tempFile.created_at.getTime()) / 1000);
     res.setHeader("Age", age);
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Headers", "Range");
+    res.setHeader("Access-Control-Expose-Headers", "Cache-Control, Content-Encoding, Content-Range");
     res.send(tempFile.content);
   });
 
