@@ -13,6 +13,8 @@ export async function apiKeyMiddleware(req: Request, res: ExpressResponse, next:
     ||
   req.path.startsWith("/docs")
     ||
+  (req.path.startsWith("/temp") && req.method.toLowerCase() == "get")
+    ||
   /docs(.json)?/.test(req.path);
 
   if (noKeyNeeded) {
