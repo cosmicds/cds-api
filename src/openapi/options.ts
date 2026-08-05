@@ -25,6 +25,10 @@ export const COSMICDS_OPENAPI_TAGS: Tag[] = [
     name: "questions",
     description: "Operations related to managing questions",
   },
+  {
+    name: "temporary",
+    description: "Operations related to managing temporary files in the CosmicDS database.",
+  },
 ];
 
 export const COSMICDS_OPENAPI_APIKEY_SCHEME: SecurityScheme = {
