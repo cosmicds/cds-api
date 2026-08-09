@@ -1,9 +1,10 @@
 import { readdirSync } from "fs";
 import { join } from "path";
-import { createApp } from "./server";
+import { createApp, setupRoutes } from "./server";
 import { getDatabaseConnection } from "./database";
 import { storyRouter } from "./story_router";
 import { setupSwaggerDocs } from "./openapi/utils";
+import { StoryInfo } from "./types";
 
 const STORIES_DIR = join(__dirname, "stories");
 const MAIN_FILE = "main.js";
@@ -14,12 +15,13 @@ const app = createApp(db);
 const setupPromises: Promise<void>[] = [];
 
 const entries = readdirSync(STORIES_DIR, { withFileTypes: true });
+const storyParams = { app, db };
 entries.forEach(entry => {
   const promise = new Promise<void>((resolve, _reject) => {
     if (entry.isDirectory()) {
       const file = join(STORIES_DIR, entry.name, MAIN_FILE);
-      import(file).then(data => {
-        data.setup(app, db);
+      import(file).then((data: StoryInfo) => {
+        data.setup(storyParams);
         app.use(data.path, data.router);
         resolve();
       }).catch(_err => {});
@@ -28,13 +30,6 @@ entries.forEach(entry => {
     }
   });
   setupPromises.push(promise);
-});
-
-Promise.all(setupPromises)
-.then(() => setupSwaggerDocs(app))
-.catch(error => {
-  console.error(error);
-  throw new Error("Error setting up sub-routers!");
 });
 
 const stories = [
@@ -46,6 +41,24 @@ const stories = [
 stories.forEach(story => {
   const router = storyRouter(story);
   app.use(`/${story}`, router);
+});
+
+Promise.all(setupPromises)
+.then(() => {
+  setupSwaggerDocs(app);
+  setupRoutes(app);
+  entries.forEach(async entry => {
+    if (entry.isDirectory()) {
+      const file = join(STORIES_DIR, entry.name, MAIN_FILE);
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const data = require(file);
+      data.createEndpoints(data.router);
+    }
+  });
+})
+.catch(error => {
+  console.error(error);
+  throw new Error("Error setting up sub-routers!");
 });
 
 // set port, listen for requests
